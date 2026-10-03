@@ -1,6 +1,7 @@
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
+import { Icon } from './Icon';
 
 // Agent-written prose (the CEO's texts, resumes, job descriptions) rendered as Markdown.
 // Safe by default: raw HTML is shown as text, never parsed, and only http(s)/mailto links work.
@@ -36,10 +37,10 @@ const components: Components = {
   img: ({ src, alt }) =>
     typeof src === 'string' && src ? (
       <a href={src} target="_blank" rel="noopener noreferrer">
-        🖼 {alt || src}
+        <Icon name="frame" /> {alt || src}
       </a>
     ) : (
-      <span>🖼 {alt}</span>
+      <span><Icon name="frame" /> {alt}</span>
     ),
   table: ({ children }) => (
     <div className="md-table">

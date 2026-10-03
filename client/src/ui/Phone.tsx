@@ -57,15 +57,15 @@ export function Resume({ req, highlight }: { req: HireRequestView; highlight?: b
           <div className="resume-name">{hire ? req.name : `Let ${req.name} go?`}</div>
           <div className="resume-title">{req.title}</div>
         </div>
-        {!pending && <span className={`chip ${req.status === 'approved' ? 'chip-good' : ''}`}>{req.status === 'approved' ? (hire ? '✅ recruited' : '👋 left') : '✋ declined'}</span>}
+        {!pending && <span className={`chip ${req.status === 'approved' ? 'chip-good' : ''}`}><IconText text={req.status === 'approved' ? (hire ? '✅ recruited' : '👋 left') : '✋ declined'} /></span>}
       </div>
       <div className="resume-meta">
         <span className="chip" style={{ background: repo?.color }}>
           Chamber {repo?.floor ?? '?'}
         </span>
         <span className="muted small">{repo?.fullName.split('/')[1] ?? 'removed chamber'}</span>
-        <span className="chip">{req.role === 'qa' ? '🔍 QA' : '⚒️ Coder'}</span>
-        {req.specialty && <span className="chip">🎯 {req.specialty}</span>}
+        <span className="chip"><IconText text={req.role === 'qa' ? '🔍 QA' : '⚒️ Coder'} /></span>
+        {req.specialty && <span className="chip"><IconText text="🎯" /> {req.specialty}</span>}
       </div>
       {req.reason && <Markdown className="resume-reason" text={req.reason} />}
       {hire && req.brief && (
@@ -115,7 +115,7 @@ function Hires({ focusId }: { focusId?: string }) {
   const decided = requests.filter((r) => r.status !== 'pending').slice(-8).reverse();
   return (
     <div className="phone-scroll">
-      <h3 className="phone-h">📄 Waiting on you {pending.length > 0 && <span className="badge">{pending.length}</span>}</h3>
+      <h3 className="phone-h"><IconText text="📄" /> Waiting on you {pending.length > 0 && <span className="badge">{pending.length}</span>}</h3>
       {pending.length === 0 && <p className="muted small phone-empty">Nobody's waiting. When the DungeonMaster wants to recruit someone, or let someone go, their credentials show up here.</p>}
       {pending.map((r) => (
         <Resume key={r.id} req={r} highlight={r.id === focusId} />
@@ -344,7 +344,7 @@ function Company() {
         {tiles.map(([icon, value, label]) => (
           <div key={label} className="tile">
             <div className="tile-value">
-              {icon} {value}
+              <IconText text={icon} /> {value}
             </div>
             <div className="tile-label">{label}</div>
           </div>
@@ -354,7 +354,7 @@ function Company() {
       <ul className="report">
         {c.report.map((r, i) => (
           <li key={i} className={r.tone ? `report-${r.tone}` : ''}>
-            <span>{r.icon}</span>
+            <span><IconText text={r.icon} /></span>
             <span>{r.text}</span>
           </li>
         ))}

@@ -3,6 +3,7 @@ import { api, type FloorOptions } from '../api';
 import { useStore } from '../store';
 import type { GhRepoSummary, ProjectFolderView, RepoView } from '../../../shared/types';
 import { confirmDialog } from './Confirm';
+import { Icon, IconText } from './Icon';
 
 // Add a project to the office: one of your own folders, a GitHub repo, or something brand new.
 // Used by the setup wizard and by the Floors tab of the manager's console.
@@ -89,11 +90,11 @@ function FolderMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoVi
         {shown.map((f) => (
           <div key={f.path} className="repo-row">
             <div style={{ minWidth: 0 }}>
-              <b>📁 {f.name}</b>{' '}
+              <b><Icon name="chest" /> {f.name}</b>{' '}
               {f.floor != null ? (
                 <span className="chip chip-good">chamber {f.floor}</span>
               ) : f.github ? (
-                <span className="chip">🐙 {f.github}</span>
+                <span className="chip"><Icon name="hood" /> {f.github}</span>
               ) : (
                 <span className="chip chip-warn">{f.git ? 'not on GitHub' : 'no git yet'}</span>
               )}
@@ -244,7 +245,7 @@ export function ProjectPicker({ onConnected, initial = 'folder' }: { onConnected
       <div className="picker-tabs">
         {modes.map(([k, label]) => (
           <button key={k} className={`picker-tab ${mode === k ? 'picker-tab-on' : ''}`} onClick={() => setMode(k)}>
-            {label}
+            <IconText text={label} />
           </button>
         ))}
       </div>
@@ -256,7 +257,7 @@ export function ProjectPicker({ onConnected, initial = 'folder' }: { onConnected
       />
       <label className="toggle small">
         <input type="checkbox" checked={autoAssign} onChange={(e) => setAutoAssign(e.target.checked)} />
-        ⚡ Start work automatically: idle coders pick up issues as soon as they're filed (you can switch this off per chamber)
+        <Icon name="bolt" /> Start work automatically: idle coders pick up issues as soon as they're filed (you can switch this off per chamber)
       </label>
       {mode === 'folder' && <FolderMode floor={floor} onDone={done} />}
       {mode === 'github' && <GithubMode floor={floor} onDone={done} />}

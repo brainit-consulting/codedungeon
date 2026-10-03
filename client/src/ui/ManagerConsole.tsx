@@ -7,6 +7,7 @@ import { effectiveModel } from '../../../shared/models';
 import { canPostpone, canUpdateNow, drainDeadline, officeUpdateText } from '../officeUpdate';
 import { confirmDialog } from './Confirm';
 import { IssueForm } from './KanbanView';
+import { Icon, IconText } from './Icon';
 import { LiveTerminal } from './LiveTerminal';
 import { Panel } from './Overlays';
 import { Resume } from './Phone';
@@ -61,7 +62,7 @@ function OfficeRow({ update }: { update: OfficeUpdateView }) {
     <div className="card office-card">
       <div className="row wrap">
         <span className="floor-badge office-badge" aria-hidden>
-          🏢
+          <Icon name="castle" />
         </span>
         <div className="grow">
           <b>Dungeon</b> <span className="muted small">running {commit ? <code>{commit}</code> : 'an unknown commit'}</span>
@@ -116,13 +117,13 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
           <a href={repo.url} target="_blank" rel="noreferrer">
             <b>{repo.fullName}</b>
           </a>
-          {repo.summary && <div className="small">🧠 {repo.summary}</div>}
+          {repo.summary && <div className="small"><Icon name="crown" /> {repo.summary}</div>}
           <div className="muted small">
             {team.length} in the guild · {repo.issues.length} open issues · {repo.pulls.filter((p) => p.state === 'OPEN').length} open PRs · default branch <code>{repo.defaultBranch}</code>
             {repo.cloneStatus !== 'ready' && ` · checkout: ${repo.cloneStatus}`}
           </div>
           <div className="muted small" title={repo.localPath ? 'Your own project folder' : 'A clone the dungeon manages'}>
-            📁 <code>{repo.checkoutPath}</code>
+            <Icon name="chest" /> <code>{repo.checkoutPath}</code>
             {officeFolder ? " · the dungeon's own folder, updated from the Dungeon row" : repo.folderSync && ` · ${repo.folderSync}`}{' '}
             <button className="btn btn-small btn-ghost" title="Fast-forward it to GitHub's default branch, when that's safe" onClick={() => void attempt(() => api.syncFolder(repo.id))}>
               ⟳ Sync now
@@ -136,18 +137,18 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
           Visit
         </button>
         <button className="btn btn-small" onClick={() => useStore.getState().openOverlay({ kind: 'ship', repoId: repo.id })}>
-          🚢 Ship
+          <Icon name="ship" /> Ship
         </button>
       </div>
       <div className="row wrap">
         <label className="toggle">
-          <input type="checkbox" checked={repo.autoAssign} onChange={(e) => patch({ autoAssign: e.target.checked })} /> ⚡ Auto-assign issues
+          <input type="checkbox" checked={repo.autoAssign} onChange={(e) => patch({ autoAssign: e.target.checked })} /> <Icon name="bolt" /> Auto-assign issues
         </label>
         <label className="toggle" title="Merge a PR as soon as QA has signed off on its latest commit and GitHub's checks are green">
-          <input type="checkbox" checked={repo.autoMerge} onChange={(e) => patch({ autoMerge: e.target.checked })} /> 🔀 Auto-merge
+          <input type="checkbox" checked={repo.autoMerge} onChange={(e) => patch({ autoMerge: e.target.checked })} /> <Icon name="fork" /> Auto-merge
         </label>
         <label className="toggle">
-          <input type="checkbox" checked={repo.browserTesting} onChange={(e) => patch({ browserTesting: e.target.checked })} /> 🌐 Browser testing (Playwright MCP)
+          <input type="checkbox" checked={repo.browserTesting} onChange={(e) => patch({ browserTesting: e.target.checked })} /> <Icon name="globe" /> Browser testing (Playwright MCP)
         </label>
         <span className="spacer" />
         <button
@@ -166,7 +167,7 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
       </div>
       {others.length > 0 && (
         <div className="row wrap links">
-          <span className="muted small">🔗 Coders and testers here may read:</span>
+          <span className="muted small"><Icon name="chain" /> Coders and testers here may read:</span>
           {others.map((o) => (
             <label key={o.id} className="toggle small">
               <input
@@ -181,7 +182,7 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
       )}
       <details className="small preview-details">
         <summary>
-          🖥️ App preview · <PreviewPill status={repo.preview.status} />
+          <Icon name="slate" /> App preview · <PreviewPill status={repo.preview.status} />
           {repo.previewConfig.command ? (
             <>
               {' '}
@@ -207,14 +208,14 @@ function FloorsTab() {
     <div className="tab-grid">
       <div>
         {officeUpdate && <OfficeRow update={officeUpdate} />}
-        <h3 className="section">🏰 Chambers</h3>
+        <h3 className="section"><Icon name="castle" /> Chambers</h3>
         {repos.length === 0 && <p className="muted">No chambers yet. Add a project →</p>}
         {[...repos].sort((a, b) => a.floor - b.floor).map((r) => (
           <FloorRow key={r.id} repo={r} all={repos} />
         ))}
       </div>
       <div className="card">
-        <h3>➕ Add a project</h3>
+        <h3><Icon name="plus" /> Add a project</h3>
         <ProjectPicker />
       </div>
     </div>
@@ -232,7 +233,7 @@ function FloorBrief({ repo }: { repo: RepoView }) {
         <span className="floor-badge">{repo.floor}</span>
         <div className="grow">
           <b>{repo.fullName}</b>
-          <div className="muted small">{repo.summary ? `🧠 ${repo.summary}` : 'The DungeonMaster has not studied this chamber yet.'}</div>
+          <div className="muted small">{repo.summary ? <IconText text={`🧠 ${repo.summary}`} /> : 'The DungeonMaster has not studied this chamber yet.'}</div>
         </div>
         <button className="btn btn-small btn-ghost" onClick={() => void attempt(() => api.onboardFloor(repo.id))} title="Study the repo again and rethink the guild">
           Re-study
@@ -245,7 +246,7 @@ function FloorBrief({ repo }: { repo: RepoView }) {
         </button>
         <span className="spacer" />
         <button className="btn btn-small btn-good" disabled={!mission.trim()} onClick={() => void attempt(() => api.planFloor(repo.id, mission))}>
-          🧠 Ask the DungeonMaster to plan it
+          <Icon name="crown" /> Ask the DungeonMaster to plan it
         </button>
       </div>
       <details className="small">
@@ -363,16 +364,16 @@ function CeoTab() {
               </button>
             )}
             <button className="btn btn-small" disabled={repos.length === 0} onClick={() => void attempt(() => api.ceoReview())}>
-              🔎 Review the dungeon now
+              <Icon name="lens" /> Review the dungeon now
             </button>
             <button className="btn btn-small" onClick={() => openOverlay({ kind: 'phone', tab: 'chat' })}>
-              📜 Open your scroll
+              <Icon name="scroll" /> Open your scroll
             </button>
           </div>
         </div>
       </div>
       <div>
-        <h3 className="section">📄 Recruiting {pending.length > 0 && <span className="badge">{pending.length}</span>}</h3>
+        <h3 className="section"><Icon name="letter" /> Recruiting {pending.length > 0 && <span className="badge">{pending.length}</span>}</h3>
         {pending.length === 0 && <p className="muted small">No recruits waiting. The DungeonMaster puts forward recruits after studying a chamber, or when the guild can't cover the work.</p>}
         {pending.map((r) => (
           <Resume key={r.id} req={r} />
@@ -385,7 +386,7 @@ function CeoTab() {
             ))}
           </details>
         )}
-        <h3 className="section">🗺️ Project briefs</h3>
+        <h3 className="section"><Icon name="map" /> Project briefs</h3>
         {repos.length === 0 && <p className="muted small">Connect a repo first.</p>}
         {[...repos].sort((a, b) => a.floor - b.floor).map((r) => (
           <FloorBrief key={r.id} repo={r} />
@@ -461,8 +462,7 @@ function TeamTab() {
                     </td>
                     <td className="nowrap">
                       <span className="chip" title={a.hiredBy === 'ceo' ? 'Recruited on the DungeonMaster\'s word' : undefined}>
-                        {a.role === 'qa' ? '🔍 QA' : '⚒️ Coder'}
-                        {a.hiredBy === 'ceo' ? ' · 🧠' : ''}
+                        <IconText text={`${a.role === 'qa' ? '🔍 QA' : '⚒️ Coder'}${a.hiredBy === 'ceo' ? ' · 🧠' : ''}`} />
                       </span>
                     </td>
                     <td>
@@ -488,7 +488,7 @@ function TeamTab() {
                     </td>
                     <td>
                       <button className="btn btn-small btn-ghost" title="Duties and look" onClick={() => setOpenBrief(openBrief === a.id ? null : a.id)}>
-                        📝{a.brief ? '' : ' +'}
+                        <Icon name="quill" />{a.brief ? '' : ' +'}
                       </button>
                     </td>
                     <td>
@@ -558,8 +558,8 @@ function TeamTab() {
                             style={{ width: 'auto' }}
                             onChange={(e) => void attempt(() => api.updateAgent(a.id, { look: e.target.value as 'feminine' | 'masculine' }))}
                           >
-                            <option value="feminine">👩 She</option>
-                            <option value="masculine">👨 He</option>
+                            <option value="feminine">She</option>
+                            <option value="masculine">He</option>
                           </select>
                         </label>
                         <textarea
@@ -595,7 +595,7 @@ function IssuesTab({ initialRepo }: { initialRepo?: string }) {
   return (
     <div className="tab-grid">
       <div className="card">
-        <h3>📝 File a new issue</h3>
+        <h3><Icon name="quill" /> File a new issue</h3>
         <select value={repoId} onChange={(e) => setRepoId(e.target.value)}>
           {repos.map((r) => (
             <option key={r.id} value={r.id}>
@@ -660,7 +660,7 @@ function SettingsTab() {
   return (
     <div className="tab-grid">
       <div className="card">
-        <h3>🧠 Coders</h3>
+        <h3><Icon name="crown" /> Coders</h3>
         {terminal && (
           <label className="field">
             <span>Default coding agent</span>
@@ -719,7 +719,7 @@ function SettingsTab() {
           />
         </label>
         <p className="muted small">When Claude warns that usage is getting high, new issues only start while fewer sessions than this are running. QA, fixes and the DungeonMaster carry on.</p>
-        <h3>🧠 The DungeonMaster</h3>
+        <h3><Icon name="crown" /> The DungeonMaster</h3>
         <label className="toggle block">
           <input type="radio" checked={settings.hiring === 'approve'} onChange={() => set({ hiring: 'approve' })} />
           <span>
@@ -760,7 +760,7 @@ function SettingsTab() {
           Coders work like your own coding agents in a terminal, with your skills, MCP servers and settings, and don't stop to ask. The dungeon's workflow (branches, pull requests, QA reporting
           back) is in their instructions.
         </p>
-        <h3>🏰 Company</h3>
+        <h3><Icon name="castle" /> Company</h3>
         <label className="field">
           <span>Your name</span>
           <input defaultValue={settings.managerName} placeholder={user ?? 'Overlord'} onBlur={(e) => e.target.value !== settings.managerName && set({ managerName: e.target.value })} />
@@ -775,10 +775,10 @@ function SettingsTab() {
         </label>
         <div className="row">
           <button className="btn btn-small" onClick={() => set({ tutorialStep: 0 })}>
-            🧭 Replay the tour
+            <Icon name="compass" /> Replay the tour
           </button>
         </div>
-        <h3>ℹ️ Environment</h3>
+        <h3><Icon name="info" /> Environment</h3>
         <div className="small">
           GitHub: <b>{user ?? 'not signed in'}</b>
           {demo && ' (demo)'}
@@ -805,7 +805,7 @@ export function ManagerConsole({ initialTab, initialRepo }: { initialTab?: Manag
       <div className="tabs">
         {tabs.map(([k, label]) => (
           <button key={k} className={`tab ${tab === k ? 'tab-on' : ''}`} onClick={() => setTab(k)}>
-            {label}
+            <IconText text={label} />
           </button>
         ))}
       </div>

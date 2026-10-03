@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { useStore } from '../store';
 import type { PreviewStatus, RepoView } from '../../../shared/types';
+import { Icon } from './Icon';
 import { Panel } from './Overlays';
 
 const STATUS_LABEL: Record<PreviewStatus, string> = {
@@ -104,7 +105,7 @@ export function PreviewSettings({ repo, saveLabel = 'Save', onSaved }: { repo: R
         Runs from the repo root in the chamber's own preview worktree. <code>{'{port}'}</code> is this chamber's port ({repo.preview.port}) and <code>PORT</code> is always set;{' '}
         <code>{'{tmp}'}</code> is a scratch folder.{!unconfigured && ' Leave the command empty to use the auto-detected npm script.'}
       </p>
-      {error && <div className="term-error">⚠️ {error}</div>}
+      {error && <div className="term-error"><Icon name="warning" /> {error}</div>}
       <div className="row">
         <button className="btn btn-small btn-good" disabled={busy || (!dirty && !onSaved) || (unconfigured && !command.trim())}>
           {busy ? 'Saving…' : saveLabel}
@@ -197,7 +198,7 @@ export function AppViewer({ repoId }: { repoId: string }) {
       accent={repo.color}
       title={
         <span className="app-title">
-          <span className="app-title-name">🖥️ {name}</span>
+          <span className="app-title-name"><Icon name="slate" /> {name}</span>
           <PreviewPill status={preview.status} />
           {preview.ref && preview.status !== 'stopped' && preview.status !== 'unconfigured' && (
             <span className="muted small app-title-ref">
@@ -247,10 +248,10 @@ export function AppViewer({ repoId }: { repoId: string }) {
         </button>
         <div className="seg" role="group" aria-label="Viewport width">
           <button className={`seg-btn ${width === 'desktop' ? 'seg-on' : ''}`} aria-pressed={width === 'desktop'} onClick={() => pickWidth('desktop')}>
-            🖥 Desktop
+            Desktop
           </button>
           <button className={`seg-btn ${width === 'phone' ? 'seg-on' : ''}`} aria-pressed={width === 'phone'} onClick={() => pickWidth('phone')} title="390px wide">
-            📱 Phone
+            Phone
           </button>
         </div>
         <span className="spacer" />
@@ -294,7 +295,7 @@ export function AppViewer({ repoId }: { repoId: string }) {
         </>
       ) : active ? (
         <div className="app-state" role="status">
-          <div className="app-state-icon app-spin">⚙️</div>
+          <div className="app-state-icon app-spin"><Icon name="gear" /></div>
           <h3>Getting {refLabel(preview.pr)} ready…</h3>
           <ol className="app-steps">
             {STEPS.map((s, i) => {
@@ -312,7 +313,7 @@ export function AppViewer({ repoId }: { repoId: string }) {
         </div>
       ) : preview.status === 'error' ? (
         <div className="app-state app-state-left">
-          <h3>⚠️ The app didn't run</h3>
+          <h3><Icon name="warning" /> The app didn't run</h3>
           <div className="term-error">{preview.error ?? 'The app stopped unexpectedly.'}</div>
           <pre className="term app-log" aria-label="Last output">
             {preview.logTail.length ? preview.logTail.join('\n') : '(no output)'}
@@ -322,20 +323,20 @@ export function AppViewer({ repoId }: { repoId: string }) {
               ↻ Try again
             </button>
             <button className="btn" aria-expanded={showSettings} onClick={() => setShowSettings((v) => !v)}>
-              ⚙️ Run settings
+              <Icon name="gear" /> Run settings
             </button>
           </div>
           {showSettings && <PreviewSettings repo={repo} />}
         </div>
       ) : preview.status === 'unconfigured' ? (
         <div className="app-state app-state-left">
-          <h3>🛠️ How should the dungeon run this app?</h3>
+          <h3><Icon name="hammer" /> How should the dungeon run this app?</h3>
           <p className="muted">{preview.error ?? 'This chamber has no package.json to fall back on.'} Give it a command that serves the app on the chamber's port.</p>
           <PreviewSettings repo={repo} saveLabel="Save & start" onSaved={() => void start()} />
         </div>
       ) : (
         <div className="app-state">
-          <div className="app-state-icon">🖥️</div>
+          <div className="app-state-icon"><Icon name="slate" /></div>
           <h3>The app isn't running</h3>
           <p className="muted">
             Start it on <b>{refLabel(picked)}</b> to use it right here. It runs from the chamber's own preview worktree on port {preview.port}.
@@ -344,7 +345,7 @@ export function AppViewer({ repoId }: { repoId: string }) {
             ▶ Start {refLabel(picked)}
           </button>
           <button className="btn btn-ghost btn-small" aria-expanded={showSettings} onClick={() => setShowSettings((v) => !v)}>
-            ⚙️ Run settings
+            <Icon name="gear" /> Run settings
           </button>
           {showSettings && (
             <div className="app-state-left app-settings">

@@ -3,7 +3,7 @@ import { api } from '../api';
 import { agentsOnRepo, kanbanFor, useStore, type Agent, type KanbanCard } from '../store';
 import { confirmDialog } from './Confirm';
 import { Panel } from './Overlays';
-import { IconText } from './Icon';
+import { Icon, IconText } from './Icon';
 
 function AgentChip({ agent }: { agent?: Agent }) {
   if (!agent) return null;
@@ -137,7 +137,7 @@ export function KanbanView({ repoId }: { repoId: string }) {
   const column = (title: string, cls: string, cards: KanbanCard[], render: (c: KanbanCard) => React.ReactNode, empty: string) => (
     <div className={`kcol ${cls}`}>
       <div className="kcol-head">
-        {title} <span className="count">{cards.length}</span>
+        <IconText text={title} /> <span className="count">{cards.length}</span>
       </div>
       <div className="kcol-body">
         {cards.length === 0 && <div className="muted small kempty">{empty}</div>}
@@ -166,7 +166,7 @@ export function KanbanView({ repoId }: { repoId: string }) {
       accent={repo.color}
       title={
         <span>
-          📋 {repo.fullName}{' '}
+          <Icon name="board" /> {repo.fullName}{' '}
           <a className="small" href={repo.url} target="_blank" rel="noreferrer">
             GitHub ↗
           </a>
@@ -179,22 +179,22 @@ export function KanbanView({ repoId }: { repoId: string }) {
         </button>
         <label className="toggle">
           <input type="checkbox" checked={repo.autoAssign} onChange={(e) => void api.updateRepo(repo.id, { autoAssign: e.target.checked }).catch(() => undefined)} />
-          ⚡ Auto-assign backlog to idle coders
+          <Icon name="bolt" /> Auto-assign backlog to idle coders
         </label>
         <label className="toggle" title="Merge a PR as soon as QA has signed off on its latest commit and GitHub's checks are green">
           <input type="checkbox" checked={repo.autoMerge} onChange={(e) => void api.updateRepo(repo.id, { autoMerge: e.target.checked }).catch(() => undefined)} />
-          🔀 Auto-merge when QA and checks pass
+          <Icon name="fork" /> Auto-merge when QA and checks pass
         </label>
         <span className="spacer" />
         <button className="btn" onClick={() => openOverlay({ kind: 'app', repoId: repo.id })} title="Open this chamber's running app">
-          🖥️ View app
+          <Icon name="slate" /> View app
         </button>
         <span className="muted small">{repo.lastSync ? `Synced ${new Date(repo.lastSync).toLocaleTimeString()}` : 'Syncing…'}</span>
         <button className="btn" disabled={pending === 'sync'} onClick={() => act('sync', () => api.syncRepo(repo.id))}>
           ⟳ Sync
         </button>
       </div>
-      {repo.syncError && <div className="term-error">⚠️ {repo.syncError}</div>}
+      {repo.syncError && <div className="term-error"><Icon name="warning" /> {repo.syncError}</div>}
       {showForm && <IssueForm repoId={repo.id} agents={devs} onDone={() => setShowForm(false)} />}
 
       <div className="kanban kanban-5">

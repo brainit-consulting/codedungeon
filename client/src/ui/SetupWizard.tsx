@@ -3,6 +3,7 @@ import { api } from '../api';
 import { useStore } from '../store';
 import { requestLook } from '../world/Player';
 import { CEO_ID, type RepoView } from '../../../shared/types';
+import { Icon } from './Icon';
 import { ProjectPicker } from './ProjectPicker';
 
 // First run: who you are, the company, your CEO and your first project. Every field has a default, so
@@ -99,11 +100,11 @@ export function SetupWizard() {
             <h1>Code Dungeon</h1>
             <p className="start-tag">Your own software dungeon, worked by a guild of AI coders.</p>
             <ul className="start-list">
-              <li>🏰 Every project gets its own chamber, with coders and an assay room working through its GitHub issues.</li>
-              <li>🧠 A DungeonMaster studies each project, plans the work and puts forward the specialists it needs. You approve every recruit.</li>
-              <li>📜 Your scroll keeps you informed from anywhere in the dungeon.</li>
+              <li><Icon name="castle" /> Every project gets its own chamber, with coders and an assay room working through its GitHub issues.</li>
+              <li><Icon name="crown" /> A DungeonMaster studies each project, plans the work and puts forward the specialists it needs. You approve every recruit.</li>
+              <li><Icon name="scroll" /> Your scroll keeps you informed from anywhere in the dungeon.</li>
             </ul>
-            {!ghReady && ghError && <div className="term-error small">⚠️ {ghError}</div>}
+            {!ghReady && ghError && <div className="term-error small"><Icon name="warning" /> {ghError}</div>}
             <button className="btn btn-big" onClick={() => setStep(1)}>
               Let's set up your company
             </button>
@@ -118,7 +119,7 @@ export function SetupWizard() {
 
         {step === 1 && (
           <>
-            <div className="wizard-icon">👑</div>
+            <div className="wizard-icon"><Icon name="crown" /></div>
             <h2>Who's the Overlord?</h2>
             <p className="start-tag">That's you. You run the company; the coders do the typing.</p>
             <label className="field">
@@ -130,7 +131,7 @@ export function SetupWizard() {
               <div className="row" style={{ margin: 0 }}>
                 <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder={COMPANIES[0]} />
                 <button type="button" className="btn btn-small" title="Suggest another name" onClick={() => setCompanyName(pickOther(COMPANIES, companyName))}>
-                  🎲
+                  <Icon name="dice" />
                 </button>
               </div>
             </label>
@@ -149,16 +150,16 @@ export function SetupWizard() {
                   <div className="row" style={{ margin: 0 }}>
                     <input value={ceoName} onChange={(e) => setCeoName(e.target.value)} placeholder="Mortimer" autoFocus />
                     <button type="button" className="btn btn-small" title="Suggest another name" onClick={() => setCeoName(pickOther(CEO_NAMES, ceoName))}>
-                      🎲
+                      <Icon name="dice" />
                     </button>
                   </div>
                 </label>
                 <div className="row">
                   <label className="toggle">
-                    <input type="radio" checked={ceoLook === 'feminine'} onChange={() => setCeoLook('feminine')} /> 👩 She
+                    <input type="radio" checked={ceoLook === 'feminine'} onChange={() => setCeoLook('feminine')} /> She
                   </label>
                   <label className="toggle">
-                    <input type="radio" checked={ceoLook === 'masculine'} onChange={() => setCeoLook('masculine')} /> 👨 He
+                    <input type="radio" checked={ceoLook === 'masculine'} onChange={() => setCeoLook('masculine')} /> He
                   </label>
                   <span className="spacer" />
                   {TIES.map((c) => (
@@ -191,7 +192,7 @@ export function SetupWizard() {
             <h2>Your first project</h2>
             {project ? (
               <div className="wizard-done">
-                <div className="wizard-icon">🎉</div>
+                <div className="wizard-icon"><Icon name="banner" /></div>
                 <p>
                   <b>{project.fullName}</b> moved into chamber {project.floor}.
                 </p>
@@ -210,18 +211,18 @@ export function SetupWizard() {
 
         {step === 4 && (
           <>
-            <div className="wizard-icon">🏰</div>
+            <div className="wizard-icon"><Icon name="castle" /></div>
             <h2>{company} is open for business</h2>
             <ul className="start-list">
               <li>
-                🧠 {ceo}{project ? ` is studying ${project.fullName.split('/')[1]}` : ' is waiting for your first project'}.{' '}
+                <Icon name="crown" /> {ceo}{project ? ` is studying ${project.fullName.split('/')[1]}` : ' is waiting for your first project'}.{' '}
                 {hiring === 'approve' ? 'Recruits wait for your yes.' : 'Recruits up to 6 per chamber go through on their own.'}
               </li>
               <li>
-                📜 Press <kbd>P</kbd> anywhere for your scroll: write to {ceo}, approve recruits, and see every project at a glance.
+                <Icon name="scroll" /> Press <kbd>P</kbd> anywhere for your scroll: write to {ceo}, approve recruits, and see every project at a glance.
               </li>
               <li>
-                🧭 A short tour starts when you walk in. Press <kbd>H</kbd> any time for help.
+                <Icon name="compass" /> A short tour starts when you walk in. Press <kbd>H</kbd> any time for help.
               </li>
             </ul>
             <button className="btn btn-big" onClick={finish} disabled={busy}>

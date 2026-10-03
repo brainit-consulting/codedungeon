@@ -52,6 +52,13 @@ export const ICONS = {
   fire: `<path d="M32 5C42 17 51 26 47 41C45 51 39 57 32 57C24 57 17 51 17 42C17 32 25 28 27 18C31 24 33 29 31 36C37 30 38 18 32 5Z" fill="{rust}" ${S(2.2)}/><path d="M32 33C37 39 39 44 37 49C35 53 29 53 27 49C25 44 28 40 32 33Z" fill="{paper}"/>`,
   mug: `<path d="M42 26C55 26 55 47 42 47" ${NONE} ${S(3.6)}/><rect x="14" y="19" width="28" height="36" rx="2" ${PAPER} ${S(2.4)}/><path d="M14 27H42M14 47H42" ${S(1.4)}/><path d="M37 31V43" ${S(0.9)}/><path d="M13 19C14 12 21 13 23 16C25 10 33 11 34 15C37 11 44 13 43 19Z" fill="{rust}" ${S(1.8)}/>`,
   chain: `<rect x="8" y="27" width="28" height="14" rx="7" transform="rotate(-40 22 34)" ${NONE} ${S(3.6)}/><rect x="28" y="23" width="28" height="14" rx="7" transform="rotate(-40 42 30)" ${NONE} stroke="{rust}" stroke-width="3.6"/>`,
+  dice: `<path d="M32 8L54 19L32 30L10 19Z" ${PAPER} ${S(2.4)}/><path d="M10 19V45L32 56V30Z" ${PAPER} ${S(2.4)}/><path d="M54 19V45L32 56V30Z" ${PAPER} ${S(2.4)}/><ellipse cx="32" cy="19" rx="4" ry="2.4" fill="{rust}"/><circle cx="16" cy="31" r="2.3" fill="{ink}"/><circle cx="26" cy="44" r="2.3" fill="{ink}"/><circle cx="38" cy="35" r="2.3" fill="{ink}"/><circle cx="43" cy="40" r="2.3" fill="{ink}"/><circle cx="48" cy="45" r="2.3" fill="{ink}"/><path d="M50 26L50 30M46 28L46 31" ${S(0.9)}/>`,
+  fork: `<path d="M16 12V24C16 34 32 34 32 44V52M48 12V24C48 34 32 34 32 44" ${NONE} ${S(3.6)}/><circle cx="16" cy="10" r="4.5" ${PAPER} ${S(2.4)}/><circle cx="48" cy="10" r="4.5" ${PAPER} ${S(2.4)}/><circle cx="32" cy="55" r="5.5" fill="{rust}" ${S(2.2)}/>`,
+  hand: `${[19, 27, 35, 43].map((x, i) => `<rect x="${x}" y="${[13, 7, 8, 14][i]}" width="7" height="30" rx="3.5" ${PAPER} ${S(2.2)}/>`).join('')}<rect x="5" y="33" width="18" height="8" rx="4" transform="rotate(38 14 37)" ${PAPER} ${S(2.2)}/><path d="M17 36C17 31 51 31 51 36V44C51 54 43 57 34 57C25 57 17 54 17 44Z" ${PAPER} ${S(2.4)}/><path d="M38 40L41 43M40 46L43 49" ${S(0.9)}/><path d="M23 58H45" stroke="{rust}" stroke-width="3" stroke-linecap="round"/>`,
+  frame: `<rect x="7" y="11" width="50" height="42" rx="2" ${PAPER} ${S(4)}/><rect x="13" y="17" width="38" height="30" ${NONE} ${S(1.2)}/><path d="M13 47L26 30L35 40L41 34L51 47Z" fill="{ink}"/><circle cx="42" cy="25" r="4" fill="{rust}"/>`,
+  info: `<circle cx="32" cy="32" r="23" ${PAPER} ${S(2.6)}/><circle cx="32" cy="32" r="18" ${NONE} ${S(0.9)}/><circle cx="32" cy="19" r="3.6" fill="{rust}"/><path d="M32 28V46" ${S(5)}/><path d="M27 28H33M26 47H38" ${S(2.4)}/>`,
+  plus: `<path d="M32 10V54M10 32H54" ${S(10)}/><path d="M32 10V54M10 32H54" stroke="{rust}" stroke-width="4.5" stroke-linecap="round"/>`,
+  moon: `<path d="M40 8C26 10 16 22 18 36C20 50 34 58 48 54C36 52 28 42 28 30C28 20 33 12 40 8Z" ${PAPER} ${S(2.4)}/><path d="M24 30C24 38 28 46 34 50" ${NONE} ${S(0.9)}/><path d="M42 16H50L42 25H50M51 32H56L51 38H56" ${NONE} stroke="{rust}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`,
 } as const;
 
 /** The emoji each drawing stands in for (without the U+FE0F "show as emoji" marker). */
@@ -119,6 +126,14 @@ export const EMOJI: Record<string, IconName> = {
   '🔥': 'fire',
   '☕': 'mug',
   '🔗': 'chain',
+  '🎲': 'dice',
+  '🔀': 'fork',
+  '👋': 'hand',
+  '✋': 'hand',
+  '🖼': 'frame',
+  'ℹ': 'info',
+  '➕': 'plus',
+  '💤': 'moon',
 };
 
 export type IconRun = { icon: IconName } | { text: string };

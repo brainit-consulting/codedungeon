@@ -15,6 +15,11 @@ describe('the woodcut icons', () => {
     expect(splitIcons('👩‍💻 joined')).toEqual([{ text: '👩‍💻 joined' }]); // a joined emoji stays whole
   });
 
+  it('draws the ledger, wizard and phone emoji too', () => {
+    const want = { '🎲': 'dice', '🔀': 'fork', '👋': 'hand', '✋': 'hand', '🖼': 'frame', 'ℹ': 'info', '➕': 'plus', '💤': 'moon' };
+    for (const [emoji, name] of Object.entries(want)) expect(splitIcons(`${emoji}️ x`)[0], emoji).toEqual({ icon: name });
+  });
+
   it('has a drawing for every emoji it maps', () => {
     for (const [emoji, name] of Object.entries(EMOJI)) expect(ICONS, `${emoji} → ${name}`).toHaveProperty(name);
   });

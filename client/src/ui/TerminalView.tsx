@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
 import { isBusy, kanbanFor, agentsOnRepo, useStore } from '../store';
 import { confirmDialog } from './Confirm';
+import { Icon } from './Icon';
 import { LiveTerminal } from './LiveTerminal';
 import { effectiveModel } from '../../../shared/models';
 import { Markdown } from './Markdown';
@@ -94,8 +95,8 @@ export function TerminalView({ agentId }: { agentId: string }) {
           </span>
           <span>{agent.name}</span>
           <span className="chip" title={agent.brief || undefined}>
-            {isQa ? '🔍' : '⚒️'} {agent.title || (isQa ? 'QA tester' : 'Coder')}
-            {agent.specialty ? ` · 🎯 ${agent.specialty}` : ''}
+            <Icon name={isQa ? 'lens' : 'anvil'} /> {agent.title || (isQa ? 'QA tester' : 'Coder')}
+            {agent.specialty ? <> · <Icon name="target" /> {agent.specialty}</> : ''}
           </span>
           <StatusPill status={agent.status} />
           {working && agent.currentTool && <span className="muted small">{toolVerb(agent.currentTool)}…</span>}
@@ -140,11 +141,11 @@ export function TerminalView({ agentId }: { agentId: string }) {
           {(agent.role === 'ceo' ? agent.model : effectiveModel(agent.model, settings.runtime === 'terminal' ? cli : 'claude', settings, 'claude-opus-5-5')) || 'default model'} ·{' '}
           {agent.effort || settings.defaultEffort} effort
         </span>
-        {agent.startedAt && <span className="muted">⏱ {elapsed(agent.startedAt, working ? null : agent.endedAt)}</span>}
+        {agent.startedAt && <span className="muted"><Icon name="hourglass" /> {elapsed(agent.startedAt, working ? null : agent.endedAt)}</span>}
         {agent.turns > 0 && <span className="muted">{agent.turns} turns</span>}
         {agent.costUsd > 0 && <span className="muted" title="API-equivalent cost reported by the coding agent; subscription usage is billed by plan">≈${agent.costUsd.toFixed(2)}</span>}
       </div>
-      {agent.lastError && agent.status !== 'working' && <div className="term-error">⚠️ {agent.lastError}</div>}
+      {agent.lastError && agent.status !== 'working' && <div className="term-error"><Icon name="warning" /> {agent.lastError}</div>}
       {agent.brief && (
         <details className="small job-brief">
           <summary>Duties{agent.hiredBy === 'ceo' ? ' (from the DungeonMaster)' : ''}</summary>
@@ -175,7 +176,7 @@ export function TerminalView({ agentId }: { agentId: string }) {
         )}
         {agent.hasScreenshot && (
           <div className="browser">
-            <div className="browser-bar">🔒 {agent.browserUrl ?? 'about:blank'}</div>
+            <div className="browser-bar"><Icon name="padlock" /> {agent.browserUrl ?? 'about:blank'}</div>
             <div className="browser-view">
               <img src={`/api/agents/${agent.id}/screen?t=${shotAt ?? agent.screenshotAt}`} alt={`Latest browser screenshot from ${agent.name}`} />
             </div>
@@ -240,7 +241,7 @@ export function TerminalView({ agentId }: { agentId: string }) {
                 })
               }
             >
-              {isQa ? '🔍 Send to QA' : '▶ Start issue'}
+              {isQa ? <><Icon name="lens" /> Send to QA</> : '▶ Start issue'}
             </button>
             {agent.status !== 'idle' && (
               <button className="btn" disabled={busy} onClick={() => run(() => api.reset(agent.id))}>

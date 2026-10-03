@@ -1655,6 +1655,7 @@ input.inline:focus {
 }
 .office-badge {
   background: #ecdcae;
+  color: var(--ink); /* the castle drawing inks in the text colour */
   text-shadow: none;
 }
 .office-card .grow {
