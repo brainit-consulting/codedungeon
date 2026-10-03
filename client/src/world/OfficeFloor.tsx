@@ -4,6 +4,7 @@ import { agentsOnRepo, useStore } from '../store';
 import { AppMonitor } from './AppMonitor';
 import { Desk } from './Desk';
 import { drawSign } from './draw';
+import { GaugeBoard } from './GaugeBoard';
 import { useCanvasTexture } from './interact';
 import { KanbanBoard } from './KanbanBoard';
 import { DESK_ROWS, HALF_D, HALF_W, MAX_DESKS, QA_LAB, QA_ROTATION, WALL_H, deskPosition, qaDeskPosition } from './layout';
@@ -140,6 +141,7 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
         }
         deps={[]}
       />
+      <GaugeBoard repoId={repo.id} />
     </group>
   );
 }

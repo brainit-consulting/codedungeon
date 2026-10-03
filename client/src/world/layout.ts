@@ -63,6 +63,10 @@ export const BOARD = { w: 12, h: 3.0, y: 0.45, z: -HALF_D + 0.06 };
 // sticks out from the wall.
 export const APP_SCREEN = { x: -13.7, y: 2.25, w: 3.2, h: 1.8, bezel: 0.09, depth: 0.12 };
 
+// The gauge board (how busy the computer is): flat on the north wall east of the SHIP IT sign (x 8.9-11.1), clear of
+// the east wall's corner; the north wall's only torch is at x -8.5. x and y are its centre.
+export const GAUGE_BOARD = { x: 13.2, y: 2.1, w: 2.4, h: 1.5 };
+
 // The dart board hangs on the lobby's south wall, at its west end, facing north; the chalk tally hangs to its
 // west (on your right as you face it). Both are flat on the wall, so they need no floor rect. x is the bull's x;
 // wall is the wall's inner face.

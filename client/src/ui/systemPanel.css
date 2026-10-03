@@ -1,0 +1,167 @@
+/* The gauges panel (SystemPanel.tsx): ruled sections like a ledger page, ink bars, one rust accent for high load. */
+
+.gauges-panel {
+  width: min(720px, 100%);
+}
+
+.gauges-host {
+  margin: 0 0 6px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.gauges-stale {
+  color: var(--accent);
+}
+
+.gauges-block {
+  border-top: 3px double var(--ink);
+  padding: 10px 0 12px;
+}
+
+.gauges-block header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gauges-block h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+}
+
+.gauges-block header b {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.gauges-block p {
+  margin: 6px 0 0;
+}
+
+.gauges-panel .high {
+  color: var(--accent);
+}
+
+.gauges-panel .good {
+  color: var(--good);
+}
+
+/* sparkline: the fill and line in the accent, a faint rule at 50% */
+.gauges-spark {
+  margin: 8px 0 0;
+}
+
+.gauges-spark svg {
+  display: block;
+  width: 100%;
+  height: 56px;
+  background: var(--vellum);
+  border: 1px solid var(--muted);
+}
+
+.gauges-spark-mid {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.5;
+}
+
+.gauges-spark-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.gauges-spark-fill {
+  fill: var(--accent);
+  opacity: 0.14;
+}
+
+.gauges-spark-dot {
+  fill: var(--accent);
+}
+
+.gauges-spark figcaption {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+}
+
+/* one upright bar per core */
+.gauges-cores {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14px, 1fr));
+  gap: 3px;
+  margin-top: 10px;
+}
+
+.gauges-core {
+  height: 48px;
+  display: flex;
+  align-items: flex-end;
+  background: var(--vellum);
+  border: 1px solid var(--muted);
+}
+
+.gauges-core span {
+  display: block;
+  width: 100%;
+  background: var(--ink);
+}
+
+.gauges-core span.high,
+.gauges-meter span.high {
+  background: var(--accent);
+}
+
+.gauges-meter {
+  height: 14px;
+  margin-top: 8px;
+  background: var(--vellum);
+  border: 2px solid var(--ink);
+}
+
+.gauges-meter span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+}
+
+.gauges-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 0;
+  padding-top: 10px;
+  border-top: 3px double var(--ink);
+}
+
+.gauges-facts dt {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.gauges-facts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 520px) {
+  .gauges-facts {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .gauges-facts dd {
+    margin-bottom: 6px;
+  }
+}

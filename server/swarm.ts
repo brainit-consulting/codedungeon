@@ -716,6 +716,12 @@ export class Swarm {
     };
   }
 
+  /** How busy the office is, for the gauges (GET /api/system): sessions running, the team, Claude's usage. */
+  load() {
+    const { sessionLimit, pacingSessions } = this.state.settings;
+    return { running: this.running(), agents: this.state.agents.length, limit: sessionLimit, pacingSessions, usage: this.usageNow() };
+  }
+
   screenshot(agentId: string) {
     return this.agentRt.get(agentId)?.screenshot ?? null;
   }

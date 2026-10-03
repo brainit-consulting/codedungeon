@@ -7,6 +7,7 @@ import { ElevatorPanel } from './ElevatorPanel';
 import { KanbanView } from './KanbanView';
 import { ManagerConsole } from './ManagerConsole';
 import { Phone } from './Phone';
+import { SystemPanel } from './SystemPanel';
 import { TerminalView } from './TerminalView';
 import { getAudioPrefs, setAudioPrefs, subscribeAudio } from './sfx';
 
@@ -181,5 +182,7 @@ export function Overlays() {
       return <ManagerConsole initialTab={overlay.tab} initialRepo={overlay.repoId} />;
     case 'help':
       return <Help />;
+    case 'system':
+      return <SystemPanel />;
   }
 }

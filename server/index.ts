@@ -4,12 +4,13 @@ import fs from 'node:fs';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import type { AddressInfo } from 'node:net';
 import { WebSocketServer } from 'ws';
-import { DEMO, PORT, STATE_FILE, WORKSPACE_ROOT } from './config.ts';
+import { DEMO, HOME_DIR, PORT, STATE_FILE, WORKSPACE_ROOT } from './config.ts';
 import { realBackend } from './backend.ts';
-import { handleHook, handleMcp, setOfficeUrl } from './cliRunner.ts';
+import { handleHook, handleMcp, liveCliCounts, setOfficeUrl } from './cliRunner.ts';
 import { createDemoBackend } from './demo.ts';
 import { underLauncher } from './officeUpdate.ts';
 import { HttpError, Swarm } from './swarm.ts';
+import { createSystemMonitor } from './system.ts';
 
 const swarm = new Swarm(DEMO ? createDemoBackend() : realBackend);
 // Sessions the office picks back up while it starts need the address their CLIs call back on before it listens.
@@ -43,6 +44,22 @@ const str = (v: unknown) => (typeof v === 'string' ? v : '');
 const repoId = (req: Request) => decodeURIComponent(String(req.params.repo));
 
 app.get('/api/state', route(() => swarm.snapshot()));
+
+// The gauges: how busy the computer is. Sampled on request and shared for 5 s, so many viewers cost one sample.
+const system = createSystemMonitor({
+  diskPath: HOME_DIR,
+  office: () => {
+    const clis = liveCliCounts();
+    return { ...swarm.load(), clisWorking: clis.working, clisWaiting: clis.waiting };
+  },
+});
+app.get(
+  '/api/system',
+  route((_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    return system.read();
+  }),
+);
 
 app.get('/api/github/repos', route((req) => swarm.listGithubRepos(str(req.query.owner) || undefined)));
 

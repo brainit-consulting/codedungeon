@@ -14,7 +14,8 @@ export type Overlay =
   | { kind: 'elevator' }
   | { kind: 'manager'; tab?: ManagerTab; repoId?: string }
   | { kind: 'phone'; tab?: PhoneTab; requestId?: string }
-  | { kind: 'help' };
+  | { kind: 'help' }
+  | { kind: 'system' };
 
 export type ManagerTab = 'floors' | 'ceo' | 'team' | 'issues' | 'settings';
 

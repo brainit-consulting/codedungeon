@@ -209,6 +209,14 @@ function endLive(live: LiveCli): Promise<void> {
   return live.cli === 'codex' && live.resumeId ? codexThread('archive', live.resumeId, gone) : Promise.resolve();
 }
 
+/** The CLIs running in agents' terminals now: driven by a session, or waiting at their prompt. */
+export function liveCliCounts(): { working: number; waiting: number } {
+  let working = 0;
+  let waiting = 0;
+  for (const l of lives.values()) if (l.proc) l.session ? working++ : waiting++;
+  return { working, waiting };
+}
+
 /** What the keeper holds with a CLI's terminal, so the office can pick it up again after a restart. */
 interface CliMeta {
   agentId: string;
