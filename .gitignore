@@ -6,3 +6,6 @@ dist-server
 playwright-report
 test-results
 .swarm-home
+
+# this machine's own rules (see shared/dungeon.mjs)
+dungeon.local.json

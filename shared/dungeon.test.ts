@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CLIENT_PORT, SERVER_PORT, defaultHome, liveOfficeConflict } from './dungeon.mjs';
+import { CLIENT_PORT, SERVER_PORT, defaultHome, liveOfficeConflict, parseLocalRules } from './dungeon.mjs';
 
 const win = { userHome: 'C:\\Users\\snake', platform: 'win32' };
 const ok = { ports: [SERVER_PORT, CLIENT_PORT], home: 'H:\\codedungeon-home', ...win };
@@ -34,12 +34,24 @@ describe('liveOfficeConflict', () => {
     expect(liveOfficeConflict({ ...ok, home: 'c:\\users\\SNAKE\\.cubefarm\\' })).toMatch(/cubefarm/);
   });
 
-  it('refuses any data folder on C:', () => {
-    expect(liveOfficeConflict({ ...ok, home: 'C:\\Temp\\dungeon' })).toMatch(/C: drive/);
+  it('allows a data folder on C: by default, and refuses it only where this machine says so', () => {
+    expect(liveOfficeConflict({ ...ok, home: 'C:\\Temp\\dungeon' })).toBeNull();
+    expect(liveOfficeConflict({ ...ok, home: 'C:\\Temp\\dungeon', forbidCDrive: true })).toMatch(/C: drive/);
+    expect(liveOfficeConflict({ ...ok, forbidCDrive: true })).toBeNull(); // H: is fine either way
   });
 
   it('ignores drive letters on other platforms', () => {
     expect(liveOfficeConflict({ ports: [SERVER_PORT], home: '/home/me/codedungeon-home', userHome: '/home/me', platform: 'linux' })).toBeNull();
     expect(liveOfficeConflict({ ports: [SERVER_PORT], home: '/home/me/.cubefarm', userHome: '/home/me', platform: 'linux' })).toMatch(/cubefarm/);
+  });
+});
+
+describe("this machine's own rules (dungeon.local.json, not in git)", () => {
+  it('reads the C: drive rule; a missing, unreadable or odd file means no extra rules', () => {
+    expect(parseLocalRules('{ "forbidCDrive": true }')).toEqual({ forbidCDrive: true });
+    expect(parseLocalRules('{}')).toEqual({ forbidCDrive: false });
+    expect(parseLocalRules(null)).toEqual({ forbidCDrive: false });
+    expect(parseLocalRules('not json')).toEqual({ forbidCDrive: false });
+    expect(parseLocalRules('{ "forbidCDrive": "yes" }')).toEqual({ forbidCDrive: false });
   });
 });

@@ -15,7 +15,7 @@ import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
 import { clientPort, isUpdateCommand, parseOfficeArgs, parseSymref, refusal, rollbackPlan, stepsFor, swarmHome } from './officeSteps.mjs';
-import { SERVER_PORT, liveOfficeConflict } from '../shared/dungeon.mjs';
+import { SERVER_PORT, liveOfficeConflict, localRules } from '../shared/dungeon.mjs';
 
 const HELP = `
   node scripts/office.mjs [--dev] [--demo] [--no-open]
@@ -385,10 +385,16 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
   if (isUpdateCommand(line)) void update('you typed u');
 });
 
-// Code Dungeon never runs on the live cubefarm office's ports or data, and keeps its writes (and its agents') on H:.
+// Code Dungeon never runs on a cubefarm office's ports or data (nor on C: where dungeon.local.json says so), and keeps
+// its temp files, npm cache and browsers (its agents' too) inside its own data folder.
 {
   const home = swarmHome();
-  const conflict = liveOfficeConflict({ ports: [Number(process.env.SWARM_PORT ?? SERVER_PORT), clientPort()], home, userHome: os.homedir() });
+  const conflict = liveOfficeConflict({
+    ports: [Number(process.env.SWARM_PORT ?? SERVER_PORT), clientPort()],
+    home,
+    userHome: os.homedir(),
+    forbidCDrive: localRules(root).forbidCDrive,
+  });
   if (conflict) {
     warn(conflict);
     process.exit(1);

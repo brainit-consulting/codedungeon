@@ -2,4 +2,6 @@
 export const SERVER_PORT: number;
 export const CLIENT_PORT: number;
 export function defaultHome(repoRoot: string): string;
-export function liveOfficeConflict(o: { ports: number[]; home: string; userHome: string; platform?: string }): string | null;
+export function parseLocalRules(text: string | null): { forbidCDrive: boolean };
+export function localRules(repoRoot: string): { forbidCDrive: boolean };
+export function liveOfficeConflict(o: { ports: number[]; home: string; userHome: string; platform?: string; forbidCDrive?: boolean }): string | null;

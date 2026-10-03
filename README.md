@@ -115,8 +115,6 @@ The guide's last chapter lists every key.
   set a session limit in the ledger's Settings.
 - **Coders work on your machine** with your own skills, MCP servers and settings, each in its own copy of the repo.
   They don't push to your main branch and they don't merge: the dungeon merges, after the testers pass the work.
-- **On Windows the dungeon refuses a data folder on the C: drive.** That is a rule for the machine it's built on;
-  keep the repo on another drive, or set `SWARM_HOME` to a folder there.
 
 ## Updating
 
