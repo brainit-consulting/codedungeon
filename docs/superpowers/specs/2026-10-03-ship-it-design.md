@@ -18,7 +18,21 @@ how it ships, once.
 | **2. GitHub builds, every merge goes live** | the same, with production builds going live as they finish (the usual Vercel setup) | nothing to ship: the panel shows what's live, the last build and any failure | `vercel rollback` |
 | **3. Vercel CLI from the dungeon** | nothing until asked | `vercel deploy --prod` from a clean checkout of `origin/main`; a **Preview** button runs `vercel deploy` and gives a link | `vercel rollback` |
 
-Why method 1 is the default: agents merge to `main` all day, so a live site that follows `main` changes under the
+## Two stages: building, then launched
+
+The Overlord's habit: a new app lives on the free `*.vercel.app` address while it's being built; when it's ready it
+gets a subdomain of their own, e.g. `myapp.brainit.site` (brainit.site's DNS is on Vercel, so that's free). The
+panel follows that:
+
+1. **Building.** A newly set-up chamber uses method 2 on its `*.vercel.app` address: every merge goes live there, as
+   nobody depends on it yet. (Method 3 is the choice for a chamber not connected to GitHub.)
+2. **Launched.** A **Launch** button: suggests `<repo>.brainit.site` (editable; the parent domain is a setting,
+   default `brainit.site`), adds it to the project (`vercel domains add <name> <project>`), and switches the chamber
+   to method 1, so from then on only SHIP IT puts work live. Launch always asks first: it makes a public address.
+
+A chamber can change method later in the panel's settings; Launch is the usual way into method 1.
+
+Why method 1 is the default once launched: agents merge to `main` all day, so a live site that follows `main` changes under the
 Overlord's feet. Holding production builds back (Vercel's *auto-assign custom production domains* off) makes
 SHIP IT the deliberate step while keeping the standard GitHub-to-Vercel setup, and promoting an already-built
 deployment goes live in seconds.
@@ -40,8 +54,10 @@ authenticated calls with the CLI's own login. Vercel CLI 60.1.3 is installed and
 - **Waiting to ship:** the pull requests merged into `main` since the live commit, by number and title. Worked out
   from git (`liveSha..origin/main` in the chamber's checkout), not from dates.
 - **`main`'s checks:** passing / failing / running. SHIP IT is disabled while they fail, with the reason shown.
-- **Buttons:** Ship it (methods 1 and 3), Preview (method 3), Undo last ship (any method with a previous live
-  deployment). Each shows its progress and ends in a plain result line.
+- **Buttons:** Ship it (methods 1 and 3), Preview (method 3), Launch (building stage), Undo last ship (any method
+  with a previous live deployment). Each shows its progress and ends in a plain result line.
+- **Go back to…:** any earlier live deployment from the ship log (the Overlord is on Vercel Pro, where rollback
+  isn't limited to the previous deployment).
 - **Ship log:** who shipped what and when, the outcome, and the Vercel link (the last 50 entries).
 - **Settings:** the method, the Vercel project, and a link to the project's settings on Vercel for environment
   variables (managing those is out of scope).
@@ -61,6 +77,21 @@ account, and never spends money.
    auto-assignment off (`vercel api` `PATCH /v9/projects/<id>` with `autoAssignCustomDomains: false`).
 5. The first ship of every chamber asks plainly, because it makes the app public: "This puts <repo> on the
    internet at <url>. Ship it?"
+
+## Undo
+
+Two halves: the live site, then the code.
+
+1. **The live site goes back at once.** `vercel rollback` to the previous live deployment (or the one picked in
+   "Go back to…"): seconds, no rebuild.
+2. **The broken change can't go live again by accident.** `main` still has it, so after an undo:
+   - the panel says so: "Back on <previous>. `main` still has the change that broke it."
+   - **SHIP IT is locked** until `main` has a newer commit than the one undone (or the Overlord overrides it).
+   - **Going live with merges is paused** (method 2), so nothing goes live behind the Overlord's back while
+     something is broken. **Resume** turns it back on. Vercel itself turns production auto-assignment off after a
+     rollback (to be confirmed below); the dungeon shows that state rather than fighting it.
+   - Two follow-ups: **Revert those changes** (a pull request reverting the shipped PRs' commits, through QA like
+     any other) and **Fix it forward** (an issue naming what broke and the PRs that went out, for a coder).
 
 ## Who can ship
 
@@ -94,7 +125,7 @@ are the office's rules, per CLAUDE.md, not enforcement.)
 
 - The `start-an-app` quick start (the next spec).
 - Hosts other than Vercel (Netlify, Cloudflare, a GitHub release only): the method list leaves room for them.
-- Environment variables, domains, and Vercel billing: the panel links to Vercel for those.
+- Environment variables, domains beyond Launch's one subdomain, and Vercel billing: the panel links to Vercel.
 - Rolling releases and ship schedules.
 
 ## Checked before the build relies on them
@@ -106,8 +137,7 @@ only with the Overlord's yes, since a deploy is public:
    as custom domains, and `vercel promote` puts it live.
 2. After `vercel rollback`, Vercel turns auto-assignment off. For method 2 that means merges stop going live until
    the next promote; if so, the panel says so and offers "Go live with merges again".
-3. On the Hobby plan, rollback reaches only the previous production deployment. Undo is "undo last ship", which
-   fits; the panel says so if a deeper undo is refused.
+3. On Pro, `vercel rollback` reaches an older production deployment, not only the previous one.
 4. `vercel api` (beta) can `PATCH` the project with the CLI's login, and `vercel ls` / `vercel inspect` give JSON
    for deployments.
 
