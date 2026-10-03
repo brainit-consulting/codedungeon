@@ -61,7 +61,7 @@ export function Panel({
 
 /** Office volume and mute; saved in this browser. */
 export function SoundControls() {
-  const { volume, muted } = useSyncExternalStore(subscribeAudio, getAudioPrefs);
+  const { volume, muted, music, musicOn } = useSyncExternalStore(subscribeAudio, getAudioPrefs);
   return (
     <div className="row wrap sound">
       <label className="toggle">
@@ -71,6 +71,14 @@ export function SoundControls() {
         <span className="muted small">Volume</span>
         <input type="range" min={0} max={100} step={5} value={volume} disabled={muted} aria-label="Volume" onChange={(e) => setAudioPrefs({ volume: Number(e.target.value) })} />
         <span className="small sound-pct">{volume}%</span>
+      </label>
+      <label className="toggle">
+        <input type="checkbox" checked={musicOn} disabled={muted} onChange={(e) => setAudioPrefs({ musicOn: e.target.checked })} /> 🎵 Music
+      </label>
+      <label className="sound-volume">
+        <span className="muted small">Music</span>
+        <input type="range" min={0} max={100} step={5} value={music} disabled={muted || !musicOn} aria-label="Music volume" onChange={(e) => setAudioPrefs({ music: Number(e.target.value) })} />
+        <span className="small sound-pct">{music}%</span>
       </label>
     </div>
   );
@@ -129,7 +137,7 @@ function Help() {
         </p>
         <h3>Sound</h3>
         <p>
-          The dungeon's bell tolls when a PR is ready to merge, fails QA or gets merged, when someone hits an error and when a new recruit arrives. <kbd>M</kbd> mutes or unmutes anywhere.
+          The dungeon's bell tolls when a PR is ready to merge, fails QA or gets merged, when someone hits an error and when a new recruit arrives. <kbd>M</kbd> mutes or unmutes everything, anywhere; <kbd>N</kbd> turns the music on or off.
         </p>
         <SoundControls />
         <h3>The dungeon</h3>

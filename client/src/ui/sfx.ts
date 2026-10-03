@@ -5,17 +5,23 @@
 export interface AudioPrefs {
   volume: number; // 0-100
   muted: boolean;
+  music: number; // 0-100, the background music's share (under the master volume)
+  musicOn: boolean;
 }
 
 const PREFS_KEY = 'cubefarm:audio';
 
+const pct = (v: unknown, fallback: number) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : fallback;
+};
+
 function loadPrefs(): AudioPrefs {
   try {
     const p = JSON.parse(localStorage.getItem(PREFS_KEY) ?? 'null') as Partial<AudioPrefs> | null;
-    const volume = Number(p?.volume);
-    return { volume: Number.isFinite(volume) ? Math.max(0, Math.min(100, Math.round(volume))) : 70, muted: p?.muted === true };
+    return { volume: pct(p?.volume, 70), muted: p?.muted === true, music: pct(p?.music, 50), musicOn: p?.musicOn !== false };
   } catch {
-    return { volume: 70, muted: false };
+    return { volume: 70, muted: false, music: 50, musicOn: true };
   }
 }
 
@@ -67,7 +73,7 @@ export function subscribeAudio(fn: () => void) {
 }
 
 export function setAudioPrefs(patch: Partial<AudioPrefs>) {
-  prefs = { ...prefs, ...patch, volume: Math.max(0, Math.min(100, Math.round(patch.volume ?? prefs.volume))) };
+  prefs = { ...prefs, ...patch, volume: pct(patch.volume ?? prefs.volume, prefs.volume), music: pct(patch.music ?? prefs.music, prefs.music) };
   try {
     localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
   } catch {
@@ -85,6 +91,7 @@ export function setAudioPrefs(patch: Partial<AudioPrefs>) {
 }
 
 export const toggleMute = () => setAudioPrefs({ muted: !prefs.muted });
+export const toggleMusic = () => setAudioPrefs({ musicOn: !prefs.musicOn });
 
 // ---------- building blocks (exported so toys can add their sounds through the same mixer) ----------
 

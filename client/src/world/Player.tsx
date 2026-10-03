@@ -8,7 +8,7 @@ import { EYE_HEIGHT, SPAWN, collide, type Rect } from './layout';
 import { interactables } from './interact';
 import { LOOK_RADIANS_PER_PX, createLookFilter, filterLookDelta, resetLookFilter, useLookPrefs } from './look';
 import { confirmDialog, isConfirmOpen } from '../ui/Confirm';
-import { footstepsFollow, getAudioPrefs, toggleMute } from '../ui/sfx';
+import { footstepsFollow, getAudioPrefs, toggleMusic, toggleMute } from '../ui/sfx';
 import { callTheCat } from './Cat';
 import { collectDarts, dropHeld, startCharge, throwHeld } from './toys/hands';
 import { watchLookLock } from './lookLock';
@@ -220,6 +220,11 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
         toggleMute();
         s.pushToast('info', getAudioPrefs().muted ? '🔇 Sound off (M to turn it back on)' : '🔊 Sound on');
       }
+      if (e.code === 'KeyN' && !e.repeat && !isConfirmOpen()) {
+        toggleMusic();
+        const p = getAudioPrefs();
+        s.pushToast('info', p.musicOn ? (p.muted ? '🎵 Music on, but all sound is off (M)' : '🎵 Music on') : '🎵 Music off (N to bring it back)');
+      }
       if (s.overlay || !s.started || isConfirmOpen()) return;
       keys.current.add(e.code);
       // E always acts on the crosshair's target, even with darts in hand (a panel opening puts them back on the ledge).
@@ -228,7 +233,6 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
       if (e.code === 'KeyG' && !e.repeat) dropHeld();
       if (e.code === 'KeyC' && !e.repeat) callTheCat();
       if (e.code === 'KeyH') s.openOverlay({ kind: 'help' });
-      if (e.code === 'KeyB' && !e.repeat) s.openOverlay({ kind: 'guide' });
       if (e.code === 'KeyB' && !e.repeat) s.openOverlay({ kind: 'guide' });
       if (e.code === 'KeyP') {
         e.preventDefault(); // don't type the "p" into the phone's message box
