@@ -426,8 +426,12 @@ export function drawSign(ctx: CanvasRenderingContext2D, w: number, h: number, li
   const onSlate = bg === 'transparent' || /rgba\([^)]*,\s*0\)$/.test(bg);
   if (!onSlate) {
     const edge = Math.max(6, Math.round(Math.min(w, h) * 0.05));
-    ctx.fillStyle = bg;
+    // the edge is copper, tinted by the sign's own colour (cubefarm's bright accents would glare in firelight)
+    ctx.fillStyle = mixHex(bg, COPPER, 0.85);
     ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(20, 12, 8, 0.7)';
+    ctx.lineWidth = Math.max(2, edge * 0.25);
+    ctx.strokeRect(0, 0, w, h);
     ctx.fillStyle = PARCHMENT;
     ctx.fillRect(edge, edge, w - edge * 2, h - edge * 2);
     // a ruled line inside the edge, as on a manuscript page
@@ -452,6 +456,16 @@ export function drawSign(ctx: CanvasRenderingContext2D, w: number, h: number, li
 }
 
 const PARCHMENT = '#d8c7a0';
+const COPPER = '#8a5426';
+
+/** `a` moved `t` of the way to `b` (both #rrggbb; anything else comes back as `b`). */
+export function mixHex(a: string, b: string, t: number) {
+  const rgb = (h: string) => (/^#[0-9a-f]{6}$/i.test(h) ? [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)) : null);
+  const x = rgb(a);
+  const y = rgb(b);
+  if (!x || !y) return b;
+  return `#${x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('')}`;
+}
 const INK = '#2a1d14';
 const INK_FADED = '#5a4632';
 
