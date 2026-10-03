@@ -10,6 +10,7 @@ import { RIGGED, RIGGED_CHAIR, RIGGED_FULL, RiggedCharacter } from './RiggedChar
 import { drawSign, drawTag, drawTerminal } from './draw';
 import { useCanvasTexture, useInteractable } from './interact';
 import { glow, toon } from './materials';
+import { hashId } from './appearance';
 
 const SCREEN = { w: 1.0, h: 0.6, px: 896, py: 538 };
 
@@ -197,6 +198,31 @@ function Ledger() {
   );
 }
 
+/**
+ * What's left lying about on a working bench: always the coder's mug, turned their own way, and one more thing picked
+ * by the bench's owner (another mug, a bottle, the remains of a meal, a scroll). Kept to the right of the ledger and
+ * clear of the hands; the left is the candle's, or the tester's potions.
+ */
+function Leftovers({ seed, qa }: { seed: number; qa: boolean }) {
+  const turn = (seed % 628) / 100;
+  const extra = seed % 5;
+  return (
+    <group>
+      <Model name="props/Mug" position={[0.76, 0.74, 0.12]} rotation={[0, turn, 0]} />
+      {extra === 0 && <Model name="props/Mug" position={[0.62, 0.74, -0.2]} rotation={[0, turn + 2, 0]} />}
+      {extra === 1 && <Model name="props/Bottle_1" position={[0.66, 0.74, -0.22]} />}
+      {extra === 2 && (
+        <group position={[0.66, 0.74, -0.18]} rotation={[0, turn, 0]}>
+          <Model name="props/Table_Plate" />
+          <Model name="props/Table_Knife" position={[0.02, 0.015, 0.02]} rotation={[0, 0.5, 0]} />
+        </group>
+      )}
+      {extra === 3 && <Model name="props/Scroll_1" position={[0.64, 0.75, -0.2]} rotation={[0, turn, 0]} />}
+      {extra === 4 && !qa && <Model name="props/SmallBottle" position={[-0.6, 0.74, 0.22]} />}
+    </group>
+  );
+}
+
 const IRON_DARK = new THREE.MeshStandardMaterial({ color: '#1d1c1b', roughness: 0.5, metalness: 0.6 });
 
 /** A short candle on its holder, lit, with its own small light. */
@@ -252,11 +278,15 @@ export function Desk({
         <>
           <LiveMonitor agent={agent} accent={accent} />
           <Ledger />
-          <Model name="props/Mug" position={[0.76, 0.74, 0.02]} />
+          <Leftovers seed={hashId(agent.id)} qa={qa} />
           <NameTag agent={agent} />
         </>
       ) : (
-        <VacantMonitor accent={accent} qa={qa} />
+        <>
+          <VacantMonitor accent={accent} qa={qa} />
+          {/* someone left their mug behind */}
+          {hashId(position.join()) % 3 === 0 && <Model name="props/Mug" position={[0.5, 0.74, 0.2]} rotation={[0, 2.4, 0]} />}
+        </>
       )}
       {qa ? (
         // the tester's potions: every good QA bench tests something
