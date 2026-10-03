@@ -35,3 +35,40 @@ describe('the public User Guide site', () => {
     expect(inlineHtml('`<b>`')).toBe('<code>&lt;b&gt;</code>');
   });
 });
+
+describe('the guide as a book with a contents column', () => {
+  const files = buildSite(CHAPTERS);
+  const pages = Object.entries(files).filter(([name]) => name.endsWith('.html'));
+
+  it('says who makes it and nothing more', () => {
+    for (const [, html] of pages) expect(html).not.toMatch(/built on cubefarm|Leon van Zyl/);
+  });
+
+  it('shows every chapter in the contents column on every page, and marks the one you are reading', () => {
+    for (const [name, html] of pages) {
+      const toc = html.slice(html.indexOf('<nav class="toc"'), html.indexOf('</nav>', html.indexOf('<nav class="toc"')));
+      for (const c of CHAPTERS) expect(toc, `${name} lists ${c.id}`).toContain(`href="/${c.id}"`);
+      const current = [...toc.matchAll(/aria-current="page"[^>]*href="\/([\w-]*)"/g)].map((m) => m[1]);
+      expect(current, name).toEqual(name === 'index.html' ? [''] : [name.replace(/\.html$/, '')]);
+    }
+  });
+
+  it("lists the chapter's sections under it, each pointing at a heading on the page", () => {
+    for (const c of CHAPTERS) {
+      const html = files[chapterFile(c)];
+      const ids = [...html.matchAll(/<h2 id="([\w-]+)"/g)].map((m) => m[1]);
+      if (c.blocks.some((b) => b.kind === 'h')) expect(ids.length, `${c.id} has section ids`).toBeGreaterThan(0);
+      expect(new Set(ids).size, `${c.id} heading ids are unique`).toBe(ids.length);
+      const links = [...html.matchAll(/<a class="section" href="#([\w-]+)"/g)].map((m) => m[1]);
+      expect(links, c.id).toEqual(ids);
+    }
+  });
+
+  it('has the larger and smaller text buttons on every page', () => {
+    for (const [name, html] of pages) {
+      expect(html, name).toContain('aria-label="Smaller text"');
+      expect(html, name).toContain('aria-label="Larger text"');
+      expect(html, name).toContain('<script src="/guide.js" defer></script>');
+    }
+  });
+});

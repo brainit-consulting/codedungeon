@@ -18,12 +18,31 @@ export function inlineHtml(line: string): string {
     .join('');
 }
 
-function blockHtml(b: GuideBlock, first: boolean): string {
+/** A heading's anchor: its words, lower case, joined by dashes (marks dropped). */
+export function slug(text: string): string {
+  const plain = parseInline(text).map((p) => p.text).join('');
+  return plain.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'section';
+}
+
+/** The section headings of a chapter, each with an id unique on its page. */
+function sections(c: GuideChapter): { id: string; text: string }[] {
+  const seen = new Map<string, number>();
+  return c.blocks
+    .filter((b): b is Extract<GuideBlock, { kind: 'h' }> => b.kind === 'h')
+    .map((b) => {
+      const base = slug(b.text);
+      const n = (seen.get(base) ?? 0) + 1;
+      seen.set(base, n);
+      return { id: n === 1 ? base : `${base}-${n}`, text: b.text };
+    });
+}
+
+function blockHtml(b: GuideBlock, first: boolean, id?: string): string {
   switch (b.kind) {
     case 'p':
       return `<p${first ? ' class="opening"' : ''}>${inlineHtml(b.text)}</p>`;
     case 'h':
-      return `<h2>${inlineHtml(b.text)}</h2>`;
+      return `<h2 id="${id}">${inlineHtml(b.text)}</h2>`;
     case 'list':
       return `<ul>${b.items.map((i) => `<li>${inlineHtml(i)}</li>`).join('')}</ul>`;
     case 'keys':
@@ -44,7 +63,7 @@ const FILTERS = `<svg class="defs" aria-hidden="true" width="0" height="0">
   </filter>
 </svg>`;
 
-function page(opts: { title: string; description: string; path: string; body: string }): string {
+function page(opts: { title: string; description: string; path: string; body: string; toc: string }): string {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -60,6 +79,8 @@ function page(opts: { title: string; description: string; path: string; body: st
 </head>
 <body>
 ${FILTERS}
+<div class="book">
+${opts.toc}
 <main class="leaf">
 <div class="char" aria-hidden="true"></div>
 <div class="paper" aria-hidden="true"></div>
@@ -67,6 +88,8 @@ ${FILTERS}
 ${opts.body}
 </div>
 </main>
+</div>
+<script src="/guide.js" defer></script>
 </body>
 </html>
 `;
@@ -78,18 +101,53 @@ const running = `<p class="running"><a href="/">Code Dungeon · The User Guide</
 const PROLOGUE = [
   'Code Dungeon is a software workshop drawn as a medieval dungeon. You walk through it in first person, from a great hall down a torchlit gallery into a chamber for each of your projects. The people at the workbenches are real AI coding agents, each running in its own terminal on your computer and working through the GitHub issues of that project.',
   'Nothing in it is pretend. The slate on a workbench is that coder\'s live terminal. The notice board is the project\'s real issues and pull requests. When a pull request has passed the testers in the assay room, it is merged on GitHub. You are the Overlord: you set the work, recruit the guild, and step in whenever you like.',
-  'It runs on your own machine: Node.js, git, the GitHub command line signed in to your account, and a coding agent (Claude Code by default; Codex or OpenCode if you have them). Code Dungeon is made by BrainIT Consulting, built on cubefarm by Leon van Zyl.',
+  'It runs on your own machine: Node.js, git, the GitHub command line signed in to your account, and a coding agent (Claude Code by default; Codex or OpenCode if you have them). Code Dungeon is made by BrainIT Consulting.',
 ];
+
+/** The contents column: every chapter, the one being read marked and opened out to its sections; the text size buttons. */
+function toc(chapters: readonly GuideChapter[], current: string | null): string {
+  const here = (yes: boolean) => (yes ? ' aria-current="page"' : '');
+  const items = chapters
+    .map((c, i) => {
+      const open = c.id === current;
+      const subs = open
+        ? `<ol class="sections">${sections(c)
+            .map((s) => `<li><a class="section" href="#${s.id}">${inlineHtml(s.text)}</a></li>`)
+            .join('')}</ol>`
+        : '';
+      return `<li${open ? ' class="here"' : ''}><a${here(open)} href="/${c.id}"><span class="num">${roman(i + 1)}</span><span class="name">${esc(c.title)}</span></a>${subs}</li>`;
+    })
+    .join('');
+  return `<nav class="toc" id="contents" aria-label="Contents">
+<div class="char" aria-hidden="true"></div>
+<div class="paper" aria-hidden="true"></div>
+<details class="toc-fold" open>
+<summary>Contents</summary>
+<p class="toc-title"><a${here(current === null)} href="/">Code Dungeon<span>The User Guide</span></a></p>
+<ol class="chapters">${items}</ol>
+<div class="textsize" role="group" aria-label="Text size">
+<button type="button" data-size="-1" aria-label="Smaller text">A−</button>
+<button type="button" data-size="0" aria-label="Normal text size">A</button>
+<button type="button" data-size="1" aria-label="Larger text">A+</button>
+</div>
+</details>
+</nav>`;
+}
+
+/** A chapter's blocks as HTML, each section heading given its anchor. */
+function chapterBody(c: GuideChapter): string {
+  const ids = sections(c).map((x) => x.id);
+  let h = 0;
+  return c.blocks.map((b, k) => blockHtml(b, k === 0, b.kind === 'h' ? ids[h++] : undefined)).join('\n');
+}
 
 export function buildSite(chapters: readonly GuideChapter[]): Record<string, string> {
   const files: Record<string, string> = {};
-  const contents = chapters
-    .map((c, i) => `<li><a href="/${chapterFile(c).replace(/\.html$/, '')}"><span class="num">${roman(i + 1)}</span><span class="name">${esc(c.title)}</span></a></li>`)
-    .join('');
   files['index.html'] = page({
     title: SITE.title,
     description: SITE.description,
     path: '/',
+    toc: toc(chapters, null),
     body: `<header class="title-page">
 <p class="kicker">Being a true account of</p>
 <h1>Code Dungeon</h1>
@@ -99,11 +157,8 @@ export function buildSite(chapters: readonly GuideChapter[]): Record<string, str
 <section class="prologue">
 <h2>Before you go down</h2>
 ${PROLOGUE.map((t, i) => `<p${i === 0 ? ' class="opening"' : ''}>${esc(t)}</p>`).join('\n')}
-</section>
-<nav class="contents" id="contents" aria-label="Chapters">
-<h2>Contents</h2>
-<ol>${contents}</ol>
-</nav>`,
+<p class="begin"><a href="/${chapters[0]?.id ?? ''}">Begin with chapter I →</a></p>
+</section>`,
   });
   chapters.forEach((c, i) => {
     const prev = chapters[i - 1];
@@ -114,10 +169,11 @@ ${PROLOGUE.map((t, i) => `<p${i === 0 ? ' class="opening"' : ''}>${esc(t)}</p>`)
       title: `${c.title} · ${SITE.title}`,
       description: `Chapter ${roman(i + 1)} of the Code Dungeon User Guide: ${c.title}.`,
       path: `/${c.id}`,
+      toc: toc(chapters, c.id),
       body: `${running}
 <article>
 <header class="chapter-head"><p class="chapter-num">Chapter ${roman(i + 1)}</p><h1>${esc(c.title)}</h1></header>
-${c.blocks.map((b, k) => blockHtml(b, k === 0)).join('\n')}
+${chapterBody(c)}
 </article>
 <nav class="turn" aria-label="Turn the page">
 ${prev ? link(prev, i, 'prev', '←') : '<span></span>'}
