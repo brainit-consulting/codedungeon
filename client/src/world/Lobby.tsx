@@ -11,7 +11,11 @@ import { CEO_DESK, CEO_ROOM, HALF_D, HALF_W, MANAGER_DESK, MANAGER_ROOM, RECEPTI
 import { glow, shade } from './materials';
 import { WallSign } from './OfficeFloor';
 import { Bookshelf, Couch, CoffeeTable, GlassWall, Plant, Rug, WallClock } from './Props';
-import { Shell } from './Shell';
+import { Shell, torchesOn } from './Shell';
+
+// Torches where the walls are clear: not over the bookshelf, the trophy cabinet, the CEO's board, the waiting-room
+// sign, the directory or the dart board.
+const HALL_TORCHES = [...torchesOn.west([0, 7]), ...torchesOn.east([1.5]), ...torchesOn.north([-4.5, 4.5]), ...torchesOn.south([-8, 8])];
 import { Ball, Box, Cyl } from './Toon';
 import { Toys } from './toys';
 
@@ -381,7 +385,7 @@ export function Lobby() {
   return (
     <group>
       {/* east windows clear of the CEO's board (z -9.1 to -5.7) and the waiting room sign (from z 6.7) */}
-      <Shell accent={ACCENT} floorColor="#e2c7a3" westWindows={[1.5, 8]} eastWindows={[-2.5, 3.6]} seed={0} />
+      <Shell torches={HALL_TORCHES} />
       <Rug position={[3, 0.004, 3]} size={[14, 9]} color="#ffd6a5" />
 
       {/* manager's office */}

@@ -9,7 +9,11 @@ import { KanbanBoard } from './KanbanBoard';
 import { DESK_ROWS, HALF_D, HALF_W, MAX_DESKS, QA_LAB, QA_ROTATION, deskPosition, qaDeskPosition } from './layout';
 import { shade } from './materials';
 import { CoffeeTable, Couch, Kitchenette, Plant, Rug, WallClock, WaterCooler } from './Props';
-import { Shell } from './Shell';
+import { Shell, torchesOn } from './Shell';
+
+// Torches where the chamber's walls are clear: not over the app screen, the clock, the whiteboard, the QA lab or
+// the signs either side of the door.
+const CHAMBER_TORCHES = [...torchesOn.west([-8, 0, 9]), ...torchesOn.east([-9, 3]), ...torchesOn.north([-8.5]), ...torchesOn.south([-10, 10])];
 
 export function WallSign({
   position,
@@ -48,7 +52,7 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
 
   return (
     <group>
-      <Shell accent={repo.color} floorColor="#d9b48a" seed={repo.floor} westWindows={[]} eastWindows={[]} southWall={false} />
+      <Shell southWall={false} torches={CHAMBER_TORCHES} />
       {DESK_ROWS.map((z) => (
         <Rug key={z} position={[0, 0.004, z + 0.35]} size={[24.4, 2.9]} color={rugColor} />
       ))}

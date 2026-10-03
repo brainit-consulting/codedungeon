@@ -1,203 +1,104 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useMemo } from 'react';
 import * as THREE from 'three';
 import { ELEVATOR, HALF_D, HALF_W, WALL_H } from './layout';
-import { drawSky } from './draw';
-import { useCanvasTexture } from './interact';
-import { glow, shade, toon } from './materials';
-import { Box } from './Toon';
+import { LightPool, WallTorch } from './lightPool';
+import { stone } from './stone';
 
-const WALL = '#fbf3e4';
+// Every room's stonework: flagstone floor, brick walls, a brick vault crossed by dark beams, and torches on the walls.
+// No windows: the dungeon is underground. `accent` and `floorColor` are kept for the rooms' callers (rugs, signs) and
+// no longer colour the shell.
 
-function Window({ position, rotationY, width, seed }: { position: [number, number, number]; rotationY: number; width: number; seed: number }) {
-  const tex = useCanvasTexture(512, 256, (ctx) => drawSky(ctx, 512, 256, seed), [seed]);
-  const h = 1.8;
-  return (
-    <group position={position} rotation={[0, rotationY, 0]}>
-      <mesh position={[0, 0, 0.01]}>
-        <planeGeometry args={[width, h]} />
-        <meshBasicMaterial map={tex} toneMapped={false} />
-      </mesh>
-      {/* frame + mullions */}
-      <Box size={[width + 0.16, 0.1, 0.1]} position={[0, h / 2, 0.04]} color="#ffffff" outline shadow={false} />
-      <Box size={[width + 0.16, 0.14, 0.18]} position={[0, -h / 2, 0.06]} color="#ffffff" outline shadow={false} />
-      {[-width / 2, 0, width / 2].map((x) => (
-        <Box key={x} size={[0.08, h, 0.1]} position={[x, 0, 0.04]} color="#ffffff" shadow={false} />
-      ))}
-    </group>
-  );
-}
+const BEAM = new THREE.MeshStandardMaterial({ color: '#2b1e15', roughness: 0.9 });
+const BEAM_EVERY = 4;
 
-function CeilingLight({ position }: { position: [number, number, number] }) {
-  return (
-    <group position={position}>
-      <Box size={[1.4, 0.06, 0.5]} position={[0, 0, 0]} color="#e9ecef" shadow={false} />
-      <mesh position={[0, -0.035, 0]} rotation={[Math.PI / 2, 0, 0]} material={glow('#fffbe8')}>
-        <planeGeometry args={[1.25, 0.38]} />
-      </mesh>
-    </group>
-  );
-}
+/** A torch on a wall: x, z on the wall's face, and the turn that points it into the room. */
+export type TorchSpot = [x: number, z: number, rotY: number];
+
+/** Torches for walls facing into a room: west (x = -HALF_W), east, north (z = -HALF_D) and south. */
+export const torchesOn = {
+  west: (zs: number[]): TorchSpot[] => zs.map((z) => [-HALF_W + 0.02, z, Math.PI / 2]),
+  east: (zs: number[]): TorchSpot[] => zs.map((z) => [HALF_W - 0.02, z, -Math.PI / 2]),
+  north: (xs: number[]): TorchSpot[] => xs.map((x) => [x, -HALF_D + 0.02, 0]),
+  south: (xs: number[]): TorchSpot[] => xs.map((x) => [x, HALF_D - 0.02, Math.PI]),
+};
+
+export const TORCH_Y = 2.25;
 
 export function Shell({
-  accent,
-  floorColor,
-  westWindows = [-8, 0, 8],
-  eastWindows = [-8, 0],
-  seed = 1,
   southWall = true,
+  torches = [],
 }: {
-  accent: string;
-  floorColor: string;
+  accent?: string;
+  floorColor?: string;
   westWindows?: number[];
   eastWindows?: number[];
   seed?: number;
   /** A chamber's south wall is the gallery's wall (Gallery.tsx), so the chamber leaves it out. */
   southWall?: boolean;
+  torches?: TorchSpot[];
 }) {
-  const wall = toon(WALL);
   const t = 0.3;
   const { doorHalf, doorHeight } = ELEVATOR;
-  const lights = useMemo(() => {
-    const out: [number, number, number][] = [];
-    for (let x = -12; x <= 12; x += 6) for (let z = -8; z <= 8; z += 5.5) out.push([x, WALL_H - 0.04, z]);
+  const W = HALF_W * 2;
+  const D = HALF_D * 2;
+  const southSeg = HALF_W - doorHalf;
+  const beams = useMemo(() => {
+    const out: number[] = [];
+    for (let z = -HALF_D + BEAM_EVERY; z < HALF_D - 0.5; z += BEAM_EVERY) out.push(z);
     return out;
   }, []);
-  const floorTex = useMemo(() => {
-    // cartoon wood planks
-    const c = document.createElement('canvas');
-    c.width = c.height = 512;
-    const ctx = c.getContext('2d')!;
-    const plankH = 64;
-    for (let row = 0; row < 512 / plankH; row++) {
-      const offset = (row * 173) % 512;
-      for (let x = -offset; x < 512; x += 256) {
-        const v = ((row * 7 + Math.floor((x + offset) / 256) * 3) % 5) * 0.012 - 0.024;
-        ctx.fillStyle = shade(floorColor, v);
-        ctx.fillRect(x, row * plankH, 256, plankH);
-        ctx.fillStyle = shade(floorColor, -0.1);
-        ctx.fillRect(x, row * plankH, 3, plankH);
-        ctx.fillStyle = shade(floorColor, v - 0.035);
-        for (let g = 0; g < 3; g++) ctx.fillRect(x + 30 + g * 70, row * plankH + 18 + g * 12, 60, 2);
-      }
-      ctx.fillStyle = shade(floorColor, -0.12);
-      ctx.fillRect(0, row * plankH, 512, 3);
-    }
-    const tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(8, 6);
-    tex.anisotropy = 8;
-    return tex;
-  }, [floorColor]);
 
-  const southSeg = HALF_W - doorHalf;
   return (
     <group>
-      {/* floor + ceiling */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[HALF_W * 2, HALF_D * 2]} />
-        <meshToonMaterial map={floorTex} />
+      {/* floor + vault */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} material={stone('flagstone', W, D)}>
+        <planeGeometry args={[W, D]} />
       </mesh>
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, WALL_H, 0]} material={toon('#f3efe6')}>
-        <planeGeometry args={[HALF_W * 2, HALF_D * 2]} />
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, WALL_H, 0]} material={stone('brick', W, D)}>
+        <planeGeometry args={[W, D]} />
       </mesh>
-      {lights.map((p) => (
-        <CeilingLight key={p.join()} position={p} />
+      {beams.map((z) => (
+        <mesh key={z} position={[0, WALL_H - 0.18, z]} material={BEAM}>
+          <boxGeometry args={[W, 0.36, 0.3]} />
+        </mesh>
       ))}
 
       {/* walls */}
-      <mesh position={[0, WALL_H / 2, -HALF_D - t / 2]} material={wall} receiveShadow>
-        <boxGeometry args={[HALF_W * 2 + t * 2, WALL_H, t]} />
+      <mesh position={[0, WALL_H / 2, -HALF_D - t / 2]} material={stone('brick', W + t * 2, WALL_H)}>
+        <boxGeometry args={[W + t * 2, WALL_H, t]} />
       </mesh>
-      <mesh position={[-HALF_W - t / 2, WALL_H / 2, 0]} material={wall} receiveShadow>
-        <boxGeometry args={[t, WALL_H, HALF_D * 2]} />
+      <mesh position={[-HALF_W - t / 2, WALL_H / 2, 0]} rotation={[0, Math.PI / 2, 0]} material={stone('brick', D, WALL_H)}>
+        <boxGeometry args={[D, WALL_H, t]} />
       </mesh>
-      <mesh position={[HALF_W + t / 2, WALL_H / 2, 0]} material={wall} receiveShadow>
-        <boxGeometry args={[t, WALL_H, HALF_D * 2]} />
+      <mesh position={[HALF_W + t / 2, WALL_H / 2, 0]} rotation={[0, Math.PI / 2, 0]} material={stone('brick', D, WALL_H)}>
+        <boxGeometry args={[D, WALL_H, t]} />
       </mesh>
       {southWall &&
         [-1, 1].map((s) => (
-          <mesh key={s} position={[s * (doorHalf + southSeg / 2), WALL_H / 2, HALF_D + t / 2]} material={wall} receiveShadow>
+          <mesh key={s} position={[s * (doorHalf + southSeg / 2), WALL_H / 2, HALF_D + t / 2]} material={stone('brick', southSeg, WALL_H)}>
             <boxGeometry args={[southSeg, WALL_H, t]} />
           </mesh>
         ))}
       {southWall && (
-        <mesh position={[0, (WALL_H + doorHeight) / 2, HALF_D + t / 2]} material={wall}>
+        <mesh position={[0, (WALL_H + doorHeight) / 2, HALF_D + t / 2]} material={stone('brick', doorHalf * 2, WALL_H - doorHeight)}>
           <boxGeometry args={[doorHalf * 2, WALL_H - doorHeight, t]} />
         </mesh>
       )}
 
-      {/* skirting + accent stripe */}
-      {[
-        { p: [0, 0, -HALF_D + 0.02] as const, r: 0, w: HALF_W * 2 },
-        { p: [-HALF_W + 0.02, 0, 0] as const, r: Math.PI / 2, w: HALF_D * 2 },
-        { p: [HALF_W - 0.02, 0, 0] as const, r: -Math.PI / 2, w: HALF_D * 2 },
-        { p: [-(doorHalf + southSeg / 2), 0, HALF_D - 0.02] as const, r: Math.PI, w: southSeg },
-        { p: [doorHalf + southSeg / 2, 0, HALF_D - 0.02] as const, r: Math.PI, w: southSeg },
-      ].map(({ p, r, w }, i) => (
-        <group key={i} position={[p[0], 0, p[2]]} rotation={[0, r, 0]}>
-          <mesh position={[0, 0.06, 0]} material={toon(shade(accent, -0.2))}>
-            <boxGeometry args={[w, 0.12, 0.04]} />
-          </mesh>
-          <mesh position={[0, 0.95, 0]} material={toon(accent)}>
-            <boxGeometry args={[w, 0.12, 0.03]} />
-          </mesh>
-        </group>
-      ))}
-
-      {westWindows.map((z, i) => (
-        <Window key={`w${z}`} position={[-HALF_W + 0.02, 1.95, z]} rotationY={Math.PI / 2} width={5.5} seed={seed * 3 + i} />
-      ))}
-      {eastWindows.map((z, i) => (
-        <Window key={`e${z}`} position={[HALF_W - 0.02, 1.95, z]} rotationY={-Math.PI / 2} width={5.5} seed={seed * 5 + i + 7} />
+      {torches.map(([x, z, r]) => (
+        <WallTorch key={`${x},${z}`} position={[x, TORCH_Y, z]} rotationY={r} />
       ))}
     </group>
   );
 }
 
-// The sun's shadows only reach about one room, so the light (and the box its shadows are drawn in) follows the player,
-// moved in whole steps so the shadow edges don't crawl while you walk.
-const SUN = { x: 9, y: 14, z: 7, step: 4 };
-
+/** Underground: no sun. A faint warm fill so nothing is pitch black, and the firelight pool does the rest. */
 export function Lights() {
-  const light = useRef<THREE.DirectionalLight>(null);
-  const scene = useThree((s) => s.scene);
-  useEffect(() => {
-    const l = light.current;
-    if (!l) return;
-    scene.add(l.target);
-    return () => void scene.remove(l.target);
-  }, [scene]);
-  useFrame(({ camera }) => {
-    const l = light.current;
-    if (!l) return;
-    const x = Math.round(camera.position.x / SUN.step) * SUN.step;
-    const z = Math.round(camera.position.z / SUN.step) * SUN.step;
-    if (l.target.position.x === x && l.target.position.z === z) return;
-    l.target.position.set(x, 0, z);
-    l.position.set(x + SUN.x, SUN.y, z + SUN.z);
-    l.target.updateMatrixWorld();
-  });
   return (
     <>
-      <hemisphereLight args={['#fffaf0', '#a48a6a', 0.95]} />
-      <ambientLight intensity={0.18} />
-      <directionalLight
-        ref={light}
-        position={[SUN.x, SUN.y, SUN.z]}
-        intensity={1.55}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-18}
-        shadow-camera-right={18}
-        shadow-camera-top={14}
-        shadow-camera-bottom={-14}
-        shadow-camera-near={1}
-        shadow-camera-far={40}
-        shadow-bias={-0.0006}
-        shadow-normalBias={0.03}
-      />
+      <hemisphereLight args={['#6b5040', '#1a120c', 1.1]} />
+      <ambientLight color="#4a382a" intensity={0.45} />
+      <LightPool />
     </>
   );
 }

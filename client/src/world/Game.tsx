@@ -61,19 +61,17 @@ export function Game() {
 
   return (
     <Canvas
-      shadows
       frameloop={paused ? 'never' : 'always'}
       dpr={[1, maxDpr]}
-      camera={{ fov: 72, near: 0.05, far: 90, position: [0, 1.65, 10] }}
+      camera={{ fov: 72, near: 0.05, far: 60, position: [0, 1.65, 10] }}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.0;
-        gl.shadowMap.type = THREE.PCFSoftShadowMap;
+        gl.toneMappingExposure = 1.15;
       }}
     >
-      <color attach="background" args={['#bfe3ff']} />
-      <fog attach="fog" args={['#f3ece2', 30, 70]} />
+      <color attach="background" args={['#050403']} />
+      <fog attach="fog" args={['#0a0705', 8, 34]} />
       <Lights />
       <Suspense fallback={null}>
         <Dungeon slots={slots} />

@@ -8,7 +8,7 @@ import { CLIS } from './clis.ts';
 import type { GhRepoSummary, IssueInfo, PullInfo } from '../shared/types.ts';
 import type { LocalFolder } from './workspace.ts';
 import { HOME_DIR } from './config.ts';
-import { takeLastUpdate, underLauncher, type OfficeHost } from './officeUpdate.ts';
+import { selfUpdates, takeLastUpdate, type OfficeHost } from './officeUpdate.ts';
 
 // `npm run demo`: a fake GitHub and fake Claude Code sessions, so the office (including the
 // dev → QA → fix loop) can be explored without spending any usage or touching real repos.
@@ -527,7 +527,7 @@ const OFFICE_REPO = 'demo-co/pixel-todo';
 const DEMO_HEAD = `0ff1ce5${'0'.repeat(33)}`;
 const lastFakeUpdate = { to: '', commits: 0 };
 const demoOffice: OfficeHost = {
-  launcher: underLauncher() || process.env.SWARM_DEMO_LAUNCHER === '1',
+  launcher: selfUpdates() || process.env.SWARM_DEMO_LAUNCHER === '1',
   head: async () => DEMO_HEAD,
   isOwnFolder: (dir) => dir === `/demo/${OFFICE_REPO}/main`,
   // Only its own fake updates have a count; one the real launcher did (u) gets no count rather than a wrong one.
