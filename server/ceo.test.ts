@@ -1,7 +1,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { describe, expect, it } from 'vitest';
-import { createOfficeTools, IssueCap, jobLabel, planRoute, specialtyLabel, specialtySlug, type CeoJob, type RouteRequest } from './ceo.ts';
+import { createOfficeTools, dungeonMasterTitle, IssueCap, jobLabel, planRoute, specialtyLabel, specialtySlug, type CeoJob, type RouteRequest } from './ceo.ts';
 
 describe('specialtySlug', () => {
   it('turns a specialty into a lowercase slug', () => {
@@ -187,5 +187,13 @@ describe('IssueCap', () => {
     cap.record('a/b');
     expect(cap.total).toBe(3);
     expect([...cap.repos]).toEqual(['a/b', 'c/d']);
+  });
+});
+
+describe('the DungeonMaster title', () => {
+  it("renames cubefarm's default CEO title, and leaves a title the Overlord chose alone", () => {
+    expect(dungeonMasterTitle('Chief Executive Officer')).toBe('DungeonMaster');
+    expect(dungeonMasterTitle('')).toBe('DungeonMaster');
+    expect(dungeonMasterTitle('Keeper of the Keys')).toBe('Keeper of the Keys');
   });
 });

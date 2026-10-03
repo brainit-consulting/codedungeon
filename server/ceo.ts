@@ -160,6 +160,11 @@ export function createOfficeTools(h: OfficeHandlers): OfficeTools {
 
 // ---------- prompts ----------
 
+/** The DungeonMaster's title: cubefarm's default ("Chief Executive Officer", or none) becomes the dungeon's own. */
+export function dungeonMasterTitle(title: string | undefined) {
+  return !title || title === 'Chief Executive Officer' ? 'DungeonMaster' : title;
+}
+
 export function ceoSystemPrompt(o: {
   name: string;
   company: string;

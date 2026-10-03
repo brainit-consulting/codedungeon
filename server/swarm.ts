@@ -6,7 +6,7 @@ import type { Backend } from './backend.ts';
 import type { LogEntry, SessionHandle, SessionResult } from './agentRunner.ts';
 import type { PrDetails } from './github.ts';
 import { defaultProjectsDir, HOME_DIR, LOG_BUFFER, SCHEDULER_INTERVAL_MS, STATE_FILE, SYNC_INTERVAL_MS, WORKSPACE_ROOT } from './config.ts';
-import { ceoJobPrompt, ceoSystemPrompt, createOfficeTools, IssueCap, jobLabel, planRoute, specialtyLabel, specialtySlug, type CeoJob, type OfficeTools } from './ceo.ts';
+import { ceoJobPrompt, ceoSystemPrompt, createOfficeTools, dungeonMasterTitle, IssueCap, jobLabel, planRoute, specialtyLabel, specialtySlug, type CeoJob, type OfficeTools } from './ceo.ts';
 import { HttpError } from './httpError.ts';
 import { CHECKS_ALERT_MS, MAX_MERGE_FIXES, MERGE_RETRY_MS, mergeStep } from './mergeGate.ts';
 import { orphanedQa } from './qaOrphans.ts';
@@ -2561,6 +2561,7 @@ export class Swarm {
       this.agentRt.set(a.id, { log: [], pending: [], session: null, currentTool: null, browserUrl: null, screenshot: null, shots: [], terminal: null });
       this.appendLog(a, [{ kind: 'system', text: `🏛️ ${a.name} took the DungeonMaster's seat in the great hall. The DungeonMaster studies every chamber, shapes its team and plans its work.` }]);
     }
+    a.title = dungeonMasterTitle(a.title); // offices started under cubefarm saved "Chief Executive Officer"
     const i = interrupted.indexOf(a);
     if (i >= 0) {
       interrupted.splice(i, 1);
