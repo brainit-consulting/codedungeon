@@ -35,7 +35,7 @@ export function ElevatorPanel() {
             </button>
           );
         })}
-        <button className={`floor-btn ${floor === 0 ? 'floor-btn-here' : ''}`} style={{ ['--accent' as string]: '#ff8a5b' }} onClick={() => goToFloor(0)}>
+        <button className={`floor-btn ${floor === 0 ? 'floor-btn-here' : ''}`} style={{ ['--accent' as string]: '#a0441c' }} onClick={() => goToFloor(0)}>
           <span className="floor-btn-num">G</span>
           <span className="floor-btn-name">Great hall &amp; your study</span>
           <span className="floor-btn-meta">connect repos · recruit · file issues</span>

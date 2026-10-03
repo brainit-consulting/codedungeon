@@ -44,7 +44,7 @@ export function Panel({
   }, [onClose]);
   return (
     <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && closeOverlay()}>
-      <div className={`panel ${wide ? 'panel-wide' : ''} ${className ?? ''}`} style={{ ['--accent' as string]: accent ?? '#ff8a5b' }}>
+      <div className={`panel ${wide ? 'panel-wide' : ''} ${className ?? ''}`} style={{ ['--accent' as string]: accent ?? '#a0441c' }}>
         <div className="panel-head">
           <div className="panel-title">{title}</div>
           <button className="panel-x" onClick={() => (onClose ? onClose() : closeOverlay())} aria-label="Close">

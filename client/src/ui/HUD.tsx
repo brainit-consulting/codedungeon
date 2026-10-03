@@ -65,7 +65,7 @@ export function HUD() {
 
   return (
     <div className="hud">
-      <div className="hud-floor" style={{ ['--accent' as string]: repo?.color ?? '#ff8a5b' }}>
+      <div className="hud-floor" style={{ ['--accent' as string]: repo?.color ?? '#a0441c' }}>
         <div className="floor-num">{repo ? repo.floor : 'G'}</div>
         <div>
           <div className="floor-name">{repo ? repo.fullName : `${settings.companyName || 'Code Dungeon'} · Great hall`}</div>

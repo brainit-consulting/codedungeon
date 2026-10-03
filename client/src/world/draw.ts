@@ -180,7 +180,7 @@ function drawScreensaver(ctx: CanvasRenderingContext2D, x: number, y: number, w:
   ctx.fillText(`${agent.name} is free`, bx, by + 34);
   ctx.fillStyle = '#b8b8dd';
   ctx.font = `18px ${SANS}`;
-  ctx.fillText(agent.role === 'qa' ? 'waiting for a PR to test…' : agent.role === 'ceo' ? 'thinking about the company…' : 'waiting for an issue…', bx, by + 62);
+  ctx.fillText(agent.role === 'qa' ? 'waiting for a PR to test…' : agent.role === 'ceo' ? 'brooding over the dungeon…' : 'waiting for an issue…', bx, by + 62);
   ctx.textAlign = 'left';
 }
 
@@ -409,7 +409,7 @@ export function drawCandidateTag(ctx: CanvasRenderingContext2D, w: number, h: nu
   };
   ctx.fillStyle = '#2a1d14';
   ctx.font = `700 40px ${SANS}`;
-  ctx.fillText(fit(`${name} · candidate`, w - 100), 80, h * 0.36);
+  ctx.fillText(fit(`${name} · recruit`, w - 100), 80, h * 0.36);
   ctx.fillStyle = '#5c6078';
   ctx.font = `600 28px ${SANS}`;
   ctx.fillText(fit(`${title}${floor ? ` · chamber ${floor}` : ''}`, w - 100), 80, h * 0.72);
