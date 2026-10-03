@@ -161,6 +161,10 @@ test("the Overlord's ledger opens with E at its table and closes with Esc", asyn
 
 test('SHIP IT opens from the ledger and sets a chamber up in demo mode', async ({ page }) => {
   await openLedger(page);
+  // a fresh office runs the first-run tour, whose card sits over the lower left of every panel (CI's 1280x720
+  // put it right over Set up); this test is about SHIP IT, so it puts the tour away first, as a person would
+  const skipTour = page.getByRole('button', { name: 'Skip tour' });
+  if (await skipTour.isVisible()) await skipTour.click();
   await page.getByRole('button', { name: /Ship/ }).first().click();
   await expect(page.getByText(/How should this chamber ship\?/)).toBeVisible();
   await page.getByText('Every merge goes live').click();
