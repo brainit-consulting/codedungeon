@@ -19,8 +19,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Windows and macOS too: people run the office on both (paths, child processes, terminals, git worktrees).
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # Windows too: Code Dungeon runs there (paths, child processes, terminals, git worktrees). No macOS: nobody runs
+        # it there, and a private repo's macOS minutes count ten times.
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     env:

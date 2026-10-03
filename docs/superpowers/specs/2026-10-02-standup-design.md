@@ -92,5 +92,7 @@ Anything visual, any renaming in the UI, npm publishing.
 - **There must be a black cat.**
 - **UI:** the phone, consoles and terminal become medieval objects (a scroll, a ledger, a scrying glass). The agents'
   terminal output stays fully readable.
-- Open for project 2: the visual direction (code-built shapes vs Blender/glTF models), the agents' name list, the
-  full props list, the cat's behaviour, our own GitHub repo.
+- **Models (decided 2026-10-02):** real 3D models (glTF), not code-built boxes. Filler props come from free-licence
+  medieval packs (Kenney, Quaternius), restyled to match. Signature pieces (bar, kegs, the DungeonMaster's seat, the
+  cat, the dart board) are made in Blender through the Blender MCP as needed. Each piece is one merged mesh.
+- Open for project 2: the agents' name list, the full props list, the cat's behaviour.
