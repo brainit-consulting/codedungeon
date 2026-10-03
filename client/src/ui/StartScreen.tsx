@@ -36,8 +36,9 @@ export function StartScreen() {
             🏰 {repos.length} project{repos.length === 1 ? '' : 's'}, {staff} in the guild{ceo ? `, and ${ceo.name} in the DungeonMaster's quarters` : ''}.
           </li>
           <li>{waiting ? `📜 ${waiting} thing${waiting === 1 ? '' : 's'} waiting on your scroll. Press P once you're in.` : '📜 Press P anywhere for your scroll.'}</li>
+          <li>🕯️ Walk up behind anyone to watch their slate.</li>
           <li>
-            🕯️ Walk up behind anyone to watch their slate, or press <kbd>E</kbd> (or click) on things to use them. <kbd>H</kbd> for help.
+            🗝️ Press <kbd>E</kbd> (or click) on things to use them. <kbd>H</kbd> for help.
           </li>
         </ul>
         <button className="btn btn-big" onClick={enter} disabled={!loaded}>

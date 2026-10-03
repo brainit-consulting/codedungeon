@@ -30,6 +30,11 @@ export function requestLook() {
   const s = useStore.getState();
   if (!canvasEl || s.overlay || !s.started || isConfirmOpen()) return;
   const el = canvasEl;
+  if (s.dragLook) return;
+  // No capture after a moment (the browser refused without saying so): switch to looking by dragging.
+  setTimeout(() => {
+    if (document.pointerLockElement !== el) useStore.getState().setDragLook(true);
+  }, 600);
   // Raw (unadjusted) input skips the OS mouse path that produces bogus spikes on Windows.
   // Browsers that can't do it reject with NotSupportedError (Firefox ignores the option).
   lockPointer(el, { unadjustedMovement: true })?.catch?.((err: unknown) => {
@@ -145,8 +150,15 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
     // Left button only. If the mouse is already captured, use what you're holding (winding up a throw until
     // the button comes up) or, empty-handed, act on the crosshair's target (like E). Otherwise this press
     // just captures the mouse, so the click that locks never also acts.
+    // Drag-to-look (when the mouse can't be captured): a drag turns the view, a click without a drag acts.
+    const drag = { down: false, moved: 0 };
     const onMouseDown = (e: MouseEvent) => {
       if (e.button !== 0) return;
+      if (useStore.getState().dragLook) {
+        drag.down = true;
+        drag.moved = 0;
+        return;
+      }
       if (document.pointerLockElement !== gl.domElement) return requestLook();
       const s = useStore.getState();
       if (!s.started || s.overlay || isConfirmOpen()) return;
@@ -154,7 +166,19 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
       else if (s.focus) runFocusAction(s.focus, 'click');
     };
     const onMouseUp = (e: MouseEvent) => {
-      if (e.button === 0) throwHeld();
+      if (e.button !== 0) return;
+      const s = useStore.getState();
+      if (s.dragLook) {
+        const wasDrag = drag.moved > 6;
+        drag.down = false;
+        if (wasDrag || !s.started || s.overlay || isConfirmOpen() || e.target !== gl.domElement) return;
+        if (s.held) {
+          startCharge();
+          throwHeld();
+        } else if (s.focus) runFocusAction(s.focus, 'click');
+        return;
+      }
+      throwHeld();
     };
     const onQuietMouse = (e: MouseEvent) => {
       if (performance.now() >= quietUntil) return;
@@ -168,6 +192,15 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
       useStore.getState().setLocked(locked);
     };
     const onMove = (e: MouseEvent) => {
+      if (useStore.getState().dragLook) {
+        if (!drag.down || useStore.getState().overlay) return;
+        drag.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
+        const { sensitivity, invertY } = useLookPrefs.getState();
+        const k = LOOK_RADIANS_PER_PX * sensitivity * 1.6; // a drag covers less ground than a captured mouse
+        look.current.yaw += e.movementX * k; // drag the world: pull it the way you want to turn
+        look.current.pitch = Math.max(-1.35, Math.min(1.35, look.current.pitch + e.movementY * k * (invertY ? -1 : 1)));
+        return;
+      }
       if (document.pointerLockElement !== gl.domElement || !document.hasFocus()) return;
       const d = filterLookDelta(lookFilter, e.movementX, e.movementY, e.timeStamp);
       lookDiag.dropped = lookFilter.dropped;

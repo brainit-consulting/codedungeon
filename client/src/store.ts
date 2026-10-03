@@ -64,6 +64,8 @@ interface State {
   overlay: Overlay | null;
   focus: Focus | null;
   locked: boolean;
+  /** Mouse capture isn't available here (some embedded browsers block it): look by dragging instead. */
+  dragLook: boolean;
   started: boolean;
   toasts: Toast[];
   held: Held | null;
@@ -80,6 +82,7 @@ interface State {
   setHeld(h: Held | null): void;
   setCharge(at: number | null): void;
   setLocked(v: boolean): void;
+  setDragLook(v: boolean): void;
   start(): void;
   /** Walk straight into chamber n (0: back to the hall). */
   goToFloor(n: number): void;
@@ -161,6 +164,7 @@ export const useStore = create<State>((set, get) => ({
   overlay: null,
   focus: null,
   locked: false,
+  dragLook: false,
   started: false,
   toasts: [],
   held: null,
@@ -324,6 +328,7 @@ export const useStore = create<State>((set, get) => ({
   setHeld: (held) => set({ held, chargeAt: null }),
   setCharge: (chargeAt) => set({ chargeAt }),
   setLocked: (locked) => set({ locked }),
+  setDragLook: (dragLook) => set({ dragLook }),
   start: () => set({ started: true }),
   goToFloor(n) {
     set({ overlay: null, held: null, chargeAt: null, visit: { to: n, seq: (get().visit?.seq ?? 0) + 1 } });

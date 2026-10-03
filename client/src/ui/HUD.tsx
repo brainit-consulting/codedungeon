@@ -53,6 +53,7 @@ export function HUD() {
   const held = useStore((s) => s.held);
   const overlay = useStore((s) => s.overlay);
   const locked = useStore((s) => s.locked);
+  const dragLook = useStore((s) => s.dragLook);
   const started = useStore((s) => s.started);
   const toasts = useStore((s) => s.toasts);
   const dismiss = useStore((s) => s.dismissToast);
@@ -99,7 +100,7 @@ export function HUD() {
         </div>
       )}
       {started && !overlay && <HeldHint />}
-      {started && !overlay && !locked && <div className="hud-resume">Click to look around</div>}
+      {started && !overlay && !locked && !dragLook && <div className="hud-resume">Click to look around</div>}
       {started && !(settings.setupDone && settings.tutorialStep >= 0) && (
         <div className="hud-help">
           <kbd>WASD</kbd> move · <kbd>Shift</kbd> run · <kbd>E</kbd> / <kbd>Click</kbd> interact · <kbd>P</kbd> scroll · <kbd>Tab</kbd> who's working · <kbd>C</kbd> call the cat · <kbd>H</kbd> help · <kbd>Esc</kbd> free mouse
