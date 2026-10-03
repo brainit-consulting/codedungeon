@@ -128,17 +128,24 @@ are the office's rules, per CLAUDE.md, not enforcement.)
 - Environment variables, domains beyond Launch's one subdomain, and Vercel billing: the panel links to Vercel.
 - Rolling releases and ship schedules.
 
-## Checked before the build relies on them
+## Checked on a real project (2026-10-03)
 
-These need a throwaway Vercel project on the Overlord's account (a hello-world page, deleted afterwards), and
-only with the Overlord's yes, since a deploy is public:
+Measured on a Vercel Pro project in the Overlord's "Emile's projects" scope (Vercel CLI 60.1.3), connected to a
+GitHub repo. That project then became the published Code Dungeon User Guide.
 
-1. With auto-assignment off, a production build from GitHub stays off the project's `*.vercel.app` address as well
-   as custom domains, and `vercel promote` puts it live.
-2. After `vercel rollback`, Vercel turns auto-assignment off. For method 2 that means merges stop going live until
-   the next promote; if so, the panel says so and offers "Go live with merges again".
-3. On Pro, `vercel rollback` reaches an older production deployment, not only the previous one.
-4. `vercel api` (beta) can `PATCH` the project with the CLI's login, and `vercel ls` / `vercel inspect` give JSON
-   for deployments.
+1. **Held back:** with `autoAssignCustomDomains` false, a production build from a push became READY while the
+   project's `*.vercel.app` address kept serving the previous build. `vercel promote <url> --yes` put it live in 2 s.
+   Promoting does not turn auto-assignment back on.
+2. **Undo pauses going live:** after `vercel rollback`, Vercel set `autoAssignCustomDomains` to false by itself; the
+   next push built but stayed held back. So for method 2, an undo leaves the chamber paused, as designed above.
+3. **Pro rollback depth:** a rollback two deployments back (not just the previous one) worked, in 2 s.
+4. **The CLI's login is enough:** `vercel api /v9/projects/<name> -X PATCH -F autoAssignCustomDomains=false` worked
+   with no token; `vercel ls <project> --environment production --format json` lists deployments with their state
+   and `meta.githubCommitSha`.
 
-If any of these turns out different, the spec is updated before building on it.
+What the build must do because of what was found:
+- Pass `--scope <team>` on every call: run by a program, the CLI refuses to pick a team itself. The chamber stores
+  its team (the `orgId` from `.vercel/project.json` and the team slug).
+- `vercel git connect --yes`, run in a checkout whose `origin` is the repo (it reads the remote; given a URL it
+  stops at a yes/no prompt).
+- Give every call a closed stdin, so a prompt the CLI adds in a future version fails fast instead of hanging.
