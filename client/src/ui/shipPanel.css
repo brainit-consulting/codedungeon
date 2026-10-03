@@ -1,0 +1,53 @@
+/* client/src/ui/shipPanel.css: the SHIP IT panel, in the dungeon's parchment panel style */
+.ship-panel h3 {
+  margin: 1.1rem 0 0.35rem;
+  font-family: var(--font-sc, 'Alegreya SC'), serif;
+}
+.ship-panel section:first-of-type h3 {
+  margin-top: 0;
+}
+.ship-methods {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+.ship-method {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  padding: 8px 10px;
+  border: 2px solid var(--copper);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.ship-method.on {
+  background: rgba(160, 68, 28, 0.08);
+  border-color: var(--accent, #a0441c);
+}
+.ship-method input {
+  grid-row: span 2;
+}
+.ship-actions {
+  margin: 14px 0 6px;
+  gap: 8px;
+}
+.ship-it {
+  font-size: 1.05rem;
+  padding-inline: 18px;
+}
+.ship-undone {
+  margin: 10px 0;
+  padding: 8px 12px;
+  border-left: 4px solid var(--accent, #a0441c);
+  background: rgba(160, 68, 28, 0.07);
+}
+.ship-log ol {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.ship-log li.bad {
+  color: #8e2a12;
+}
+.ship-launch input {
+  min-width: 18rem;
+}

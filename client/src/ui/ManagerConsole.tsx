@@ -135,6 +135,9 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
         <button className="btn btn-small" onClick={() => goToFloor(repo.floor)}>
           Visit
         </button>
+        <button className="btn btn-small" onClick={() => useStore.getState().openOverlay({ kind: 'ship', repoId: repo.id })}>
+          🚢 Ship
+        </button>
       </div>
       <div className="row wrap">
         <label className="toggle">

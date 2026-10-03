@@ -1,4 +1,5 @@
 // shared/ship.test.ts
+import * as shipModule from './ship.ts';
 import { describe, expect, it } from 'vitest';
 import { buildFor, earlierLive, prNumbersFromSubjects, shipBlocked, signStatus, suggestDomain, validDomain, waitingPulls, type Deployment, type ShipState } from './ship.ts';
 
@@ -96,5 +97,17 @@ describe('the launch address', () => {
     expect(validDomain('https://x.brainit.site')).toBe(false);
     expect(validDomain('-x.brainit.site')).toBe(false);
     expect(validDomain('brainit')).toBe(false);
+  });
+});
+
+describe('messages with commands in them', () => {
+  it('splits `code` out of a message so the panel can show it as code', () => {
+    const { splitTicks } = shipModule;
+    expect(splitTicks("`main`'s checks are failing.")).toEqual([
+      { code: true, text: 'main' },
+      { code: false, text: "'s checks are failing." },
+    ]);
+    expect(splitTicks('no marks')).toEqual([{ code: false, text: 'no marks' }]);
+    expect(splitTicks('a `lone tick')).toEqual([{ code: false, text: 'a `lone tick' }]);
   });
 });

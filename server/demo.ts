@@ -38,7 +38,7 @@ const closedIssues = new Set<string>(); // `${fullName}#${n}`: issues closed by 
 const fakeSha = () => crypto.randomBytes(20).toString('hex');
 const headOf = (fullName: string) => repos.get(fullName)?.main.at(-1)?.sha ?? 'demo';
 /** SHIP IT's Vercel: a production build after every merge, ready a few seconds later. */
-const vercel = createFakeVercel({ buildMs: 6_000, headOf });
+const vercel = createFakeVercel({ buildMs: 6_000, headOf, repoFor: (name) => [...repos.keys()].find((k) => k.endsWith(`/${name}`)) ?? null });
 
 /** Fake CI: checks run for a while after every push, and now and then one fails so the fix loop shows. */
 function runChecks(pr: PullInfo, fail = Math.random() < 0.2) {

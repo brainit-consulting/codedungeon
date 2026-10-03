@@ -1,5 +1,6 @@
 import { useStore } from './store';
 import type { AgentCli, GhRepoSummary, OfficeUpdateView, PreviewView, ProjectFolderView, RepoView, SwarmSettings } from '../../shared/types';
+import type { ShipView } from '../../shared/ship';
 
 async function call<T = unknown>(method: string, url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -51,6 +52,20 @@ export const api = {
     },
   ) => call('PATCH', r(repoId), patch),
   startPreview: (repoId: string, pr?: number) => call<PreviewView>('POST', `${r(repoId)}/preview`, pr ? { pr } : {}),
+  shipCheck: (repoId: string) => call<ShipView>('POST', `${r(repoId)}/ship/check`),
+  shipOptions: (scope?: string) =>
+    call<{ loggedInAs: string | null; teams: { slug: string; name: string }[]; scope: string | null; projects: { id: string; name: string }[] }>(
+      'GET',
+      `/api/ship/options${scope ? `?scope=${encodeURIComponent(scope)}` : ''}`,
+    ),
+  shipSetup: (repoId: string, body: { method: 'git-promote' | 'git-auto' | 'cli'; scope: string; project?: { id: string; name: string }; create?: string }) =>
+    call<ShipView>('POST', `${r(repoId)}/ship/setup`, body),
+  shipIt: (repoId: string, confirmed: boolean) => call<ShipView>('POST', `${r(repoId)}/ship/ship`, { confirmed }),
+  shipPreview: (repoId: string) => call<ShipView>('POST', `${r(repoId)}/ship/preview`, {}),
+  shipUndo: (repoId: string, deploymentId?: string) => call<ShipView>('POST', `${r(repoId)}/ship/undo`, deploymentId ? { deploymentId } : {}),
+  shipResume: (repoId: string) => call<ShipView>('POST', `${r(repoId)}/ship/resume`, {}),
+  shipLaunch: (repoId: string, domain: string) => call<ShipView>('POST', `${r(repoId)}/ship/launch`, { domain }),
+  shipFollowUp: (repoId: string, kind: 'revert' | 'fix') => call<{ number: number }>('POST', `${r(repoId)}/ship/follow-up`, { kind }),
   stopPreview: (repoId: string) => call<PreviewView>('DELETE', `${r(repoId)}/preview`),
   disconnectRepo: (repoId: string) => call('DELETE', r(repoId)),
   syncRepo: (repoId: string) => call('POST', `${r(repoId)}/sync`),

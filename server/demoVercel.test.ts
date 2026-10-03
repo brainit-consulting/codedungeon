@@ -52,3 +52,15 @@ describe('the fake Vercel', () => {
     await expect(v.whoami()).rejects.toThrow(/vercel login/);
   });
 });
+
+describe('the fake Vercel after a restart', () => {
+  it('takes back a project it has never seen, connected to the demo repo of that name and live on its main', async () => {
+    const v = createFakeVercel({ buildMs: 0, headOf: () => 'zzz', repoFor: (name) => (name === 'todo' ? 'demo-co/todo' : null) });
+    const p = { id: 'prj_from_before', name: 'todo', scope: 'demo-team' };
+    const info = await v.project(p);
+    expect(info.live?.sha).toBe('zzz');
+    v.merged('demo-co/todo', 'yyy');
+    expect((await v.deployments(p))[0].sha).toBe('yyy');
+    await expect(v.project({ id: 'prj_x', name: 'unknown', scope: 'demo-team' })).rejects.toThrow(/No Vercel project/);
+  });
+});

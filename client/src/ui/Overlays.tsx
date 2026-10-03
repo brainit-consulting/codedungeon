@@ -8,6 +8,7 @@ import { KanbanView } from './KanbanView';
 import { ManagerConsole } from './ManagerConsole';
 import { Phone } from './Phone';
 import { SystemPanel } from './SystemPanel';
+import { ShipPanel } from './ShipPanel';
 import { TerminalView } from './TerminalView';
 import { UserGuide } from './UserGuide';
 import { getAudioPrefs, setAudioPrefs, subscribeAudio } from './sfx';
@@ -201,5 +202,7 @@ export function Overlays() {
       return <UserGuide chapter={overlay.chapter} />;
     case 'system':
       return <SystemPanel />;
+    case 'ship':
+      return <ShipPanel repoId={overlay.repoId} />;
   }
 }

@@ -5,7 +5,9 @@ import { AppMonitor } from './AppMonitor';
 import { Desk } from './Desk';
 import { drawSign } from './draw';
 import { GaugeBoard } from './GaugeBoard';
-import { useCanvasTexture } from './interact';
+import * as THREE from 'three';
+import { signStatus } from '../../../shared/ship';
+import { useCanvasTexture, useInteractable } from './interact';
 import { KanbanBoard } from './KanbanBoard';
 import { DESK_ROWS, HALF_D, HALF_W, MAX_DESKS, QA_LAB, QA_ROTATION, WALL_H, deskPosition, qaDeskPosition } from './layout';
 import { shade } from './materials';
@@ -37,6 +39,31 @@ export function WallSign({
       <planeGeometry args={size} />
       <meshBasicMaterial map={tex} transparent toneMapped={false} />
     </mesh>
+  );
+}
+
+/** The SHIP IT sign: where this chamber's app stands on Vercel, and E opens the panel. */
+function ShipSign({ repo }: { repo: RepoView }) {
+  const s = repo.ship;
+  const status = signStatus({ method: s.method, busy: s.busy, lastFailed: s.log[0]?.ok === false, autoAssign: s.autoAssign, live: s.live, waiting: s.waiting.length });
+  const ref = useInteractable<THREE.Group>({ id: `ship-${repo.id}`, label: 'Open SHIP IT', action: { kind: 'ship', repoId: repo.id } }, 6);
+  return (
+    <group ref={ref}>
+      <WallSign
+        position={[10, 2.2, -HALF_D + 0.03]}
+        rotationY={0}
+        size={[2.2, 1.4]}
+        px={[512, 326]}
+        draw={(ctx) =>
+          drawSign(ctx, 512, 326, [
+            { text: '⚔️', size: 80 },
+            { text: 'SHIP IT', size: 64 },
+            { text: status, size: 28, weight: 500 },
+          ], '#3a86ff')
+        }
+        deps={[status]}
+      />
+    </group>
   );
 }
 
@@ -127,20 +154,7 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
       <Kitchenette position={[HALF_W - 0.45, 0, 7]} />
       <WaterCooler position={[HALF_W - 0.5, 0, -9.5]} />
       <WallClock position={[-10, 2.75, -HALF_D + 0.05]} />
-      <WallSign
-        position={[10, 2.2, -HALF_D + 0.03]}
-        rotationY={0}
-        size={[2.2, 1.4]}
-        px={[512, 326]}
-        draw={(ctx) =>
-          drawSign(ctx, 512, 326, [
-            { text: '⚔️', size: 90 },
-            { text: 'SHIP IT', size: 64 },
-            { text: 'small PRs, happy reviewers', size: 26, weight: 500 },
-          ], '#3a86ff')
-        }
-        deps={[]}
-      />
+      <ShipSign repo={repo} />
       <GaugeBoard repoId={repo.id} />
     </group>
   );

@@ -165,3 +165,11 @@ export function suggestDomain(fullName: string, parent: string): string {
 export function validDomain(d: string): boolean {
   return d.length <= 253 && /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(d);
 }
+
+/** A message split into plain text and `code` spans, for showing commands and branch names as code. */
+export function splitTicks(message: string): { code: boolean; text: string }[] {
+  return message
+    .split(/(`[^`]+`)/)
+    .filter((part) => part !== '')
+    .map((part) => (/^`[^`]+`$/.test(part) ? { code: true, text: part.slice(1, -1) } : { code: false, text: part }));
+}

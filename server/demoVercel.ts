@@ -2,7 +2,8 @@
 // A Vercel that lives in memory, for demo mode and the SHIP IT tests. It behaves the way the real one was measured
 // to (docs/superpowers/specs/2026-10-03-ship-it-design.md): with auto-assign off, production builds wait to be
 // promoted; a rollback turns auto-assign off. A project connected to a repo goes live with that repo's current
-// `main` at once (the real one waits for the next push), so the demo has something live to show.
+// `main` at once (the real one waits for the next push), so the demo has something live to show. It lives only in
+// memory, so after the demo restarts it takes back a project it doesn't know, connected to the demo repo of that name.
 
 import type { Deployment, VercelProjectRef } from '../shared/ship.ts';
 import type { VercelBackend } from './vercel.ts';
@@ -24,11 +25,18 @@ export type FakeVercel = VercelBackend & { loggedIn: boolean; merged(fullName: s
 export const fakeShipDir = (fullName: string) => `demo-ship/${fullName}`;
 const repoOf = (dir: string) => dir.replace(/^demo-ship\//, '');
 
-export function createFakeVercel(opts: { buildMs: number; headOf(fullName: string): string }): FakeVercel {
+export function createFakeVercel(opts: { buildMs: number; headOf(fullName: string): string; repoFor?(projectName: string): string | null }): FakeVercel {
   const projects = new Map<string, FakeProject>();
   let n = 0;
   const get = (p: VercelProjectRef) => {
-    const f = projects.get(p.id);
+    let f = projects.get(p.id);
+    const repo = f ? null : (opts.repoFor?.(p.name) ?? null);
+    if (!f && repo) {
+      // a project from before the demo restarted
+      f = { id: p.id, name: p.name, scope: p.scope, repo, autoAssign: true, live: null, deployments: [], domains: [`${p.name}.vercel.app`] };
+      projects.set(f.id, f);
+      f.live = build(f, opts.headOf(repo), false).id;
+    }
     if (!f) throw new Error(`No Vercel project ${p.name}`);
     return f;
   };
