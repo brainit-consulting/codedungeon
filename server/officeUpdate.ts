@@ -22,6 +22,15 @@ export function underLauncher(proc: { send?: unknown; env: Record<string, string
   return typeof proc.send === 'function' && proc.env.SWARM_LAUNCHER === '1';
 }
 
+/**
+ * Whether the office may hand itself to the launcher for an update. Code Dungeon: never, until it has an upstream to
+ * update from; the launcher no longer pulls, so a drained office would wait for it forever. The office still reports
+ * that its folder is behind, and the launcher still restarts it on code changes.
+ */
+export function selfUpdates(_proc: { send?: unknown; env: Record<string, string | undefined> } = process): boolean {
+  return false;
+}
+
 export interface DrainInput {
   now: number;
   behind: number; // commits the office's folder can fast-forward by (0: nothing to update)
@@ -132,7 +141,7 @@ const OFFICE_DIR = path.resolve(import.meta.dirname, '..');
 const isSamePath = (a: string, b: string) => (process.platform === 'win32' ? path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase() : path.resolve(a) === path.resolve(b));
 
 export const realOffice: OfficeHost = {
-  launcher: underLauncher(),
+  launcher: selfUpdates(),
   head: () => git(['rev-parse', 'HEAD'], { cwd: OFFICE_DIR }).catch(() => null),
   isOwnFolder: (dir) => isSamePath(dir, OFFICE_DIR),
   commitsBetween: (from, to) =>

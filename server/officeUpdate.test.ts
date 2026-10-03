@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DRAIN_TIMEOUT_MS, POSTPONE_MS, drainDecision, lastUpdateMessage, parseLastUpdate, takeLastUpdate, underLauncher, type DrainInput } from './officeUpdate.ts';
+import { DRAIN_TIMEOUT_MS, POSTPONE_MS, drainDecision, lastUpdateMessage, parseLastUpdate, selfUpdates, takeLastUpdate, underLauncher, type DrainInput } from './officeUpdate.ts';
 
 const NOW = 1_000_000_000;
 const input = (over: Partial<DrainInput> = {}): DrainInput => ({
@@ -106,6 +106,12 @@ describe('underLauncher', () => {
     expect(underLauncher({ send, env: {} })).toBe(false);
     expect(underLauncher({ send: undefined, env: { SWARM_LAUNCHER: '1' } })).toBe(false);
     expect(underLauncher({ send, env: { SWARM_LAUNCHER: 'true' } })).toBe(false);
+  });
+});
+
+describe('selfUpdates', () => {
+  it("is off in Code Dungeon even under the launcher, so the office only reports an update and never drains for one", () => {
+    expect(selfUpdates({ send: () => true, env: { SWARM_LAUNCHER: '1' } })).toBe(false);
   });
 });
 
