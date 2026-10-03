@@ -6,6 +6,7 @@ import { useStore, type Agent } from '../store';
 import { FIRE, Flame, useFireLight } from './lightPool';
 import { Model } from './models';
 import { Character } from './Character';
+import { RIGGED, RIGGED_CHAIR, RIGGED_FULL, RiggedCharacter } from './RiggedCharacter';
 import { drawSign, drawTag, drawTerminal } from './draw';
 import { useCanvasTexture, useInteractable } from './interact';
 import { glow, toon } from './materials';
@@ -176,7 +177,7 @@ function VacantMonitor({ accent, qa }: { accent: string; qa: boolean }) {
 /** An open ledger and a quill in its inkpot, where the agent's hands rest (was: the keyboard and mouse). */
 function Ledger() {
   return (
-    <group position={[0, 0.745, 0.27]}>
+    <group position={[0, 0.745, RIGGED ? 0.31 : 0.27]}>
       <mesh position={[0, 0.01, 0]} material={LEATHER}>
         <boxGeometry args={[0.56, 0.02, 0.36]} />
       </mesh>
@@ -269,9 +270,11 @@ export function Desk({
       )}
 
       {/* chair */}
-      <group position={[0, 0, agent ? 0.8 : 0.6]}>
+      <group position={[0, 0, agent || RIGGED_FULL ? (RIGGED ? RIGGED_CHAIR : 0.8) : 0.6]}>
         <Model name="props/Chair_1" rotation={[0, Math.PI, 0]} />
         {agent && <Character agent={agent} />}
+        {/* ?rigged=full: a stand-in at every empty bench, to measure a full chamber */}
+        {!agent && RIGGED_FULL && <RiggedCharacter agent={standIn(`${repoId}-${role}-${position.join()}`)} />}
       </group>
     </group>
   );
@@ -283,4 +286,9 @@ export function DeskFloorMarker({ color }: { color: string }) {
       <planeGeometry args={[2.6, 2.3]} />
     </mesh>
   );
+}
+
+/** A pretend coder for the ?rigged=full measurement: working, so they animate like a busy room. */
+function standIn(id: string): Agent {
+  return { id, name: 'Stand-in', role: 'dev', look: id.length % 2 ? 'feminine' : 'masculine', hair: '#4a3020', status: 'working' } as unknown as Agent;
 }

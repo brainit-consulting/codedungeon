@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { Outlines } from '@react-three/drei';
 import type { Agent } from '../store';
 import { appearanceFor } from './appearance';
+import { RIGGED, RiggedCharacter } from './RiggedCharacter';
 import { PARTS } from './characterParts';
 import { mix, shade, toon } from './materials';
 
@@ -31,7 +32,12 @@ const LEATHER = '#3a2414';
 // Glasses frames, picked by the same accent index as hats and stripes.
 const FRAMES = ['#1f1d2b', '#7f5539', '#1f1d2b', '#c1121f', '#355070', '#1f1d2b'];
 
+/** A person: the rigged, animated one when the ?rigged switch is on, else the code-built one. */
 export function Character({ agent }: { agent: Agent }) {
+  return RIGGED ? <RiggedCharacter agent={agent} /> : <CelCharacter agent={agent} />;
+}
+
+function CelCharacter({ agent }: { agent: Agent }) {
   const torso = useRef<THREE.Group>(null);
   const head = useRef<THREE.Group>(null);
   const armL = useRef<THREE.Group>(null);
