@@ -2,11 +2,13 @@
 // and boots the office in demo mode (no GitHub, no Claude). Run `npm run build` first.
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
+import { defaultHome } from '../shared/dungeon.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cubefarm-package-'));
+// Under codedungeon-home, not the OS temp folder: the office refuses a SWARM_HOME on C:.
+fs.mkdirSync(path.join(defaultHome(root), 'tmp'), { recursive: true });
+const tmp = fs.mkdtempSync(path.join(defaultHome(root), 'tmp', 'package-'));
 // An agent's reserved port when it has one (CI sets SWARM_PORT=0).
 const PORT = Number(process.env.SWARM_PORT) || 4456;
 const sh = (cmd, cwd) => {
@@ -24,7 +26,7 @@ try {
   const version = sh('npx --no-install cubefarm --version', tmp);
   console.log(`cubefarm --version: ${version}`);
 
-  const bin = path.join(tmp, 'node_modules', 'cubefarm', 'bin', 'cubefarm.js');
+  const bin = path.join(tmp, 'node_modules', 'codedungeon', 'bin', 'cubefarm.js');
   server = spawn(process.execPath, [bin, '--demo', '--no-open', '--port', String(PORT)], {
     env: { ...process.env, SWARM_HOME: path.join(tmp, 'home') },
     stdio: ['ignore', 'inherit', 'inherit'],
