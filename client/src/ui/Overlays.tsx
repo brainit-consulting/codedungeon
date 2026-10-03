@@ -12,6 +12,7 @@ import { ShipPanel } from './ShipPanel';
 import { TerminalView } from './TerminalView';
 import { UserGuide } from './UserGuide';
 import { getAudioPrefs, setAudioPrefs, subscribeAudio } from './sfx';
+import { Icon, IconText } from './Icon';
 
 // Closing a panel grabs the mouse again right away (world/lookLock.ts; "Grab the mouse when panels
 // close" in help turns that off), and mouse presses are swallowed for a moment so a double click on
@@ -49,7 +50,7 @@ export function Panel({
     <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && closeOverlay()}>
       <div className={`panel ${wide ? 'panel-wide' : ''} ${className ?? ''}`} style={{ ['--accent' as string]: accent ?? '#a0441c' }}>
         <div className="panel-head">
-          <div className="panel-title">{title}</div>
+          <div className="panel-title">{typeof title === 'string' ? <IconText text={title} /> : title}</div>
           <button className="panel-x" onClick={() => (onClose ? onClose() : closeOverlay())} aria-label="Close">
             ✕
           </button>
@@ -66,7 +67,7 @@ export function SoundControls() {
   return (
     <div className="row wrap sound">
       <label className="toggle">
-        <input type="checkbox" checked={!muted} onChange={(e) => setAudioPrefs({ muted: !e.target.checked })} /> {muted ? '🔇' : '🔊'} Sound
+        <input type="checkbox" checked={!muted} onChange={(e) => setAudioPrefs({ muted: !e.target.checked })} /> <Icon name={muted ? 'bell-off' : 'bell'} /> Sound
       </label>
       <label className="sound-volume">
         <span className="muted small">Volume</span>
@@ -74,7 +75,7 @@ export function SoundControls() {
         <span className="small sound-pct">{volume}%</span>
       </label>
       <label className="toggle">
-        <input type="checkbox" checked={musicOn} disabled={muted} onChange={(e) => setAudioPrefs({ musicOn: e.target.checked })} /> 🎵 Music
+        <input type="checkbox" checked={musicOn} disabled={muted} onChange={(e) => setAudioPrefs({ musicOn: e.target.checked })} /> <Icon name="music" /> Music
       </label>
       <label className="sound-volume">
         <span className="muted small">Music</span>
@@ -116,7 +117,7 @@ function Help() {
         <p>
           The whole dungeon is explained chapter by chapter in the User Guide: press <kbd>B</kbd> anywhere, or{' '}
           <button className="btn btn-small" onClick={() => useStore.getState().openOverlay({ kind: 'guide' })}>
-            📖 Open the User Guide
+            <Icon name="book" /> Open the User Guide
           </button>
         </p>
         <h3>Moving around</h3>

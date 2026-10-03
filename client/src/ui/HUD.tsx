@@ -4,6 +4,7 @@ import { CEO_ID } from '../../../shared/types';
 import { HeldHint } from './HeldHint';
 import { WorkersPanel } from './WorkersPanel';
 import { officeUpdateChip } from '../officeUpdate';
+import { Icon, IconText } from './Icon';
 
 /** While the office is on its way to updating itself (or restarting to do it); opens the console's Office row. */
 function OfficeUpdateChip() {
@@ -29,7 +30,9 @@ function PhoneButton() {
   const busy = ceo?.status === 'working';
   return (
     <button className={`phone-btn ${badge ? 'phone-btn-ring' : ''}`} onClick={() => openOverlay({ kind: 'phone' })} title="Your scroll (P)">
-      <span className="phone-btn-icon">📜</span>
+      <span className="phone-btn-icon">
+        <Icon name="scroll" />
+      </span>
       {badge > 0 && <span className="badge phone-btn-badge">{badge}</span>}
       <span className="phone-btn-label">
         <kbd>P</kbd> {badge ? `${badge} waiting` : busy ? `${ceo.name} is working` : 'Scroll'}
@@ -82,15 +85,21 @@ export function HUD() {
         {demo && <span className="pill pill-demo">DEMO</span>}
         <span className={`pill ${connected ? 'pill-ok' : restarting ? 'pill-demo' : 'pill-bad'}`}>{connected ? '● live' : restarting ? '○ restarting' : '○ reconnecting'}</span>
         <span className="pill">
-          ⚙️ {settings.sessionLimit ? `${running}/${settings.sessionLimit}` : running} sessions
+          <Icon name="gear" /> {settings.sessionLimit ? `${running}/${settings.sessionLimit}` : running} sessions
         </span>
-        {user && <span className="pill">🐙 {user}</span>}
+        {user && (
+          <span className="pill">
+            <Icon name="hood" /> {user}
+          </span>
+        )}
       </div>
 
       <WorkersPanel />
       <OfficeUpdateChip />
 
-      {!ghReady && ghError && <div className="hud-banner">⚠️ {ghError}</div>}
+      {!ghReady && ghError && <div className="hud-banner">
+          <Icon name="warning" /> {ghError}
+        </div>}
 
       {started && !overlay && <div className={`crosshair ${focus ? 'crosshair-hot' : ''}`} />}
       {started && !overlay && focus && (
@@ -111,7 +120,7 @@ export function HUD() {
       <div className="toasts">
         {toasts.map((t) => (
           <div key={t.id} className={`toast toast-${t.level}`} onClick={() => dismiss(t.id)}>
-            {t.text}
+            <IconText text={t.text} />
           </div>
         ))}
       </div>

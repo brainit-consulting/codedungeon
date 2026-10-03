@@ -2597,3 +2597,13 @@ input.inline:focus {
     display: none;
   }
 }
+
+/* The woodcut icons (ui/Icon.tsx): as tall as the text around them, sitting on its baseline */
+.ico {
+  display: inline-block;
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: -0.28em;
+  flex: none;
+  overflow: visible;
+}

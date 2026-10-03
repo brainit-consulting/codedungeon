@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { create } from 'zustand';
+import { Icon, IconText } from './Icon';
 
 // The office's own confirmation box, instead of the browser's confirm():
 //   if (await confirmDialog({ title: 'Merge PR #12?', confirm: 'Merge' })) …
@@ -55,7 +56,9 @@ export function ConfirmDialog() {
   return (
     <div className="confirm-overlay" onMouseDown={(e) => e.target === e.currentTarget && answer(false)}>
       <div className={`confirm confirm-${tone}`} role="alertdialog" aria-modal="true" aria-label={ask.title}>
-        <div className="confirm-icon">{ask.icon ?? (tone === 'danger' ? '⚠️' : tone === 'warn' ? '🤔' : '✨')}</div>
+        <div className="confirm-icon">
+          {typeof ask.icon === 'string' ? <IconText text={ask.icon} /> : (ask.icon ?? <Icon name={tone === 'danger' ? 'warning' : tone === 'warn' ? 'quill' : 'star'} />)}
+        </div>
         <h3>{ask.title}</h3>
         {ask.body && <div className="confirm-body">{ask.body}</div>}
         <div className="confirm-actions">

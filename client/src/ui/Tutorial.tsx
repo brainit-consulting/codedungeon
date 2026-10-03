@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { api } from '../api';
 import { useStore } from '../store';
 import { CEO_ID } from '../../../shared/types';
+import { Icon } from './Icon';
 
 // The first-run tour: a coach card in the corner that moves on by itself as you try each thing,
 // with Next and Skip always there. Progress lives in settings.tutorialStep, so a refresh resumes it.
@@ -45,7 +46,7 @@ const STEPS: Step[] = [
     title: 'Your scroll',
     body: (c) => (
       <>
-        💬 {c.ceo} writes to you here, and you can write back. 📄 <b>Recruits</b> holds the people waiting for your yes. 📊 <b>Company</b> is every project at a glance. Put it away with <kbd>P</kbd>.
+        <Icon name="speech" /> {c.ceo} writes to you here, and you can write back. <Icon name="letter" /> <b>Recruits</b> holds the people waiting for your yes. <Icon name="board" /> <b>Company</b> is every project at a glance. Put it away with <kbd>P</kbd>.
       </>
     ),
     done: (s) => s.overlay?.kind !== 'phone',
@@ -178,14 +179,16 @@ export function Tutorial() {
     <div className={`tour ${cheer ? 'tour-cheer' : ''}`}>
       <div className="tour-head">
         <span className="tour-count">
-          🧭 Tour · {step + 1}/{STEPS.length}
+          <Icon name="compass" /> Tour · {step + 1}/{STEPS.length}
         </span>
         <span className="spacer" />
         <button className="linkish small" onClick={() => go(STEPS.length)}>
           Skip tour
         </button>
       </div>
-      <div className="tour-title">{cheer ? `✅ ${s.title}` : s.title}</div>
+      <div className="tour-title">
+        {cheer && <Icon name="check" />} {s.title}
+      </div>
       <div className="tour-body">{s.body({ ceo, company: company || 'the company', repo })}</div>
       <div className="tour-nav">
         {step > 0 && (

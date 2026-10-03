@@ -1,5 +1,7 @@
 import type { LogLine, PreviewStatus, PreviewView, RepoView } from '../../../shared/types';
 import type { Agent, KanbanCard, KanbanColumns } from '../store';
+import { splitIcons } from '../ui/icons';
+import { SIGN_INKS, signIcon } from './signIcons';
 
 // 2D canvas painters for everything in the office that shows text: laptop terminals,
 // the Kanban whiteboard, signs and name tags.
@@ -445,14 +447,48 @@ export function drawSign(ctx: CanvasRenderingContext2D, w: number, h: number, li
   let y = h / 2 - total / 2;
   for (const l of lines) {
     y += (l.size * 1.25) / 2;
-    ctx.fillStyle = onSlate ? (l.color ?? fg) : (l.weight ?? 700) < 600 ? INK_FADED : INK;
+    const faded = (l.weight ?? 700) < 600;
+    ctx.fillStyle = onSlate ? (l.color ?? fg) : faded ? INK_FADED : INK;
     ctx.font = `${l.weight ?? 700} ${l.size}px ${SANS}`;
-    let text = l.text;
-    while (text.length > 3 && ctx.measureText(text).width > w - 40) text = `${text.slice(0, -2)}…`;
-    ctx.fillText(text, w / 2, y);
+    const inks = onSlate ? SIGN_INKS.slate : faded ? SIGN_INKS.faded : SIGN_INKS.parchment;
+    fillWithIcons(ctx, l.text, w / 2, y, l.size, l.weight ?? 700, w - 40, inks);
     y += (l.size * 1.25) / 2;
   }
   ctx.textAlign = 'left';
+}
+
+/** One centred line of sign text, with the emoji the dungeon has drawings for shown as its woodcut icons. */
+function fillWithIcons(ctx: CanvasRenderingContext2D, text: string, cx: number, y: number, size: number, weight: number, maxW: number, inks: { ink: string; paper: string }) {
+  const runs = splitIcons(text);
+  if (!runs.some((r) => 'icon' in r)) {
+    let t = text;
+    while (t.length > 3 && ctx.measureText(t).width > maxW) t = `${t.slice(0, -2)}…`;
+    ctx.fillText(t, cx, y);
+    return;
+  }
+  let px = size;
+  const width = () => runs.reduce((sum, r) => sum + ('icon' in r ? px * 1.15 : ctx.measureText(r.text).width), 0);
+  let total = width();
+  if (total > maxW) {
+    // too long for the sign: the whole line gets smaller rather than losing its end
+    px = Math.max(10, Math.floor((size * maxW) / total));
+    ctx.font = `${weight} ${px}px ${SANS}`;
+    total = width();
+  }
+  ctx.textAlign = 'left';
+  let x = cx - total / 2;
+  for (const r of runs) {
+    if ('icon' in r) {
+      const box = px * 1.15;
+      const img = signIcon(r.icon, inks.ink, inks.paper);
+      if (img) ctx.drawImage(img, x, y - box / 2 - px * 0.04, box, box);
+      x += box;
+    } else {
+      ctx.fillText(r.text, x, y);
+      x += ctx.measureText(r.text).width;
+    }
+  }
+  ctx.textAlign = 'center';
 }
 
 const PARCHMENT = '#d8c7a0';

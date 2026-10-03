@@ -3,6 +3,7 @@ import { api } from '../api';
 import { agentsOnRepo, kanbanFor, useStore, type Agent, type KanbanCard } from '../store';
 import { confirmDialog } from './Confirm';
 import { Panel } from './Overlays';
+import { IconText } from './Icon';
 
 function AgentChip({ agent }: { agent?: Agent }) {
   if (!agent) return null;
@@ -203,7 +204,9 @@ export function KanbanView({ repoId }: { repoId: string }) {
           cols.backlog,
           (c) => (
             <div className="kcard-foot">
-              {c.note && <span className="muted small">{c.note}</span>}
+              {c.note && <span className="muted small">
+                <IconText text={c.note} />
+              </span>}
               <select
                 value=""
                 disabled={pending === c.key || free.length === 0}
@@ -227,7 +230,9 @@ export function KanbanView({ repoId }: { repoId: string }) {
           (c) => (
             <div className="kcard-foot">
               <AgentChip agent={c.agent} />
-              <span className="muted small">{c.note}</span>
+              <span className="muted small">
+                <IconText text={c.note} />
+              </span>
               <span className="spacer" />
               {terminalButton(c)}
             </div>
@@ -243,7 +248,9 @@ export function KanbanView({ repoId }: { repoId: string }) {
             return (
               <div className="kcard-foot kcard-foot-wrap">
                 <AgentChip agent={c.agent} />
-                <span className="muted small">{c.note}</span>
+                <span className="muted small">
+                <IconText text={c.note} />
+              </span>
                 <span className="spacer" />
                 <QaLink card={c} />
                 {previewButton(c)}
@@ -273,7 +280,7 @@ export function KanbanView({ repoId }: { repoId: string }) {
               <div className="kcard-foot kcard-foot-wrap">
                 <AgentChip agent={c.agent} />
                 <span className="muted small">
-                  {c.note}
+                  <IconText text={c.note} />
                   {pr ? ` · +${pr.additions} −${pr.deletions}` : ''}
                 </span>
                 <span className="spacer" />

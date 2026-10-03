@@ -3,6 +3,7 @@ import { requestLook } from '../world/Player';
 import { CEO_ID } from '../../../shared/types';
 import { SetupWizard } from './SetupWizard';
 import { unlockAudio } from './sfx';
+import { Icon, IconText } from './Icon';
 
 export function StartScreen() {
   const started = useStore((s) => s.started);
@@ -33,12 +34,16 @@ export function StartScreen() {
         <p className="start-tag">{settings.managerName ? `Welcome back, ${settings.managerName}.` : 'A dungeon where a guild of AI coders works through your GitHub issues.'}</p>
         <ul className="start-list">
           <li>
-            🏰 {repos.length} project{repos.length === 1 ? '' : 's'}, {staff} in the guild{ceo ? `, and ${ceo.name} in the DungeonMaster's quarters` : ''}.
+            <Icon name="castle" /> {repos.length} project{repos.length === 1 ? '' : 's'}, {staff} in the guild{ceo ? `, and ${ceo.name} in the DungeonMaster's quarters` : ''}.
           </li>
-          <li>{waiting ? `📜 ${waiting} thing${waiting === 1 ? '' : 's'} waiting on your scroll. Press P once you're in.` : '📜 Press P anywhere for your scroll.'}</li>
-          <li>🕯️ Walk up behind anyone to watch their slate.</li>
           <li>
-            🗝️ Press <kbd>E</kbd> (or click) on things to use them. <kbd>H</kbd> for help.
+            <IconText text={waiting ? `📜 ${waiting} thing${waiting === 1 ? '' : 's'} waiting on your scroll. Press P once you're in.` : '📜 Press P anywhere for your scroll.'} />
+          </li>
+          <li>
+            <Icon name="candle" /> Walk up behind anyone to watch their slate.
+          </li>
+          <li>
+            <Icon name="key" /> Press <kbd>E</kbd> (or click) on things to use them. <kbd>H</kbd> for help.
           </li>
         </ul>
         <button className="btn btn-big" onClick={enter} disabled={!loaded}>

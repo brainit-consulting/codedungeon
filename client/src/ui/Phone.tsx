@@ -6,6 +6,7 @@ import { Markdown } from './Markdown';
 import { MessageBox } from './MessageBox';
 import { closeOverlay } from './Overlays';
 import { effectiveModel } from '../../../shared/models';
+import { IconText } from './Icon';
 
 // The manager's phone: text the CEO, decide on hires, see the whole company at a glance
 // without walking anywhere, and play a game while the team works. Press P anywhere in the office.
@@ -137,7 +138,12 @@ const QUICK = ["What's the guild working on?", 'Do we need anyone new?', 'Plan t
 
 function Bubble({ m, ceoName }: { m: PhoneMessage; ceoName: string }) {
   const req = useStore((s) => (m.requestId ? s.requests.find((r) => r.id === m.requestId) : undefined));
-  if (m.from === 'office') return <div className="bubble-office">{m.text}</div>;
+  if (m.from === 'office')
+    return (
+      <div className="bubble-office">
+        <IconText text={m.text} />
+      </div>
+    );
   const mine = m.from === 'manager';
   return (
     <div className={`bubble-row ${mine ? 'bubble-row-me' : ''}`}>
