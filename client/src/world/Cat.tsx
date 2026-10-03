@@ -6,14 +6,18 @@ import { CAT, callCat, createCat, stepCat, type Cat as CatState, type CatAction,
 import { GALLERY, chamber, dungeonColliders, galleryEnd, inDungeon, toWorld } from './dungeon';
 import { CEO_DESK, DESK_ROWS, HALF_D, HALF_W, HEARTH, RECEPTION, deskPosition } from './layout';
 import { makeNav, type Pt } from './nav';
+import { createWarren, stepWarren, type Warren, type WarrenEnv } from './ratBrain';
+import { DeadRat, PILE_DROP, Rats } from './Rats';
 
 // The dungeon's black cat, drawn from simple shapes and posed by hand each frame from what her brain (catBrain.ts)
 // is doing. She has no collider and is not something you aim at, so she never blocks a click or the way; you call
-// her with C (Player.tsx).
+// her with C (Player.tsx). The rats she hunts (ratBrain.ts, drawn by Rats.tsx) are stepped here with her.
 
 let calls = 0;
 const HOME = { x: -HALF_W + HEARTH.d + 0.6, z: HEARTH.z + 0.8 };
 let living: CatState | null = null;
+/** The session's rats: kept with her across remounts, so only a reload starts the count over. */
+let warren: Warren | null = null;
 /** The cat as she is right now (for her purr), or null before she's in the dungeon. */
 export const theCat = () => living;
 /** The Overlord calls the cat (C). */
@@ -116,19 +120,25 @@ interface Pose {
   eyes: number; // 1 open .. 0 shut
   tailUp: number; // 1 tail up (walking) .. 0 tail down and wrapped
   stretch: number; // 0 .. 1 leaping
+  crouch: number; // 0 .. 1 belly to the floor, stalking
 }
 
 const POSES: Record<CatAction, Pose> = {
-  walk: { rear: 0, curl: 0, stride: 1, headDown: 0.05, paw: 0, eyes: 1, tailUp: 1, stretch: 0 },
-  follow: { rear: 0, curl: 0, stride: 1.2, headDown: 0, paw: 0, eyes: 1, tailUp: 1, stretch: 0 },
-  jumpUp: { rear: 0, curl: 0, stride: 0, headDown: -0.2, paw: 0, eyes: 1, tailUp: 0.6, stretch: 1 },
-  jumpDown: { rear: 0, curl: 0, stride: 0, headDown: 0.3, paw: 0, eyes: 1, tailUp: 0.8, stretch: 1 },
-  sit: { rear: 1, curl: 0, stride: 0, headDown: 0, paw: 0, eyes: 1, tailUp: 0, stretch: 0 },
-  purr: { rear: 1, curl: 0, stride: 0, headDown: 0.12, paw: 0, eyes: 0.35, tailUp: 0, stretch: 0 },
-  ignore: { rear: 1, curl: 0, stride: 0, headDown: -0.15, paw: 0, eyes: 0.6, tailUp: 0.3, stretch: 0 },
-  wash: { rear: 1, curl: 0, stride: 0, headDown: 0.55, paw: 1, eyes: 0.5, tailUp: 0, stretch: 0 },
-  nudge: { rear: 1, curl: 0, stride: 0, headDown: 0.25, paw: 1, eyes: 1, tailUp: 0.2, stretch: 0 },
-  sleep: { rear: 0, curl: 1, stride: 0, headDown: 0.4, paw: 0, eyes: 0, tailUp: 0, stretch: 0 },
+  walk: { rear: 0, curl: 0, stride: 1, headDown: 0.05, paw: 0, eyes: 1, tailUp: 1, stretch: 0, crouch: 0 },
+  follow: { rear: 0, curl: 0, stride: 1.2, headDown: 0, paw: 0, eyes: 1, tailUp: 1, stretch: 0, crouch: 0 },
+  jumpUp: { rear: 0, curl: 0, stride: 0, headDown: -0.2, paw: 0, eyes: 1, tailUp: 0.6, stretch: 1, crouch: 0 },
+  jumpDown: { rear: 0, curl: 0, stride: 0, headDown: 0.3, paw: 0, eyes: 1, tailUp: 0.8, stretch: 1, crouch: 0 },
+  sit: { rear: 1, curl: 0, stride: 0, headDown: 0, paw: 0, eyes: 1, tailUp: 0, stretch: 0, crouch: 0 },
+  purr: { rear: 1, curl: 0, stride: 0, headDown: 0.12, paw: 0, eyes: 0.35, tailUp: 0, stretch: 0, crouch: 0 },
+  ignore: { rear: 1, curl: 0, stride: 0, headDown: -0.15, paw: 0, eyes: 0.6, tailUp: 0.3, stretch: 0, crouch: 0 },
+  wash: { rear: 1, curl: 0, stride: 0, headDown: 0.55, paw: 1, eyes: 0.5, tailUp: 0, stretch: 0, crouch: 0 },
+  nudge: { rear: 1, curl: 0, stride: 0, headDown: 0.25, paw: 1, eyes: 1, tailUp: 0.2, stretch: 0, crouch: 0 },
+  sleep: { rear: 0, curl: 1, stride: 0, headDown: 0.4, paw: 0, eyes: 0, tailUp: 0, stretch: 0, crouch: 0 },
+  // belly low, head level and pushed forward, tail low and twitching at the tip
+  stalk: { rear: 0, curl: 0, stride: 0.55, headDown: -0.1, paw: 0, eyes: 1, tailUp: 0.1, stretch: 0, crouch: 1 },
+  pounce: { rear: 0, curl: 0, stride: 0, headDown: -0.1, paw: 0, eyes: 1, tailUp: 0.5, stretch: 1, crouch: 0 },
+  // trotting home with it, head held high
+  carry: { rear: 0, curl: 0, stride: 1, headDown: -0.35, paw: 0, eyes: 1, tailUp: 1, stretch: 0, crouch: 0 },
 };
 
 const TAIL = 7;
@@ -140,8 +150,10 @@ function CatBody({ brain }: { brain: React.RefObject<CatState | null> }) {
   const eyes = useRef<THREE.Group>(null);
   const legs = useRef<(THREE.Group | null)[]>([]);
   const tail = useRef<(THREE.Group | null)[]>([]);
+  const mouth = useRef<THREE.Group>(null);
   const pose = useRef<Pose>({ ...POSES.sit });
   const phase = useRef(0);
+  const was = useRef({ x: 0, z: 0 });
 
   useFrame(({ clock }, dt) => {
     const c = brain.current;
@@ -155,24 +167,28 @@ function CatBody({ brain }: { brain: React.RefObject<CatState | null> }) {
 
     g.position.set(c.x, c.y, c.z);
     g.rotation.y = c.heading;
-    const moving = c.action === 'walk' || c.action === 'follow';
-    phase.current += dt * (moving ? (c.action === 'follow' ? 11 : 8) : 0);
+    // her legs go when she's actually going somewhere (stalking, she spends a lot of time quite still)
+    const moving = c.action !== 'pounce' && Math.hypot(c.x - was.current.x, c.z - was.current.z) > 1e-4;
+    was.current = { x: c.x, z: c.z };
+    phase.current += dt * (moving ? (c.action === 'follow' ? 11 : c.action === 'stalk' ? 5 : 8) : 0);
     const ph = phase.current;
 
     // body: pitched up when sat, low and round when curled, a slight bob when walking, breathing when asleep
     const b = body.current!;
     const breathe = 1 + Math.sin(t * (p.curl > 0.5 ? 1.6 : 2.4)) * 0.025;
     const purr = c.action === 'purr' ? Math.sin(t * 60) * 0.002 : 0;
-    b.position.set(0, 0.17 - p.curl * 0.09 + (moving ? Math.abs(Math.sin(ph)) * 0.012 : 0) + purr, p.rear * 0.05);
+    b.position.set(0, 0.17 - p.curl * 0.09 - p.crouch * 0.07 + (moving ? Math.abs(Math.sin(ph)) * 0.012 : 0) + purr, p.rear * 0.05);
     b.rotation.x = p.rear * 0.62 - p.stretch * 0.15;
     b.rotation.z = p.curl * 1.2;
     b.scale.set(1 + p.curl * 0.15, breathe, 1 - p.curl * 0.25 + p.stretch * 0.15);
 
     // head: tracks the body, looks down to wash, tucked in asleep; ignoring, she turns it away
     const h = head.current!;
-    h.position.set(p.curl * 0.09, 0.28 - p.curl * 0.17 + p.rear * 0.09, -0.19 + p.rear * 0.07 + p.curl * 0.05);
+    h.position.set(p.curl * 0.09, 0.28 - p.curl * 0.17 + p.rear * 0.09 - p.crouch * 0.1, -0.19 + p.rear * 0.07 + p.curl * 0.05 - p.crouch * 0.03);
+    mouth.current!.visible = c.carrying !== null;
     const washBob = c.action === 'wash' ? Math.sin(t * 7) * 0.12 : 0;
-    const look = c.action === 'ignore' ? 0.9 + Math.sin(t * 0.7) * 0.15 : Math.sin(t * 0.37) * 0.25 * (1 - p.curl);
+    const hunting = c.action === 'stalk' || c.action === 'pounce';
+    const look = c.action === 'ignore' ? 0.9 + Math.sin(t * 0.7) * 0.15 : hunting ? 0 : Math.sin(t * 0.37) * 0.25 * (1 - p.curl);
     h.rotation.set(p.headDown + washBob, look, p.curl * 0.8);
     // eyes: blink now and then, half shut purring, shut asleep
     const blink = (t * 0.31) % 1 > 0.97 ? 0.1 : 1;
@@ -187,11 +203,11 @@ function CatBody({ brain }: { brain: React.RefObject<CatState | null> }) {
       fr.rotation.x = -swing - p.rear * 0.5 + p.stretch * -0.9;
       hl.rotation.x = -swing + p.rear * 1.3 + p.stretch * 0.9;
       hr.rotation.x = swing + p.rear * 1.3 + p.stretch * 0.9;
-      for (const leg of L) if (leg) leg.scale.y = 1 - p.curl * 0.85;
+      for (const leg of L) if (leg) leg.scale.y = (1 - p.curl * 0.85) * (1 - p.crouch * 0.44);
     }
 
     // tail: up in a question mark when walking, wrapped round her feet sat, around her nose asleep; it flicks
-    const flick = c.action === 'ignore' ? 0.6 : 0.18;
+    const flick = c.action === 'ignore' || c.action === 'stalk' ? 0.6 : 0.18;
     for (let i = 0; i < TAIL; i++) {
       const s = tail.current[i];
       if (!s) continue;
@@ -251,6 +267,10 @@ function CatBody({ brain }: { brain: React.RefObject<CatState | null> }) {
             </mesh>
           </group>
         ))}
+        {/* the rat she's carrying, held across her jaws */}
+        <group ref={mouth} position={[0, -0.05, -0.085]} visible={false}>
+          <DeadRat position={[0, -0.03, 0]} rotation={[0.4, Math.PI / 2, 0]} />
+        </group>
         <group ref={eyes} position={[0, 0.012, -0.062]}>
           {[-1, 1].map((s) => (
             <group key={s} position={[s * 0.028, 0, 0]}>
@@ -312,8 +332,10 @@ export function Cat({ slots }: { slots: number[] }) {
   const repos = useStore((s) => s.repos);
   const camera = useThree((s) => s.camera);
   const brain = useRef<CatState | null>(null);
+  const rats = useRef<Warren | null>(null);
 
   const nav = useMemo(() => catNav(slots), [slots]);
+  const ratEnv = useMemo<WarrenEnv>(() => ({ nav, player: null, kills: 0, inside: (x, z) => inDungeon(x, z, slots), threats: [] }), [nav, slots]);
 
   const busyKey = Object.values(agents)
     .filter((a) => a.repoId && (a.status === 'working' || a.status === 'preparing') && a.role === 'dev')
@@ -329,16 +351,33 @@ export function Cat({ slots }: { slots: number[] }) {
       const desks = Array.from({ length: DESK_ROWS.length * 4 }, (_, d) => d).filter((d) => busy.has(`${r.id}:${d}`));
       spots.push(...chamberSpots({ slot: r.floor, busyDesks: desks }));
     }
-    return { nav, spots, player: null, corners: corners(slots) };
+    return { nav, spots, player: null, corners: corners(slots), rats: [], pile: PILE_DROP };
   }, [nav, repos, slots, busyKey, ceoBusy]);
 
   useEffect(() => {
-    if (!brain.current) brain.current = createCat(Math.floor(Math.random() * 1e9), { ...HOME });
+    if (!brain.current) brain.current = living ?? createCat(Math.floor(Math.random() * 1e9), { ...HOME });
     living = brain.current;
+    if (!warren) warren = createWarren(Math.floor(Math.random() * 1e9));
+    rats.current = warren;
     // window.__dungeonCat: a read-only peek for QA (what she's doing, where, and where she's heading)
     const peek = () => {
       const c = brain.current;
-      return c && { action: c.action, x: c.x, y: c.y, z: c.z, goal: c.goal?.id ?? null, nudges: c.nudges, left: c.left };
+      return (
+        c && {
+          action: c.action,
+          x: c.x,
+          y: c.y,
+          z: c.z,
+          goal: c.goal?.id ?? null,
+          nudges: c.nudges,
+          left: c.left,
+          prey: c.prey,
+          carrying: c.carrying,
+          kills: c.kills,
+          dropped: c.dropped,
+          rats: rats.current?.rats.map((r) => ({ id: r.id, action: r.action, x: r.x, z: r.z })) ?? [],
+        }
+      );
     };
     if (!import.meta.env.DEV) return;
     Object.defineProperty(window, '__dungeonCat', { get: peek, configurable: true });
@@ -358,7 +397,17 @@ export function Cat({ slots }: { slots: number[] }) {
     env.player = { x: camera.position.x, z: camera.position.z };
     // a project removed while she was in its chamber leaves her outside the walls: home to the hearth
     if (++checks.current % 120 === 0 && c.y === 0 && !inDungeon(c.x, c.z, slots)) {
-      Object.assign(c, HOME, { y: 0, action: 'sit', left: 3, path: [], goal: null, jump: null });
+      const dropped = c.dropped + (c.carrying !== null ? 1 : 0); // a rat in her mouth still ends up on the pile
+      Object.assign(c, HOME, { y: 0, action: 'sit', left: 3, path: [], goal: null, jump: null, prey: null, carrying: null, dropped });
+    }
+    // the rats first (they run from her unless she's stalking), then her
+    const w = rats.current;
+    if (w) {
+      ratEnv.player = env.player;
+      ratEnv.kills = c.kills;
+      ratEnv.threats = c.action === 'stalk' || c.action === 'pounce' ? [] : [c];
+      stepWarren(w, dt, ratEnv);
+      env.rats = w.rats;
     }
     stepCat(c, dt, env);
   });
@@ -367,6 +416,7 @@ export function Cat({ slots }: { slots: number[] }) {
     <>
       <CatBody brain={brain} />
       <BarMug brain={brain} />
+      <Rats warren={rats} cat={brain} slots={slots} />
     </>
   );
 }

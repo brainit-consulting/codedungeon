@@ -1,4 +1,4 @@
-import { planPath, type Nav, type Pt } from './nav';
+import { openLine, planPath, type Nav, type Pt } from './nav';
 
 // The dungeon's black cat: the mascot, who thinks she runs the place. A pure state machine over the dungeon's nav
 // grid, stepped by Cat.tsx, so her whole routine can be tested and, given the same seed, replayed.
@@ -7,8 +7,25 @@ import { planPath, type Nav, type Pt } from './nav';
 // side, the DungeonMaster's desk, a Kanban board) or, now and then, a random corner; walks there on the grid; and
 // stays a while, sitting, washing, purring or asleep. Called by the Overlord she ignores them first, then follows a
 // little behind. She is decoration only: she has no collider and never stands where she'd block a click (Cat.tsx).
+//
+// And she hunts rats (ratBrain.ts). A rat within a few metres that she can see on the grid gets her up from any
+// idle stay (never out of a leap mid-air, and not while she's answering the Overlord's call): she stalks it low and
+// slow, pounces from close, and carries her kill in her mouth to her pile by the hearth.
 
-export type CatAction = 'walk' | 'jumpUp' | 'jumpDown' | 'sit' | 'wash' | 'purr' | 'sleep' | 'nudge' | 'ignore' | 'follow';
+export type CatAction =
+  | 'walk'
+  | 'jumpUp'
+  | 'jumpDown'
+  | 'sit'
+  | 'wash'
+  | 'purr'
+  | 'sleep'
+  | 'nudge'
+  | 'ignore'
+  | 'follow'
+  | 'stalk'
+  | 'pounce'
+  | 'carry';
 
 export type SpotKind = 'hearth' | 'bar' | 'coder' | 'throne' | 'board' | 'corner';
 
@@ -22,6 +39,14 @@ export interface CatSpot {
   facing: number;
   approach?: Pt;
   weight: number;
+}
+
+/** A rat, as far as the cat is concerned (ratBrain's Rat fits). She sets `dead` when she catches it. */
+export interface Prey {
+  id: number;
+  x: number;
+  z: number;
+  dead: boolean;
 }
 
 export interface Cat {
@@ -52,6 +77,20 @@ export interface Cat {
   retryAt: number;
   /** Called while in the air: she answers (by ignoring you) once she lands. */
   called: boolean;
+  /** The rat she's after, and the one in her mouth. */
+  prey: number | null;
+  carrying: number | null;
+  /** Rats killed this session, and how many of them she's laid on her pile. */
+  kills: number;
+  dropped: number;
+  /** Pounces that missed the rat she's after. */
+  misses: number;
+  /** Cat clock time when she gives up stalking the current rat. */
+  huntUntil: number;
+  /** Rats that got away, and until when (cat clock) she lets them be. */
+  spared: Record<number, number>;
+  /** Cat clock time of her next look round for rats. */
+  lookAt: number;
 }
 
 export interface CatEnv {
@@ -60,6 +99,10 @@ export interface CatEnv {
   player: Pt | null;
   /** Random points she may wander to; Cat.tsx samples open cells. */
   corners: Pt[];
+  /** Rats about (none: she doesn't hunt). */
+  rats?: Prey[];
+  /** Where she lays her kills (she hunts only when she has one). */
+  pile?: CatSpot;
 }
 
 /** How long (s) she leaves alone a spot she found no way to. */
@@ -86,7 +129,29 @@ export const CAT = {
   followGap: 1.1,
   /** Chance a stay starts with a wash. */
   washChance: 0.45,
+  /** Hunting: she notices a rat this close (m) that she can see, creeps up at `stalk` m/s, pounces from `pounceRange`. */
+  notice: 6,
+  stalk: 0.35,
+  pounceRange: 1.1,
+  pounceS: 0.38,
+  pounceH: 0.14,
+  /** A pounce that lands this close to the rat catches it. */
+  catchR: 0.45,
+  /** She gives up on a rat after this long stalking, this many misses, or once it's this far off. */
+  stalkFor: 25,
+  misses: 3,
+  lose: 9,
+  /** How long she lets be a rat that got away. */
+  spareFor: 20,
+  carry: 0.9,
+  /** The wash she gives herself after laying a rat on the pile. */
+  proud: [4, 8] as [number, number],
 };
+
+/** She sees past whatever she's sat right against (the bar's stools, a table leg). */
+const SIGHT_MARGIN = 0.5;
+/** What a rat can get her up from. */
+const IDLE = new Set<CatAction>(['walk', 'sit', 'wash', 'purr', 'sleep', 'nudge']);
 
 // ---------- randomness: seeded, so a routine can be replayed ----------
 
@@ -119,12 +184,22 @@ export function createCat(seed: number, at: Pt): Cat {
     unreachable: {},
     retryAt: 0,
     called: false,
+    prey: null,
+    carrying: null,
+    kills: 0,
+    dropped: 0,
+    misses: 0,
+    huntUntil: 0,
+    spared: {},
+    lookAt: 0.5,
   };
 }
 
 /** The Overlord calls her: she ignores them for a few seconds, then follows a while. */
 export function callCat(c: Cat) {
   if (c.action === 'ignore' || c.action === 'follow') return;
+  // busy with a rat: she doesn't hear you
+  if (c.action === 'stalk' || c.action === 'pounce' || c.action === 'carry') return;
   if (c.action === 'jumpUp' || c.action === 'jumpDown') {
     c.called = true; // she'll land first
     return;
@@ -193,20 +268,78 @@ function settle(c: Cat, spot: CatSpot) {
   c.goal = spot;
 }
 
+/** Jump down from what she's on, to where she jumped up from. */
+function comeDown(c: Cat) {
+  const to = c.goal?.approach ?? { x: c.x, z: c.z + 0.6 };
+  c.jump = { from: { x: c.x, z: c.z, y: c.y }, to: { x: to.x, z: to.z, y: 0 }, t: 0 };
+  c.action = 'jumpDown';
+}
+
 function chooseNext(c: Cat, env: CatEnv) {
   // up on something: come down first, to where she jumped up from
-  if (c.y > 0 && c.goal) {
-    const to = c.goal.approach ?? { x: c.x, z: c.z + 0.6 };
-    c.jump = { from: { x: c.x, z: c.z, y: c.y }, to: { x: to.x, z: to.z, y: 0 }, t: 0 };
-    c.action = 'jumpDown';
-    return;
-  }
+  if (c.y > 0 && c.goal) return comeDown(c);
+  const rat = noticeRat(c, env);
+  if (rat) return startHunt(c, rat);
   for (let tries = 0; tries < 4; tries++) {
     const spot = pickSpot(c, env);
     if (spot && goTo(c, env, spot)) return;
   }
   c.action = 'sit';
   c.left = 4;
+}
+
+// ---------- hunting ----------
+
+/** The nearest rat she can see within range (from up on something, she looks from where she jumped up). */
+function noticeRat(c: Cat, env: CatEnv): Prey | null {
+  if (!env.rats || !env.pile || c.carrying !== null) return null;
+  const eye = c.y > 0 ? (c.goal?.approach ?? c) : c;
+  let best: Prey | null = null;
+  let bestD = CAT.notice;
+  for (const r of env.rats) {
+    if (r.dead || (c.spared[r.id] ?? 0) > c.clock) continue;
+    const d = Math.hypot(r.x - eye.x, r.z - eye.z);
+    if (d > bestD || !openLine(env.nav, eye, r, SIGHT_MARGIN)) continue;
+    best = r;
+    bestD = d;
+  }
+  return best;
+}
+
+function startHunt(c: Cat, r: Prey) {
+  c.prey = r.id;
+  c.action = 'stalk';
+  c.path = [];
+  c.goal = null;
+  c.misses = 0;
+  c.retryAt = 0;
+  c.huntUntil = c.clock + CAT.stalkFor;
+}
+
+const preyOf = (c: Cat, env: CatEnv) => env.rats?.find((r) => r.id === c.prey && !r.dead) ?? null;
+
+function giveUp(c: Cat, env: CatEnv, r: Prey | null) {
+  if (r) c.spared[r.id] = c.clock + CAT.spareFor;
+  c.prey = null;
+  c.path = [];
+  chooseNext(c, env);
+}
+
+function caught(c: Cat, env: CatEnv, r: Prey) {
+  r.dead = true;
+  c.carrying = r.id;
+  c.kills++;
+  c.prey = null;
+  const path = planPath(env.nav, c, env.pile!);
+  if (!path) {
+    // no way to the pile from here (never so in the dungeon): it's laid there all the same
+    c.carrying = null;
+    c.dropped++;
+    return chooseNext(c, env);
+  }
+  c.path = path;
+  c.goal = env.pile!;
+  c.action = 'carry';
 }
 
 // ---------- stepping ----------
@@ -245,7 +378,69 @@ function walkPath(c: Cat, dt: number, speed: number): boolean {
 
 export function stepCat(c: Cat, dt: number, env: CatEnv) {
   c.clock += dt;
+  // twice a second, a look round for rats (never mid-leap, nor while she's with the Overlord)
+  if (env.rats?.length && IDLE.has(c.action) && c.clock >= c.lookAt) {
+    c.lookAt = c.clock + 0.5;
+    const rat = noticeRat(c, env);
+    if (rat) {
+      if (c.y > 0) return comeDown(c); // she'll see it again once she's down
+      return startHunt(c, rat);
+    }
+  }
   switch (c.action) {
+    case 'stalk': {
+      const r = preyOf(c, env);
+      if (!r || c.clock > c.huntUntil) return giveUp(c, env, r);
+      const d = Math.hypot(r.x - c.x, r.z - c.z);
+      if (d > CAT.lose) return giveUp(c, env, r);
+      if (d <= CAT.pounceRange && openLine(env.nav, c, r, SIGHT_MARGIN)) {
+        // land just short of it, front paws on it
+        const k = Math.max(0, d - 0.12) / Math.max(d, 1e-6);
+        c.jump = { from: { x: c.x, z: c.z, y: 0 }, to: { x: c.x + (r.x - c.x) * k, z: c.z + (r.z - c.z) * k, y: 0 }, t: 0 };
+        c.heading = Math.atan2(-(r.x - c.x), -(r.z - c.z));
+        c.path = [];
+        c.action = 'pounce';
+        return;
+      }
+      // creep along a path to it, re-planned at most once a second
+      if (c.clock >= c.retryAt) {
+        const path = planPath(env.nav, c, r);
+        if (!path) return giveUp(c, env, r);
+        c.path = path;
+        c.retryAt = c.clock + 1;
+      }
+      if (c.path.length) walkPath(c, dt, CAT.stalk);
+      else turnToward(c, Math.atan2(-(r.x - c.x), -(r.z - c.z)), dt);
+      return;
+    }
+    case 'pounce': {
+      const j = c.jump!;
+      j.t = Math.min(1, j.t + dt / CAT.pounceS);
+      c.x = j.from.x + (j.to.x - j.from.x) * j.t;
+      c.z = j.from.z + (j.to.z - j.from.z) * j.t;
+      c.y = Math.sin(j.t * Math.PI) * CAT.pounceH;
+      if (j.t < 1) return;
+      c.y = 0;
+      c.jump = null;
+      const r = preyOf(c, env);
+      if (r && Math.hypot(r.x - c.x, r.z - c.z) <= CAT.catchR) return caught(c, env, r);
+      c.misses++;
+      if (!r || c.misses >= CAT.misses) return giveUp(c, env, r);
+      // missed: gather herself, then creep after it again
+      c.action = 'stalk';
+      c.path = [];
+      c.retryAt = c.clock + 0.5;
+      return;
+    }
+    case 'carry': {
+      if (!walkPath(c, dt, CAT.carry)) return;
+      c.carrying = null;
+      c.dropped++;
+      if (c.goal) c.heading = c.goal.facing;
+      c.action = 'wash';
+      c.left = between(c, CAT.proud);
+      return;
+    }
     case 'walk': {
       if (!walkPath(c, dt, CAT.walk)) return;
       const g = c.goal;

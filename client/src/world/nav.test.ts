@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Rect } from './layout';
-import { NAV_R, makeNav, planPath, segmentClear } from './nav';
+import { NAV_R, makeNav, openLine, planPath, segmentClear } from './nav';
 
 describe('planPath', () => {
   const walls: Rect[] = [{ minX: -2, maxX: 2, minZ: -0.2, maxZ: 0.2 }];
@@ -55,5 +55,23 @@ describe('makeNav', () => {
     expect(nav.cols).toBe(300);
     expect(nav.rows).toBe(360);
     expect(planPath(nav, { x: -20, z: 40 }, { x: 25, z: -5 })).not.toBeNull();
+  });
+});
+
+describe('openLine', () => {
+  const wall: Rect[] = [{ minX: -2, maxX: 2, minZ: -0.2, maxZ: 0.2 }];
+  const nav = makeNav(wall);
+  it('is open across empty floor and shut through a wall', () => {
+    expect(openLine(nav, { x: -5, z: 2 }, { x: 5, z: 2 })).toBe(true);
+    expect(openLine(nav, { x: 0, z: 2 }, { x: 0, z: -2 })).toBe(false);
+    expect(openLine(nav, { x: 3, z: 2 }, { x: 3, z: -2 })).toBe(true);
+  });
+
+  it('can ignore what lies right beside either end (someone sat against a table can still see out)', () => {
+    const from = { x: 0, z: 0.35 }; // in the wall's margin, but not in the wall
+    const to = { x: 0, z: 3 };
+    expect(openLine(nav, from, to)).toBe(false);
+    expect(openLine(nav, from, to, 0.5)).toBe(true);
+    expect(openLine(nav, { x: 0, z: 2 }, { x: 0, z: -2 }, 0.5)).toBe(false); // but never through the wall itself
   });
 });

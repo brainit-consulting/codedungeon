@@ -1,7 +1,8 @@
 import { HALF_D, HALF_W, collide, type Rect } from './layout';
 
 // Grid pathfinding over the layout's 2D rects: A* on a grid, string-pulled into a few straight legs. Pure, so it can be
-// tested. Kept from cubefarm's roomba; the dungeon's cat walks it across the whole plan (hall, gallery, chambers).
+// tested. Kept from cubefarm's roomba; the dungeon's cat walks it across the whole plan (hall, gallery, chambers), and
+// rats dash along its open lines.
 
 export interface Pt {
   x: number;
@@ -101,6 +102,25 @@ function gridClear(nav: Nav, a: Pt, b: Pt): boolean {
         if (ii < 0 || jj < 0 || ii >= cols || jj >= rows || blocked[jj * cols + ii]) return false;
       }
     }
+  }
+  return true;
+}
+
+/**
+ * Whether the straight line a → b crosses only open cells: a rat's dash, or the cat's line of sight. `margin` (m)
+ * ignores the cells that close to either end, so someone sat right against a table can still see past it.
+ */
+export function openLine(nav: Nav, a: Pt, b: Pt, margin = 0): boolean {
+  const { cols, blocked, bounds } = nav;
+  const len = Math.hypot(b.x - a.x, b.z - a.z);
+  const n = Math.max(1, Math.ceil(len / (nav.cell * 0.5)));
+  for (let k = 0; k <= n; k++) {
+    const s = (len * k) / n;
+    if (s < margin || len - s < margin) continue;
+    const x = a.x + ((b.x - a.x) * k) / n;
+    const z = a.z + ((b.z - a.z) * k) / n;
+    if (x < bounds.minX || x > bounds.maxX || z < bounds.minZ || z > bounds.maxZ) return false;
+    if (blocked[toRow(nav, z) * cols + toCol(nav, x)]) return false;
   }
   return true;
 }

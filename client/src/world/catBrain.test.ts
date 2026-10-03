@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { CAT, callCat, createCat, stepCat, type Cat, type CatEnv, type CatSpot } from './catBrain';
+import { CAT, callCat, createCat, stepCat, type Cat, type CatEnv, type CatSpot, type Prey } from './catBrain';
 import type { Rect } from './layout';
 import { clear, makeNav } from './nav';
+import { RAT, createWarren, stepWarren } from './ratBrain';
 
 // A 32 x 24 room with a bar, a hearth on the west wall and a couple of tables: enough to walk round.
 const RECTS: Rect[] = [
@@ -172,5 +173,148 @@ describe('the cat, when things are out of reach', () => {
     while (cat.action === 'jumpUp') stepCat(cat, DT, onlyBar);
     expect(cat.y).toBe(SPOTS[1].y);
     expect(cat.action).toBe('ignore');
+  });
+});
+
+describe('the cat and the rats', () => {
+  // her pile: on the floor just south of the hearth, against the west wall
+  const PILE: CatSpot = { id: 'pile', kind: 'corner', x: -15.2, z: 7, facing: Math.PI / 2, weight: 0 };
+  const rat = (x: number, z: number, id = 1): Prey => ({ id, x, z, dead: false });
+  /** Nowhere to go but after rats: no favourite spots, no corners. */
+  const hunting = (rats: Prey[], player: { x: number; z: number } | null = null, n = nav): CatEnv => ({ nav: n, spots: [], corners: [], player, rats, pile: PILE });
+  const actions = (c: Cat, seconds: number, e: CatEnv, each?: (c: Cat) => void) => {
+    const seen: string[] = [];
+    run(c, seconds, e, (k) => {
+      if (seen[seen.length - 1] !== k.action) seen.push(k.action);
+      each?.(k);
+    });
+    return seen;
+  };
+
+  it('notices a rat close by, stalks it low and slow, pounces, kills it and carries it to her pile', () => {
+    const cat = createCat(1, { x: 0, z: 7 });
+    const r = rat(3, 8.5);
+    const e = hunting([r]);
+    let fastest = 0;
+    let prev = { x: cat.x, z: cat.z };
+    let carried = false;
+    const seen = actions(cat, 60, e, (k) => {
+      if (k.action === 'stalk') fastest = Math.max(fastest, Math.hypot(k.x - prev.x, k.z - prev.z) / DT);
+      if (k.action === 'carry') carried ||= k.carrying === r.id;
+      prev = { x: k.x, z: k.z };
+    });
+    const at = (a: string) => seen.indexOf(a);
+    expect(at('stalk')).toBeGreaterThanOrEqual(0);
+    expect(at('pounce')).toBeGreaterThan(at('stalk'));
+    expect(at('carry')).toBeGreaterThan(at('pounce'));
+    expect(CAT.stalk).toBeLessThan(CAT.walk);
+    expect(fastest).toBeGreaterThan(CAT.stalk * 0.5); // she did creep
+    expect(fastest).toBeLessThanOrEqual(CAT.stalk + 1e-6);
+    expect(carried).toBe(true);
+    expect(r.dead).toBe(true);
+    expect(cat.kills).toBe(1);
+    expect(cat.dropped).toBe(1);
+    expect(cat.carrying).toBeNull();
+    expect(Math.hypot(cat.x - PILE.x, cat.z - PILE.z)).toBeLessThan(0.3);
+  });
+
+  it('pays no heed to a rat too far off, or one behind a wall', () => {
+    const far = createCat(2, { x: 0, z: 7 });
+    expect(actions(far, 10, hunting([rat(0, 7 - CAT.notice - 1)]))).not.toContain('stalk');
+
+    const box: Rect[] = [
+      { minX: 8, maxX: 12, minZ: 8, maxZ: 8.2 },
+      { minX: 8, maxX: 12, minZ: 11.8, maxZ: 12 },
+      { minX: 8, maxX: 8.2, minZ: 8, maxZ: 12 },
+      { minX: 11.8, maxX: 12, minZ: 8, maxZ: 12 },
+    ];
+    const walled = makeNav([...RECTS, ...box]);
+    const outside = createCat(2, { x: 10, z: 6.5 });
+    expect(actions(outside, 10, hunting([rat(10, 10)], null, walled))).not.toContain('stalk');
+  });
+
+  it('gets up for a rat: hunting comes before an idle stay, even sleep', () => {
+    const cat = createCat(3, { x: -13.5, z: 4 });
+    cat.action = 'sleep';
+    cat.left = 100;
+    run(cat, 0.6, hunting([rat(-10, 5)]));
+    expect(cat.action).toBe('stalk');
+  });
+
+  it('never breaks off a leap: jumping onto the bar she lands first, then comes down for the rat', () => {
+    const bar = SPOTS[1];
+    const cat = createCat(11, { x: 2.2, z: -1.5 });
+    const e: CatEnv = { ...env(), spots: [bar], corners: [], pile: PILE, rats: [] };
+    while (cat.action !== 'jumpUp') stepCat(cat, DT, e);
+    e.rats = [rat(2.2, 1.0)];
+    while (cat.action === 'jumpUp') stepCat(cat, DT, e);
+    expect(cat.y).toBe(bar.y);
+    const seen = actions(cat, 10, e);
+    expect(seen).toContain('jumpDown');
+    expect(seen.indexOf('stalk')).toBeGreaterThan(seen.indexOf('jumpDown'));
+  });
+
+  it("lets rats be while she's answering a call, and hunts once she's done following", () => {
+    const cat = createCat(9, { x: 0, z: 7 });
+    const player = { x: -2, z: 8 };
+    const e = hunting([rat(1, 9.5)], player);
+    callCat(cat);
+    const busy: string[] = [];
+    while (cat.action === 'ignore' || cat.action === 'follow') {
+      busy.push(cat.action);
+      stepCat(cat, DT, e);
+    }
+    expect(busy).toContain('follow');
+    expect(busy.length * DT).toBeGreaterThan(CAT.followFor); // the rat in plain sight didn't cut it short
+    expect(cat.action === 'stalk' || actions(cat, 1, e).includes('stalk')).toBe(true);
+  });
+
+  it('called mid-hunt, she carries on hunting', () => {
+    const cat = createCat(4, { x: 0, z: 7 });
+    const e = hunting([rat(4, 9)]);
+    while (cat.action !== 'stalk') stepCat(cat, DT, e);
+    callCat(cat);
+    expect(cat.action).toBe('stalk');
+  });
+
+  it('gives up on a rat that gets away, and lets it be a while', () => {
+    const cat = createCat(5, { x: 0, z: 7 });
+    const r = rat(3, 8);
+    const e = hunting([r]);
+    while (cat.action !== 'stalk') stepCat(cat, DT, e);
+    Object.assign(r, { x: -12, z: -9 }); // gone across the room
+    const seen = actions(cat, 1.5, e);
+    expect(cat.action).not.toBe('stalk');
+    expect(cat.prey).toBeNull();
+    Object.assign(r, { x: 3, z: 8 }); // and back, close by: not again just yet
+    expect(actions(cat, 2, e)).not.toContain('stalk');
+    expect(seen).not.toContain('pounce');
+  });
+
+  it('with a warren to hunt, kills twelve, piles all twelve, and then the rats stop coming', () => {
+    const cat = createCat(6, { x: 0, z: 7 });
+    const warren = createWarren(6);
+    const e: CatEnv = { ...env(), pile: PILE, rats: warren.rats };
+    const DT2 = 1 / 15;
+    let most = 0;
+    let t = 0;
+    for (; t < 3600 && cat.dropped < RAT.cap; t += DT2) {
+      const stealthy = cat.action === 'stalk' || cat.action === 'pounce';
+      stepWarren(warren, DT2, { nav, player: null, kills: cat.kills, inside: () => true, threats: stealthy ? [] : [cat] });
+      e.rats = warren.rats;
+      stepCat(cat, DT2, e);
+      most = Math.max(most, warren.rats.filter((r) => !r.dead).length);
+    }
+    expect(cat.kills).toBe(RAT.cap);
+    expect(cat.dropped).toBe(RAT.cap);
+    expect(most).toBeLessThanOrEqual(RAT.max);
+    for (let k = 0; k < 120 / DT2; k++) {
+      stepWarren(warren, DT2, { nav, player: null, kills: cat.kills, inside: () => true, threats: [] });
+      e.rats = warren.rats;
+      stepCat(cat, DT2, e);
+    }
+    expect(warren.spawned).toBe(RAT.cap);
+    expect(warren.rats).toEqual([]);
+    expect(cat.kills).toBe(RAT.cap);
   });
 });
