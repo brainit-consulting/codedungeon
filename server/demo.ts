@@ -5,6 +5,7 @@ import type { Backend } from './backend.ts';
 import type { PreviewBackend } from './previewRunner.ts';
 import { describeOfficeTool, type LogEntry, type SessionCallbacks, type SessionHandle, type SessionOptions } from './agentRunner.ts';
 import { CLIS } from './clis.ts';
+import { createFakeVercel, fakeShipDir } from './demoVercel.ts';
 import type { GhRepoSummary, IssueInfo, PullInfo } from '../shared/types.ts';
 import type { LocalFolder } from './workspace.ts';
 import { HOME_DIR } from './config.ts';
@@ -19,6 +20,7 @@ interface FakeRepo {
   issues: IssueInfo[];
   pulls: PullInfo[];
   nextNumber: number;
+  main: { sha: string; subject: string }[]; // the default branch's commits, oldest first
 }
 
 const now = () => new Date().toISOString();
@@ -34,6 +36,9 @@ const mergedSinceSync = new Map<string, number>(); // merges the fake project fo
 const closedIssues = new Set<string>(); // `${fullName}#${n}`: issues closed by a merge
 
 const fakeSha = () => crypto.randomBytes(20).toString('hex');
+const headOf = (fullName: string) => repos.get(fullName)?.main.at(-1)?.sha ?? 'demo';
+/** SHIP IT's Vercel: a production build after every merge, ready a few seconds later. */
+const vercel = createFakeVercel({ buildMs: 6_000, headOf });
 
 /** Fake CI: checks run for a while after every push, and now and then one fails so the fix loop shows. */
 function runChecks(pr: PullInfo, fail = Math.random() < 0.2) {
@@ -48,7 +53,7 @@ function runChecks(pr: PullInfo, fail = Math.random() < 0.2) {
 }
 
 function seed(fullName: string, description: string, titles: [string, string][]) {
-  const r: FakeRepo = { fullName, description, issues: [], pulls: [], nextNumber: 1 };
+  const r: FakeRepo = { fullName, description, issues: [], pulls: [], nextNumber: 1, main: [{ sha: fakeSha(), subject: 'Initial commit' }] };
   for (const [title, body] of titles) r.issues.push(issue(r.nextNumber++, title, body, fullName));
   repos.set(fullName, r);
 }
@@ -387,7 +392,7 @@ export function createDemoBackend(): Backend {
   const newRepo = (name: string, description = '') => {
     const fullName = `demo-co/${name}`;
     if (!repos.has(fullName)) {
-      repos.set(fullName, { fullName, description, issues: [], pulls: [], nextNumber: 1 });
+      repos.set(fullName, { fullName, description, issues: [], pulls: [], nextNumber: 1, main: [{ sha: fakeSha(), subject: 'Initial commit' }] });
       bareRepos.add(fullName);
     }
     addFolder(name, fullName);
@@ -446,6 +451,9 @@ export function createDemoBackend(): Backend {
       mergedSinceSync.set(fullName, (mergedSinceSync.get(fullName) ?? 0) + 1);
       pr.state = 'MERGED';
       pr.mergedAt = now();
+      const sha = fakeSha();
+      r.main.push({ sha, subject: `${pr.title} (#${number})` });
+      vercel.merged(fullName, sha);
       for (const n of pr.closesIssues) closedIssues.add(`${fullName}#${n}`);
       r.issues = r.issues.filter((i) => !pr.closesIssues.includes(i.number));
     },
@@ -512,6 +520,14 @@ export function createDemoBackend(): Backend {
     detectClis: async () =>
       CLIS.map((c) => ({ id: c.id, label: c.label, installed: true, version: 'demo', integrated: c.integrated })),
     previews: demoPreviews,
+    branchHead: async (fullName) => ({ sha: headOf(fullName), checks: 'passing' }),
+    commitSubjects: async (fullName, base, head) => {
+      const main = repos.get(fullName)?.main ?? [];
+      const at = (sha: string) => main.findIndex((c) => c.sha.startsWith(sha) || sha.startsWith(c.sha));
+      return main.slice(at(base) + 1, at(head) + 1).map((c) => c.subject);
+    },
+    prepareShipCheckout: async (fullName) => fakeShipDir(fullName),
+    vercel,
     office: demoOffice,
   };
 }

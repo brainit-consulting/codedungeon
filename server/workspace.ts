@@ -23,6 +23,8 @@ function withRepoLock<T>(fullName: string, fn: () => Promise<T>): Promise<T> {
 export const repoDir = (fullName: string) => path.join(WORKSPACE_ROOT, fullName.replace('/', '__'));
 export const mainDir = (fullName: string) => localRoots.get(fullName.toLowerCase()) ?? path.join(repoDir(fullName), 'main');
 export const deskDir = (fullName: string, agentSlug: string) => path.join(repoDir(fullName), 'desks', agentSlug);
+/** Where SHIP IT checks out `main` to link and deploy from: never the Overlord's own folder. */
+export const shipDir = (fullName: string) => path.join(repoDir(fullName), 'ship');
 
 /** Use the user's own folder as a floor's main checkout (null: back to a clone the office manages). */
 export function setLocalPath(fullName: string, dir: string | null) {
@@ -249,6 +251,23 @@ export interface DeskBase {
 /** Remove a directory, retrying while Windows still has handles open in it. */
 async function removeDir(dir: string) {
   await fs.rm(dir, { recursive: true, force: true, maxRetries: 8, retryDelay: 250 });
+}
+
+/** A clean checkout of `origin/<branch>` for SHIP IT, kept as a worktree; its `.vercel` link survives the reset. */
+export function prepareShipCheckout(fullName: string, branch: string): Promise<string> {
+  return withRepoLock(fullName, async () => {
+    const main = mainDir(fullName);
+    const dir = shipDir(fullName);
+    await git(['fetch', 'origin', '--prune'], { cwd: main, timeoutMs: 180_000 });
+    if (!(await exists(dir))) {
+      await git(['worktree', 'prune'], { cwd: main });
+      await git(['worktree', 'add', '--detach', dir, `origin/${branch}`], { cwd: main, timeoutMs: 180_000 });
+    } else {
+      await git(['checkout', '--detach', '--force', `origin/${branch}`], { cwd: dir });
+      await git(['clean', '-fdx', '-e', '.vercel'], { cwd: dir });
+    }
+    return dir;
+  });
 }
 
 export function prepareDesk(fullName: string, base: DeskBase, agentSlug: string, branch: string): Promise<string> {

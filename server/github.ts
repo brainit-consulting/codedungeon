@@ -114,6 +114,31 @@ export async function listPulls(fullName: string): Promise<PullInfo[]> {
   return [...open, ...merged].map(toPull);
 }
 
+interface HeadGraphql {
+  data: { repository: { ref: { target: { oid: string; statusCheckRollup: { contexts: { nodes: Check[] } } | null } } | null } };
+}
+
+export function headFromGraphql(out: HeadGraphql, fullName: string, branch: string): { sha: string; checks: PullInfo['checks'] } {
+  const target = out.data.repository.ref?.target;
+  if (!target) throw new Error(`${fullName} has no branch ${branch}`);
+  return { sha: target.oid, checks: checksOf(target.statusCheckRollup?.contexts.nodes ?? null) };
+}
+
+/** A branch's head commit and how its checks stand (for SHIP IT: is `main` green?). */
+export async function branchHead(fullName: string, branch: string): Promise<{ sha: string; checks: PullInfo['checks'] }> {
+  const [owner, name] = fullName.split('/');
+  const query =
+    'query($owner:String!,$name:String!,$ref:String!){repository(owner:$owner,name:$name){ref(qualifiedName:$ref){target{... on Commit{oid statusCheckRollup{contexts(first:100){nodes{... on CheckRun{name status conclusion detailsUrl} ... on StatusContext{context state targetUrl}}}}}}}}}';
+  const out = await ghJson<HeadGraphql>(['api', 'graphql', '-f', `query=${query}`, '-f', `owner=${owner}`, '-f', `name=${name}`, '-f', `ref=refs/heads/${branch}`]);
+  return headFromGraphql(out, fullName, branch);
+}
+
+/** The first lines of the commits after `base` up to `head` (oldest first). */
+export async function commitSubjects(fullName: string, base: string, head: string): Promise<string[]> {
+  const out = await ghJson<{ commits: { commit: { message: string } }[] }>(['api', `repos/${fullName}/compare/${base}...${head}`]);
+  return out.commits.map((c) => c.commit.message.split('\n')[0]);
+}
+
 // swarm:<specialty> labels route issues to specialists. gh refuses unknown labels, so they're created on first use.
 const labelsMade = new Set<string>();
 

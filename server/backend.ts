@@ -6,6 +6,7 @@ import { detectClis } from './clis.ts';
 import { realPreviews, type PreviewBackend } from './previewRunner.ts';
 import { realOffice, type OfficeHost } from './officeUpdate.ts';
 import type { AgentTerminal } from './terminal.ts';
+import { realVercel, type VercelBackend } from './vercel.ts';
 import type { CliView, GhRepoSummary, IssueInfo, PullInfo } from '../shared/types.ts';
 
 /** Everything the swarm needs from the outside world. The demo backend fakes all of it. */
@@ -37,6 +38,14 @@ export interface Backend {
   inspectFolder(dir: string): Promise<workspace.LocalFolder>;
   publishFolder(dir: string, opts: { name: string; visibility: 'private' | 'public'; owner?: string; description?: string }): Promise<string>;
   createProject(root: string, name: string, opts: { visibility: 'private' | 'public'; owner?: string; description?: string }): Promise<{ fullName: string; path: string }>;
+  /** A branch's head commit and its checks. */
+  branchHead(fullName: string, branch: string): Promise<{ sha: string; checks: PullInfo['checks'] }>;
+  /** First lines of the commits after base up to head. */
+  commitSubjects(fullName: string, base: string, head: string): Promise<string[]>;
+  /** A clean checkout of origin/<branch> for SHIP IT; returns its folder. */
+  prepareShipCheckout(fullName: string, branch: string): Promise<string>;
+  /** Vercel, through the CLI and the Overlord's own login. */
+  vercel: VercelBackend;
   mainDir(fullName: string): string;
   deskDir(fullName: string, agentSlug: string): string;
   prepareDesk(fullName: string, base: workspace.DeskBase, agentSlug: string, branch: string): Promise<string>;
@@ -86,6 +95,10 @@ export const realBackend: Backend = {
   inspectFolder: workspace.inspectFolder,
   publishFolder: workspace.publishFolder,
   createProject: workspace.createProject,
+  branchHead: github.branchHead,
+  commitSubjects: github.commitSubjects,
+  prepareShipCheckout: workspace.prepareShipCheckout,
+  vercel: realVercel,
   mainDir: workspace.mainDir,
   deskDir: workspace.deskDir,
   prepareDesk: workspace.prepareDesk,
