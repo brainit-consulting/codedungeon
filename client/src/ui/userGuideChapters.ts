@@ -31,6 +31,9 @@ export const CHAPTERS: GuideChapter[] = [
       p(
         'The archway in the middle of the south wall leads into the gallery. Every connected repo has its own chamber off the gallery, alternating west and east. A chamber keeps its number for as long as its repo is connected, so removing one project never moves the others.',
       ),
+      p(
+        'Each chamber has a pair of oak doors. They creak open as you come up the gallery towards them and swing shut once you are well past, so from inside one chamber you see the shut doors of the chamber opposite.',
+      ),
       p('The directory beside the archway lists every chamber: press [[E]] on it to walk straight into one instead of finding the door.'),
       h('Inside a chamber'),
       list(
@@ -64,7 +67,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('When the mouse cannot be grabbed'),
       p(
-        'Some browsers and embedded browser panes refuse to capture the mouse. The dungeon notices within a moment and switches to drag to look: hold the left button and drag to turn, and a click without a drag uses whatever the cross is on. Everything else works the same.',
+        'Some browsers and embedded browser panes refuse to capture the mouse. The dungeon notices within a moment and switches to drag to look: hold the left button and drag the way you want to look (drag left to turn left, up to look up), and a click without a drag uses whatever the cross is on. Everything else works the same.',
       ),
       h('Mouse settings'),
       p('The help ([[H]]) has a sensitivity slider and an Invert Y switch. Both are saved in this browser.'),
@@ -243,7 +246,7 @@ export const CHAPTERS: GuideChapter[] = [
         'A black cat lives in the dungeon and thinks she runs it. She sleeps by the hearth, sits on the bar, keeps working coders company and takes the DungeonMaster\'s desk when he isn\'t looking.',
       ),
       p(
-        'Press [[C]] to call her. She will ignore you for a moment, then follow you about. She never blocks your way or a click.',
+        'Press [[C]] to call her. She will ignore you for a moment, then follow you about. She never blocks your way or a click, and a shut door doesn\'t stop her: she shoulders it open a crack and slips through.',
       ),
       p(
         'Rats get in now and then, never more than three at a time. When she spots one she creeps up on it, pounces, and carries the kill to her pile beside the hearth. Twelve is all there are: once the pile is full, no more come until the dungeon is reloaded.',
@@ -286,6 +289,7 @@ export const CHAPTERS: GuideChapter[] = [
       h('The view or the mouse misbehaves'),
       list(
         'Can\'t look around: click the view once. If the mouse still won\'t lock, drag with the left button held.',
+        'In a narrow window (a browser pane beside a chat, say) the line of keys along the bottom steps aside to leave room; the help ([[H]]) and chapter 9 list them all.',
         'The status pill says **reconnecting**: the dungeon\'s server is restarting or has stopped. Agents\' terminals keep working through a restart.',
         'No sound: press [[M]], and check the volume in the help ([[H]]). No music: press [[N]], and check its own volume there too.',
       ),
