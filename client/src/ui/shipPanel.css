@@ -1,4 +1,4 @@
-/* client/src/ui/shipPanel.css: the SHIP IT panel, in the dungeon's parchment panel style */
+/* the SHIP IT panel, in the dungeon's parchment panel style */
 .ship-panel h3 {
   margin: 1.1rem 0 0.35rem;
   font-family: var(--font-sc, 'Alegreya SC'), serif;

@@ -1,4 +1,3 @@
-// server/github.test.ts
 import { describe, expect, it } from 'vitest';
 import { headFromGraphql } from './github.ts';
 

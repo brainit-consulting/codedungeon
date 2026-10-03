@@ -1,4 +1,3 @@
-// server/ship.test.ts
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_SHIP } from '../shared/ship.ts';
 import { createFakeVercel, fakeShipDir } from './demoVercel.ts';

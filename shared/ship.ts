@@ -1,4 +1,3 @@
-// shared/ship.ts
 // SHIP IT: how a chamber's app gets from `main` to the internet on Vercel. The pure parts, shared by the server
 // (server/ship.ts decides with them) and the client (the panel and the sign show them).
 // Spec: docs/superpowers/specs/2026-10-03-ship-it-design.md

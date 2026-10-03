@@ -1,4 +1,3 @@
-// server/vercel.test.ts
 import { describe, expect, it, vi } from 'vitest';
 import { run } from './exec.ts';
 import { commandFor, jsonOf, parseDeployUrl, parseProject, realVercel, toDeployment } from './vercel.ts';

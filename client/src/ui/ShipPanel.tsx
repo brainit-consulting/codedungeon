@@ -1,4 +1,3 @@
-// client/src/ui/ShipPanel.tsx
 import { useEffect, useState } from 'react';
 import { LAUNCH_PARENT, splitTicks, suggestDomain, type ShipMethod, type ShipView } from '../../../shared/ship';
 import { api } from '../api';

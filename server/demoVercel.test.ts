@@ -1,4 +1,3 @@
-// server/demoVercel.test.ts
 import { describe, expect, it } from 'vitest';
 import { createFakeVercel, fakeShipDir } from './demoVercel.ts';
 

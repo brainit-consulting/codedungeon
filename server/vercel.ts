@@ -1,4 +1,3 @@
-// server/vercel.ts
 // Every call the dungeon makes to Vercel: through the `vercel` CLI and the Overlord's own login, never a token.
 // Run by a program the CLI insists on --scope, and every call gets a closed stdin so a question the CLI asks fails
 // at once instead of hanging. Measured with Vercel CLI 60.1.3 (docs/superpowers/specs/2026-10-03-ship-it-design.md).

@@ -1,4 +1,3 @@
-// shared/ship.test.ts
 import * as shipModule from './ship.ts';
 import { describe, expect, it } from 'vitest';
 import { buildFor, earlierLive, prNumbersFromSubjects, shipBlocked, signStatus, suggestDomain, validDomain, waitingPulls, type Deployment, type ShipState } from './ship.ts';

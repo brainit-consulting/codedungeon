@@ -1,4 +1,3 @@
-// server/demoVercel.ts
 // A Vercel that lives in memory, for demo mode and the SHIP IT tests. It behaves the way the real one was measured
 // to (docs/superpowers/specs/2026-10-03-ship-it-design.md): with auto-assign off, production builds wait to be
 // promoted; a rollback turns auto-assign off. A project connected to a repo goes live with that repo's current

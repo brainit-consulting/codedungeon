@@ -1,4 +1,3 @@
-// server/ship.ts
 // SHIP IT for each chamber: what's live on Vercel, what's waiting on `main`, and the Overlord's ship, undo, resume
 // and launch. The decisions are in shared/ship.ts; this keeps each chamber's runtime state, talks to Vercel and
 // GitHub through ShipDeps, and tells the swarm when a chamber's view changed (like Previews does for previews).
