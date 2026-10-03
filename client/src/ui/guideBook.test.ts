@@ -79,3 +79,12 @@ describe('the chapters', () => {
     for (const word of ['delve', 'seamless', 'leverage', 'unlock', 'elevate', 'robust', 'game-changer', 'supercharge']) expect(text, word).not.toContain(word);
   });
 });
+
+describe('chapter numbers in the text', () => {
+  it('are Roman, like the chapter headings, and name a chapter that exists', () => {
+    const text = CHAPTERS.flatMap((c) => c.blocks.flatMap((b) => (b.kind === 'list' ? b.items : b.kind === 'keys' ? b.rows.flat() : [b.text]))).join('\n');
+    expect(text).not.toMatch(/chapter \d/i);
+    const valid = new Set(CHAPTERS.map((_, i) => roman(i + 1)));
+    for (const m of text.matchAll(/chapter ([IVXLC]+)\b/g)) expect(valid, `chapter ${m[1]}`).toContain(m[1]);
+  });
+});

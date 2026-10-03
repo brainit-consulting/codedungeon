@@ -20,12 +20,12 @@ export const CHAPTERS: GuideChapter[] = [
       h('The great hall'),
       p('You start in the great hall. Its corners and walls hold everything that is about the whole dungeon rather than one project:'),
       list(
-        '**Your study**, the room at the back left. Your table is there: press [[E]] at it to open the Overlord\'s ledger (chapter 6).',
+        '**Your study**, the room at the back left. Your table is there: press [[E]] at it to open the Overlord\'s ledger (chapter VI).',
         "**The DungeonMaster's quarters**, at the back right under the DUNGEONMASTER sign. Press [[E]] on his bench to see what he is working on.",
         '**The bar**, in the middle of the hall, with kegs and bottles behind it. The cat likes to sit on it.',
         '**The hearth** and two feasting tables, towards the south end.',
         '**The recruits\' chairs** along the east wall. Anyone the DungeonMaster wants to recruit waits here for your decision.',
-        '**The dart board**, on the south wall at the west end (chapter 7).',
+        '**The dart board**, on the south wall at the west end (chapter VII).',
       ),
       h('The gallery and the chambers'),
       p(
@@ -37,8 +37,8 @@ export const CHAPTERS: GuideChapter[] = [
       p('The directory beside the archway lists every chamber: press [[E]] on it to walk straight into one instead of finding the door.'),
       h('Inside a chamber'),
       list(
-        '**The notice board** on the far wall, facing you as you come in: the chamber\'s issues and pull requests (chapter 4).',
-        "**The coders' workbenches**, each with a slate on an easel showing that coder's live terminal (chapter 5).",
+        '**The notice board** on the far wall, facing you as you come in: the chamber\'s issues and pull requests (chapter IV).',
+        "**The coders' workbenches**, each with a slate on an easel showing that coder's live terminal (chapter V).",
         '**The assay room**: the testers in aprons along the east wall, who check every pull request before it is merged.',
         '**The gauges** on the far wall, right of the SHIP IT sign: how hard this computer is working (processor, memory, disk) and how Claude usage stands. Press [[E]] on them for the full readout, refreshed every five seconds.',
         "**The framed screen** on the left wall: the project's own app. Press [[E]] on it to start the app on the default branch or on any open pull request, and use it right there.",
@@ -218,7 +218,7 @@ export const CHAPTERS: GuideChapter[] = [
       list(
         '**Default coding agent, model and effort** for everyone (each person can override them in the Guild tab).',
         '**Session limit**: how many agents may work at once. Empty means no limit.',
-        '**Sessions while pacing**: how many may run when Claude warns that usage is high (chapter 9).',
+        '**Sessions while pacing**: how many may run when Claude warns that usage is high (chapter IX).',
         '**Recruiting**: approve every recruit, or auto-approve up to the **guild cap per chamber**.',
         '**Dungeon review every** so many minutes: how often the DungeonMaster looks over everything (0 turns it off).',
         '**How coders run**: real terminals (recommended) or the Agent SDK.',
@@ -318,7 +318,7 @@ export const CHAPTERS: GuideChapter[] = [
       h('The view or the mouse misbehaves'),
       list(
         'Can\'t look around: click the view once. If the mouse still won\'t lock, drag with the left button held.',
-        'In a narrow window (a browser pane beside a chat, say) the line of keys along the bottom steps aside to leave room; the help ([[H]]) and chapter 10 list them all.',
+        'In a narrow window (a browser pane beside a chat, say) the line of keys along the bottom steps aside to leave room; the help ([[H]]) and chapter X list them all.',
         'The status pill says **reconnecting**: the dungeon\'s server is restarting or has stopped. Agents\' terminals keep working through a restart.',
         'No sound: press [[M]], and check the volume in the help ([[H]]). No music: press [[N]], and check its own volume there too.',
       ),
