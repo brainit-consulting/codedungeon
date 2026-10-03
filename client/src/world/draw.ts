@@ -5,7 +5,8 @@ import type { Agent, KanbanCard, KanbanColumns } from '../store';
 // the Kanban whiteboard, signs and name tags.
 
 export const MONO = '"JetBrains Mono", Consolas, "Cascadia Mono", monospace';
-export const SANS = 'Fredoka, "Segoe UI", system-ui, sans-serif';
+// The dungeon's lettering on signs and slates: Alegreya, a calligraphic serif that stays readable.
+export const SANS = 'Alegreya, "Iowan Old Style", Georgia, serif';
 
 export function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
@@ -413,17 +414,30 @@ export function drawCandidateTag(ctx: CanvasRenderingContext2D, w: number, h: nu
   ctx.fillText(fit(`${title}${floor ? ` · floor ${floor}` : ''}`, w - 100), 80, h * 0.72);
 }
 
+/**
+ * A sign: in the dungeon, a parchment board edged in `bg` (the house's colour) with iron-gall ink lettering. A
+ * transparent `bg` (lettering over a slate) keeps the lines' own colours.
+ */
 export function drawSign(ctx: CanvasRenderingContext2D, w: number, h: number, lines: { text: string; size: number; color?: string; weight?: number }[], bg: string, fg = '#ffffff') {
-  roundRect(ctx, 0, 0, w, h, 28);
-  ctx.fillStyle = bg;
-  ctx.fill();
+  const onSlate = bg === 'transparent' || /rgba\([^)]*,\s*0\)$/.test(bg);
+  if (!onSlate) {
+    const edge = Math.max(6, Math.round(Math.min(w, h) * 0.05));
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = PARCHMENT;
+    ctx.fillRect(edge, edge, w - edge * 2, h - edge * 2);
+    // a ruled line inside the edge, as on a manuscript page
+    ctx.strokeStyle = 'rgba(42, 29, 20, 0.45)';
+    ctx.lineWidth = Math.max(1, edge * 0.2);
+    ctx.strokeRect(edge * 1.8, edge * 1.8, w - edge * 3.6, h - edge * 3.6);
+  }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   const total = lines.reduce((s, l) => s + l.size * 1.25, 0);
   let y = h / 2 - total / 2;
   for (const l of lines) {
     y += (l.size * 1.25) / 2;
-    ctx.fillStyle = l.color ?? fg;
+    ctx.fillStyle = onSlate ? (l.color ?? fg) : (l.weight ?? 700) < 600 ? INK_FADED : INK;
     ctx.font = `${l.weight ?? 700} ${l.size}px ${SANS}`;
     let text = l.text;
     while (text.length > 3 && ctx.measureText(text).width > w - 40) text = `${text.slice(0, -2)}…`;
@@ -432,6 +446,10 @@ export function drawSign(ctx: CanvasRenderingContext2D, w: number, h: number, li
   }
   ctx.textAlign = 'left';
 }
+
+const PARCHMENT = '#d8c7a0';
+const INK = '#2a1d14';
+const INK_FADED = '#5a4632';
 
 export function drawSky(ctx: CanvasRenderingContext2D, w: number, h: number, seed: number) {
   const g = ctx.createLinearGradient(0, 0, 0, h);
