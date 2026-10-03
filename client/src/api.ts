@@ -58,7 +58,7 @@ export const api = {
       'GET',
       `/api/ship/options${scope ? `?scope=${encodeURIComponent(scope)}` : ''}`,
     ),
-  shipSetup: (repoId: string, body: { method: 'git-promote' | 'git-auto' | 'cli'; scope: string; project?: { id: string; name: string }; create?: string }) =>
+  shipSetup: (repoId: string, body: { method: 'git-promote' | 'git-auto' | 'cli'; scope: string; project?: { id: string; name: string }; create?: string; confirmed?: boolean }) =>
     call<ShipView>('POST', `${r(repoId)}/ship/setup`, body),
   shipIt: (repoId: string, confirmed: boolean) => call<ShipView>('POST', `${r(repoId)}/ship/ship`, { confirmed }),
   shipPreview: (repoId: string) => call<ShipView>('POST', `${r(repoId)}/ship/preview`, {}),

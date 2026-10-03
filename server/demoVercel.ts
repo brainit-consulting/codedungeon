@@ -79,7 +79,7 @@ export function createFakeVercel(opts: { buildMs: number; headOf(fullName: strin
       const f = get(p);
       const live = f.deployments.find((d) => d.id === f.live) ?? null;
       const custom = f.domains.filter((d) => !d.endsWith('.vercel.app'));
-      return { autoAssign: f.autoAssign, live: live && { ...live }, domains: [...custom, ...f.domains.filter((d) => d.endsWith('.vercel.app'))] };
+      return { autoAssign: f.autoAssign, repo: f.repo, live: live && { ...live }, domains: [...custom, ...f.domains.filter((d) => d.endsWith('.vercel.app'))] };
     },
     async deployments(p) {
       return get(p).deployments.map((d) => ({ ...d }));

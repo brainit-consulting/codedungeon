@@ -9,6 +9,8 @@ import type { Deployment, VercelProjectRef } from '../shared/ship.ts';
 
 export interface VercelProjectInfo {
   autoAssign: boolean;
+  /** The GitHub repo the project builds from ("owner/name", or the name alone), or null. */
+  repo: string | null;
   live: Deployment | null;
   domains: string[];
 }
@@ -62,11 +64,15 @@ export function toDeployment(d: RawDeployment): Deployment {
   return { id: d.uid ?? d.id ?? '', url: d.url, sha: d.meta?.githubCommitSha ?? null, state, createdAt: d.createdAt ?? d.created ?? 0 };
 }
 
-export function parseProject(raw: { autoAssignCustomDomains?: boolean; targets?: { production?: RawDeployment } }, domains: { domains?: { name: string }[] }): VercelProjectInfo {
+export function parseProject(
+  raw: { autoAssignCustomDomains?: boolean; targets?: { production?: RawDeployment }; link?: { org?: string; repo?: string } },
+  domains: { domains?: { name: string }[] },
+): VercelProjectInfo {
   const names = (domains.domains ?? []).map((d) => d.name);
   const vercelApp = (n: string) => n.endsWith('.vercel.app');
   return {
     autoAssign: raw.autoAssignCustomDomains !== false,
+    repo: raw.link?.repo ? (raw.link.org ? `${raw.link.org}/${raw.link.repo}` : raw.link.repo) : null,
     live: raw.targets?.production ? toDeployment(raw.targets.production) : null,
     domains: [...names.filter((n) => !vercelApp(n)), ...names.filter(vercelApp)],
   };

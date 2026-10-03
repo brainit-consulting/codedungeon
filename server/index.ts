@@ -141,7 +141,7 @@ app.post(
     const project = b.project && typeof b.project.id === 'string' && typeof b.project.name === 'string' ? { id: b.project.id, name: b.project.name } : undefined;
     const create = str(b.create).trim() || undefined;
     if (!project && !create) throw new HttpError(400, 'Pick a project, or give a name to create one');
-    return swarm.shipSetup(repoId(req), { method: b.method, scope: str(b.scope), project, create });
+    return swarm.shipSetup(repoId(req), { method: b.method, scope: str(b.scope), project, create, confirmed: b.confirmed === true });
   }),
 );
 app.post('/api/repos/:repo/ship/ship', route((req) => swarm.shipIt(repoId(req), req.body?.confirmed === true)));

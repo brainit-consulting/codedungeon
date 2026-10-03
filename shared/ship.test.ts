@@ -38,7 +38,7 @@ describe('when Ship it is refused, and why', () => {
     live: dep('live', 'aaa111', 'READY', 1),
     mainSha: 'bbb222',
     mainChecks: 'passing',
-    undoneSha: null,
+    lockedMain: null,
     build: dep('b', 'bbb222', 'READY', 2),
   };
   it('allows a ready build of a newer main', () => expect(shipBlocked(base)).toBeNull());
@@ -50,7 +50,7 @@ describe('when Ship it is refused, and why', () => {
   it('has nothing to do when every merge goes live by itself', () => expect(shipBlocked({ ...base, method: 'git-auto' })).toMatch(/every merge/i));
   it("refuses while main's checks fail, while main is still on an undone change, and when nothing is waiting", () => {
     expect(shipBlocked({ ...base, mainChecks: 'failing' })).toMatch(/checks are failing/);
-    expect(shipBlocked({ ...base, undoneSha: 'bbb2' })).toMatch(/undid/);
+    expect(shipBlocked({ ...base, lockedMain: 'bbb2' })).toMatch(/undid/);
     expect(shipBlocked({ ...base, live: dep('live', 'bbb222', 'READY', 2) })).toMatch(/nothing waiting/i);
   });
   it('waits for the build of main, and says when it failed', () => {
@@ -66,8 +66,9 @@ describe('going back', () => {
   it('offers earlier ready production builds, newest first, never the live one or a later one', () => {
     const live = dep('l', 'l', 'READY', 5);
     const all = [dep('x', 'x', 'READY', 1), dep('y', 'y', 'ERROR', 2), dep('z', 'z', 'READY', 3), live, dep('n', 'n', 'READY', 9)];
-    expect(earlierLive(all, live).map((d) => d.id)).toEqual(['z', 'x']);
-    expect(earlierLive(all, null)).toEqual([]);
+    expect(earlierLive(all, live, ['x', 'z', 'l', 'n']).map((d) => d.id)).toEqual(['z', 'x']);
+    expect(earlierLive(all, live, ['x', 'l']).map((d) => d.id)).toEqual(['x']); // z was built but held back, never live
+    expect(earlierLive(all, null, ['x'])).toEqual([]);
   });
 });
 

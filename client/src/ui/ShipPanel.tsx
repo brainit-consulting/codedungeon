@@ -50,11 +50,22 @@ function Setup({ repoId, fullName, onDone }: { repoId: string; fullName: string;
   const existing = opts.projects.find((p) => p.name === name);
   const chosen = project || (existing ? existing.id : '__new');
   const go = async () => {
+    const p = opts.projects.find((x) => x.id === chosen);
+    if (method === 'git-auto') {
+      const yes = await confirmDialog({
+        title: 'Every merge goes live?',
+        body: <p>From now on each merge to main is public at {(p?.name ?? name) + '.vercel.app'} as soon as Vercel has built it. You can Launch later to make Ship it the gate.</p>,
+        confirm: 'Set it up',
+        tone: 'warn',
+      });
+      if (!yes) return;
+    }
     setBusy(true);
     try {
-      const p = opts.projects.find((x) => x.id === chosen);
-      await api.shipSetup(repoId, { method, scope: opts.scope!, ...(p ? { project: p } : { create: name }) });
+      await api.shipSetup(repoId, { method, scope: opts.scope!, confirmed: method === 'git-auto', ...(p ? { project: p } : { create: name }) });
       onDone?.();
+    } catch {
+      // the error is shown as a toast; the form stays for another go
     } finally {
       setBusy(false);
     }

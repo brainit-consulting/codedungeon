@@ -30,12 +30,16 @@ export interface ShipConfig {
   method: ShipMethod;
   project: VercelProjectRef | null;
   firstShipDone: boolean;
-  /** The commit an Undo took off the live site: Ship it stays locked while `main` is still on it. */
+  /** The commit an Undo took off the live site (named in the follow-up issues). */
   undoneSha: string | null;
+  /** `main`'s head when the Undo happened: Ship it stays locked until `main` moves on from it. */
+  lockedMain: string | null;
+  /** Deployments seen live, newest first: the only ones Undo may go back to (a held-back build never was). */
+  seenLive: string[];
   log: ShipLogEntry[];
 }
 
-export const DEFAULT_SHIP: ShipConfig = { method: 'none', project: null, firstShipDone: false, undoneSha: null, log: [] };
+export const DEFAULT_SHIP: ShipConfig = { method: 'none', project: null, firstShipDone: false, undoneSha: null, lockedMain: null, seenLive: [], log: [] };
 export const SHIP_LOG_MAX = 50;
 export const LAUNCH_PARENT = 'brainit.site';
 
@@ -112,7 +116,7 @@ export interface ShipState {
   live: Deployment | null;
   mainSha: string | null;
   mainChecks: Checks;
-  undoneSha: string | null;
+  lockedMain: string | null;
   /** buildFor(deployments, mainSha) */
   build: Deployment | null;
 }
@@ -125,7 +129,7 @@ export function shipBlocked(s: ShipState): string | null {
   if (s.method === 'git-auto') return 'Every merge goes live by itself in this chamber.';
   if (!s.mainSha) return "Can't see `main` on GitHub yet.";
   if (s.mainChecks === 'failing') return "`main`'s checks are failing.";
-  if (s.undoneSha && sameSha(s.undoneSha, s.mainSha)) return '`main` is still on the change you undid. Merge a fix first.';
+  if (s.lockedMain && sameSha(s.lockedMain, s.mainSha)) return '`main` still has the change you undid. Merge a fix first.';
   if (s.live && sameSha(s.live.sha, s.mainSha)) return 'Nothing waiting: the live site is already on `main`.';
   if (s.method === 'git-promote') {
     if (!s.build) return "Vercel hasn't started building `main` yet.";
@@ -135,10 +139,12 @@ export function shipBlocked(s: ShipState): string | null {
   return null;
 }
 
-/** Earlier ready production builds the live site can go back to, newest first. */
-export function earlierLive(deployments: Deployment[], live: Deployment | null): Deployment[] {
+/** Earlier builds the live site can go back to, newest first: ready ones that were seen live (never a held-back one). */
+export function earlierLive(deployments: Deployment[], live: Deployment | null, seenLive: string[]): Deployment[] {
   if (!live) return [];
-  return deployments.filter((d) => d.state === 'READY' && d.id !== live.id && d.createdAt < live.createdAt).sort((a, b) => b.createdAt - a.createdAt);
+  return deployments
+    .filter((d) => d.state === 'READY' && d.id !== live.id && d.createdAt < live.createdAt && seenLive.includes(d.id))
+    .sort((a, b) => b.createdAt - a.createdAt);
 }
 
 /** The second line of the SHIP IT sign. */

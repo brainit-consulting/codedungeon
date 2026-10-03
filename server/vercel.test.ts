@@ -26,6 +26,9 @@ describe('reading Vercel output', () => {
     expect(p.live?.id).toBe('dpl_1');
     expect(p.domains).toEqual(['g.brainit.site', 'g.vercel.app']);
     expect(parseProject({}, {}).autoAssign).toBe(true); // Vercel's default when the field is absent
+    expect(parseProject({ link: { org: 'brainit-consulting', repo: 'codedungeon-guide' } }, {}).repo).toBe('brainit-consulting/codedungeon-guide');
+    expect(parseProject({ link: { repo: 'guide' } }, {}).repo).toBe('guide');
+    expect(parseProject({}, {}).repo).toBeNull();
   });
 
   it('names the team and closes stdin on every call, so a prompt can never hang the dungeon', async () => {

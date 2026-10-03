@@ -1159,7 +1159,7 @@ export class Swarm {
   shipOptions(scope?: string) {
     return this.shipyard.options(scope);
   }
-  shipSetup(id: string, body: { method: 'git-promote' | 'git-auto' | 'cli'; scope: string; project?: { id: string; name: string }; create?: string }) {
+  shipSetup(id: string, body: { method: 'git-promote' | 'git-auto' | 'cli'; scope: string; project?: { id: string; name: string }; create?: string; confirmed?: boolean }) {
     return this.shipyard.setup(this.repo(id), body).then(() => this.shipyard.view(this.repo(id)));
   }
   shipIt(id: string, confirmed: boolean) {

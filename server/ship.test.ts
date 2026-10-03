@@ -10,11 +10,15 @@ function world(opts: { buildMs?: number } = {}) {
   const issues: { title: string; body: string }[] = [];
   const emitted: string[] = [];
   let checks: 'passing' | 'failing' = 'passing';
+  let githubDown = false;
   const repo: ShipRepo = { id: 'demo-co/todo', fullName: 'demo-co/todo', defaultBranch: 'main', ship: structuredClone(DEFAULT_SHIP) };
   const yard = new Shipyard(
     {
       vercel,
-      branchHead: async () => ({ sha: head(), checks }),
+      branchHead: async () => {
+        if (githubDown) throw new Error('GitHub did not answer');
+        return { sha: head(), checks };
+      },
       commitSubjects: async (_f, base, to) => {
         const from = main.findIndex((c) => c.sha === base);
         const end = main.findIndex((c) => c.sha === to);
@@ -34,12 +38,12 @@ function world(opts: { buildMs?: number } = {}) {
     main.push({ sha, subject: `${title} (#${n})` });
     vercel.merged(repo.fullName, sha);
   };
-  return { yard, repo, vercel, merge, issues, emitted, setChecks: (c: typeof checks) => (checks = c), head };
+  return { yard, repo, vercel, merge, issues, emitted, setChecks: (c: typeof checks) => (checks = c), head, setGitHubDown: (down: boolean) => (githubDown = down) };
 }
 
 const setUp = async (w: ReturnType<typeof world>, method: 'git-promote' | 'git-auto' | 'cli') => {
   const project = await w.vercel.createProject('todo', 'demo-team');
-  await w.yard.setup(w.repo, { method, scope: 'demo-team', project });
+  await w.yard.setup(w.repo, { method, scope: 'demo-team', project, confirmed: true });
 };
 
 afterEach(() => vi.useRealTimers());
@@ -171,5 +175,92 @@ describe('SHIP IT', () => {
     const before = w.emitted.length;
     await vi.advanceTimersByTimeAsync(20_000);
     expect(w.emitted.length).toBe(before);
+  });
+});
+
+describe('SHIP IT, after the final review', () => {
+  it('undoes to the build that was live before, never one that was built and held back', async () => {
+    const w = world();
+    await setUp(w, 'git-promote');
+    w.merge(7, 'Dark mode');
+    w.merge(8, 'Due dates'); // s1 and s2 built, both held back
+    await w.yard.ship(w.repo, true); // s2 goes live
+    await w.yard.undo(w.repo);
+    expect(w.yard.view(w.repo).live?.sha).toBe('s0');
+    expect(w.yard.view(w.repo).earlier.map((d) => d.sha)).not.toContain('s1');
+  });
+
+  it("keeps Ship locked after an undo until main moves on from where it stood, even if main was already past the ship", async () => {
+    const w = world();
+    await setUp(w, 'git-promote');
+    w.merge(7, 'Dark mode');
+    await w.yard.ship(w.repo, true); // s1 live
+    w.merge(8, 'Due dates'); // main moves past the shipped commit before anyone notices
+    await w.yard.undo(w.repo);
+    await w.yard.refresh(w.repo);
+    expect(w.yard.view(w.repo).blocked).toMatch(/undid/);
+    expect(w.yard.view(w.repo).undoneSha).toBe('s1');
+    w.merge(9, 'Fix dark mode');
+    await w.yard.refresh(w.repo);
+    expect(w.yard.view(w.repo).blocked).toBeNull();
+  });
+
+  it("won't ship or undo on old data when GitHub can't be read at the moment of the click", async () => {
+    const w = world();
+    await setUp(w, 'git-promote');
+    w.merge(7, 'Dark mode');
+    await w.yard.refresh(w.repo);
+    w.setGitHubDown(true);
+    const promote = vi.spyOn(w.vercel, 'promote');
+    await expect(w.yard.ship(w.repo, true)).rejects.toThrow(/Couldn't check/);
+    await expect(w.yard.undo(w.repo)).rejects.toThrow(/Couldn't check/);
+    expect(promote).not.toHaveBeenCalled();
+  });
+
+  it('shows a failed undo in the panel and the log', async () => {
+    const w = world();
+    await setUp(w, 'git-promote');
+    w.merge(7, 'Dark mode');
+    await w.yard.ship(w.repo, true);
+    vi.spyOn(w.vercel, 'rollback').mockRejectedValueOnce(new Error('Vercel said no'));
+    await expect(w.yard.undo(w.repo)).rejects.toThrow(/said no/);
+    expect(w.yard.view(w.repo).error).toMatch(/said no/);
+    expect(w.yard.view(w.repo).log[0]).toMatchObject({ action: 'undo', ok: false });
+  });
+
+  it('while something builds, looks again at Vercel only, not GitHub, and not too often', async () => {
+    vi.useFakeTimers();
+    const w = world({ buildMs: 60_000 });
+    const head = vi.spyOn((w.yard as unknown as { deps: { branchHead: () => Promise<unknown> } }).deps, 'branchHead');
+    await setUp(w, 'git-promote');
+    w.merge(7, 'Dark mode');
+    await w.yard.refresh(w.repo);
+    const project = vi.spyOn(w.vercel, 'project');
+    const githubBefore = head.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(project).not.toHaveBeenCalled(); // not every 5 s
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(project).toHaveBeenCalled();
+    expect(head.mock.calls.length).toBe(githubBefore);
+    w.yard.forget(w.repo.id);
+  });
+
+  it('names the PRs in the follow-up after an undo where every merge went live', async () => {
+    const w = world();
+    await setUp(w, 'git-auto');
+    w.merge(7, 'Dark mode');
+    await w.yard.refresh(w.repo);
+    await w.yard.undo(w.repo);
+    await w.yard.followUp(w.repo, 'revert');
+    expect(w.issues[0].title).toContain('#7');
+  });
+
+  it('asks before setting up a chamber where every merge goes live, and refuses a project tied to another repo', async () => {
+    const w = world();
+    const project = await w.vercel.createProject('todo', 'demo-team');
+    await expect(w.yard.setup(w.repo, { method: 'git-auto', scope: 'demo-team', project })).rejects.toThrow(/public/);
+    const other = await w.vercel.createProject('other', 'demo-team');
+    await w.vercel.gitConnect(fakeShipDir('demo-co/other'), { ...other, scope: 'demo-team' });
+    await expect(w.yard.setup(w.repo, { method: 'git-promote', scope: 'demo-team', project: other })).rejects.toThrow(/connected to demo-co\/other/);
   });
 });
