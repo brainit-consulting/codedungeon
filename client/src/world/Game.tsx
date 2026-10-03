@@ -5,16 +5,12 @@ import { AdaptiveResolution, FrameWhilePaused, MAX_DPR, StatsProbe, statsEnabled
 import { repoOnFloor, useStore } from '../store';
 import { Ambience } from './Ambience';
 import { Cat } from './Cat';
-import { chamber, chambersToDraw, dungeonColliders, roomAt } from './dungeon';
+import { chamber, chambersToDraw, dungeonColliders, hallDrawn } from './dungeon';
 import { Gallery } from './Gallery';
-import { HALF_D } from './layout';
 import { Lobby } from './Lobby';
 import { OfficeFloor } from './OfficeFloor';
 import { Player } from './Player';
 import { Lights } from './Shell';
-
-// How far into the gallery (m past the hall's south wall) the hall is still drawn, so it's there when you turn round.
-const HALL_SEEN = 18;
 
 /** Which rooms to draw for where the player stands, re-checked a few times a second. */
 function useVisibleRooms(slots: number[]) {
@@ -29,7 +25,7 @@ function useVisibleRooms(slots: number[]) {
     if (++frame.current % 15 && !jumped) return;
     const { x, z } = camera.position;
     const chambers = chambersToDraw(x, z, slots);
-    const hall = roomAt(x, z, slots) === 0 && z < HALF_D + HALL_SEEN;
+    const hall = hallDrawn(x, z, slots);
     setSeen((cur) => (cur.hall === hall && cur.chambers.join() === chambers.join() ? cur : { hall, chambers }));
   });
   return seen;

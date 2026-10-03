@@ -192,6 +192,8 @@ function spawnPoint(w: Warren, env: WarrenEnv): Pt | null {
   return null;
 }
 
+
+const SCRATCH: RatEnv = { nav: null as unknown as RatEnv['nav'], threats: [] };
 export function stepWarren(w: Warren, dt: number, env: WarrenEnv) {
   w.clock += dt;
   w.frame++;
@@ -211,7 +213,12 @@ export function stepWarren(w: Warren, dt: number, env: WarrenEnv) {
       w.spawnAt = w.clock + between(w, RAT.spawnEvery);
     } else w.spawnAt = w.clock + 2;
   }
-  const renv: RatEnv = { nav: env.nav, threats: env.player ? [...env.threats, env.player] : env.threats };
+  // reused every frame: stepping runs every frame, so no fresh arrays here
+  const renv = SCRATCH;
+  renv.nav = env.nav;
+  renv.threats.length = 0;
+  for (const t of env.threats) renv.threats.push(t);
+  if (env.player) renv.threats.push(env.player);
   for (const r of w.rats) {
     r.owed += dt;
     const far = env.player && Math.hypot(r.x - env.player.x, r.z - env.player.z) > RAT.near;

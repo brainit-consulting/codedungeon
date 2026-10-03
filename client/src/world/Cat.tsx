@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useStore } from '../store';
 import { CAT, callCat, createCat, stepCat, type Cat as CatState, type CatAction, type CatEnv, type CatSpot } from './catBrain';
-import { GALLERY, chamber, dungeonColliders, galleryEnd, inDungeon, toWorld } from './dungeon';
+import { GALLERY, chamber, drawnFor, dungeonColliders, galleryEnd, inDungeon, toWorld } from './dungeon';
 import { CEO_DESK, DESK_ROWS, HALF_D, HALF_W, HEARTH, RECEPTION, deskPosition } from './layout';
 import { makeNav, type Pt } from './nav';
 import { createWarren, stepWarren, type Warren, type WarrenEnv } from './ratBrain';
@@ -169,7 +169,8 @@ function CatBody({ brain }: { brain: React.RefObject<CatState | null> }) {
     g.rotation.y = c.heading;
     // her legs go when she's actually going somewhere (stalking, she spends a lot of time quite still)
     const moving = c.action !== 'pounce' && Math.hypot(c.x - was.current.x, c.z - was.current.z) > 1e-4;
-    was.current = { x: c.x, z: c.z };
+    was.current.x = c.x;
+    was.current.z = c.z;
     phase.current += dt * (moving ? (c.action === 'follow' ? 11 : c.action === 'stalk' ? 5 : 8) : 0);
     const ph = phase.current;
 
@@ -381,10 +382,17 @@ export function Cat({ slots }: { slots: number[] }) {
     };
     if (!import.meta.env.DEV) return;
     Object.defineProperty(window, '__dungeonCat', { get: peek, configurable: true });
-    return () => void delete (window as unknown as Record<string, unknown>).__dungeonCat;
+    // and her brain itself, to put her somewhere for a look (development only)
+    (window as unknown as Record<string, unknown>).__catBrain = () => brain.current;
+    return () => {
+      delete (window as unknown as Record<string, unknown>).__dungeonCat;
+      delete (window as unknown as Record<string, unknown>).__catBrain;
+    };
   }, []);
 
   const seenCalls = useRef(calls);
+  const threats = useRef<Pt[]>([]);
+  const shown = useRef<THREE.Group>(null);
   const checks = useRef(0);
   useFrame((_, rawDt) => {
     const c = brain.current;
@@ -394,7 +402,10 @@ export function Cat({ slots }: { slots: number[] }) {
       seenCalls.current = calls;
       if (Math.hypot(camera.position.x - c.x, camera.position.z - c.z) < 12) callCat(c);
     }
-    env.player = { x: camera.position.x, z: camera.position.z };
+    if (env.player) {
+      env.player.x = camera.position.x;
+      env.player.z = camera.position.z;
+    } else env.player = { x: camera.position.x, z: camera.position.z };
     // a project removed while she was in its chamber leaves her outside the walls: home to the hearth
     if (++checks.current % 120 === 0 && c.y === 0 && !inDungeon(c.x, c.z, slots)) {
       const dropped = c.dropped + (c.carrying !== null ? 1 : 0); // a rat in her mouth still ends up on the pile
@@ -405,16 +416,22 @@ export function Cat({ slots }: { slots: number[] }) {
     if (w) {
       ratEnv.player = env.player;
       ratEnv.kills = c.kills;
-      ratEnv.threats = c.action === 'stalk' || c.action === 'pounce' ? [] : [c];
+      threats.current.length = 0;
+      if (c.action !== 'stalk' && c.action !== 'pounce') threats.current.push(c);
+      ratEnv.threats = threats.current;
       stepWarren(w, dt, ratEnv);
       env.rats = w.rats;
     }
     stepCat(c, dt, env);
+    // out of sight when she's in a room that isn't drawn (she'd float in the dark), checked a few times a second
+    if (checks.current % 10 === 0 && shown.current) shown.current.visible = drawnFor(c.x, c.z, camera.position.x, camera.position.z, slots);
   });
 
   return (
     <>
-      <CatBody brain={brain} />
+      <group ref={shown}>
+        <CatBody brain={brain} />
+      </group>
       <BarMug brain={brain} />
       <Rats warren={rats} cat={brain} slots={slots} />
     </>

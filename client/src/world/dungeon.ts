@@ -115,6 +115,22 @@ export function chambersToDraw(x: number, z: number, slots: number[]): number[] 
   });
 }
 
+/** How far into the gallery (m past the hall's south wall) the hall is still drawn, so it's there when you turn round. */
+const HALL_SEEN = 18;
+
+/** Whether the great hall is drawn for someone standing at (x, z). */
+export function hallDrawn(x: number, z: number, slots: number[]): boolean {
+  return roomAt(x, z, slots) === 0 && z < HALF_D + HALL_SEEN;
+}
+
+/** Whether the spot (x, z) lies in a part of the dungeon being drawn for someone standing at (px, pz). */
+export function drawnFor(x: number, z: number, px: number, pz: number, slots: number[]): boolean {
+  const room = roomAt(x, z, slots);
+  if (room) return chambersToDraw(px, pz, slots).includes(room);
+  if (z <= HALF_D) return hallDrawn(px, pz, slots);
+  return true; // the gallery
+}
+
 /** How much nearer than DRAW_NEAR a door opens, so it has swung shut again before its chamber stops being drawn. */
 const DOOR_MARGIN = 2;
 
@@ -130,6 +146,13 @@ export function doorsOpen(x: number, z: number, slots: number[]): number[] {
     const door = toWorld(chamber(s), 0, HALF_D);
     return Math.hypot(door.x - x, door.z - z) < DRAW_NEAR - DOOR_MARGIN;
   });
+}
+
+/** Which leaf of chamber `c`'s door something at (x, z) is passing through: -1 (local west), 1 (east), or 0 for none. */
+export function doorLeafAt(c: Chamber, x: number, z: number): -1 | 0 | 1 {
+  const l = toLocal(c, x, z);
+  if (Math.abs(l.x) >= ELEVATOR.doorHalf || Math.abs(l.z - HALF_D) >= 0.6) return 0;
+  return l.x < 0 ? -1 : 1;
 }
 
 /** Just inside a chamber's door, facing in. yaw follows Player's convention: forward is (-sin yaw, -cos yaw). */

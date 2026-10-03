@@ -1,19 +1,24 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { noise, tone } from '../ui/sfx';
-import { chamber, doorsOpen } from './dungeon';
+import { theCat } from './Cat';
+import { chamber, doorLeafAt, doorsOpen } from './dungeon';
 import { ELEVATOR, HALF_D } from './layout';
 
 // The chambers' doors: two oak leaves in each doorway off the gallery, swinging into the chamber. A door stands open
 // only while its chamber is being drawn (dungeon.ts doorsOpen), so from one chamber you see the shut door of the one
 // opposite, not the empty dark where it would be. It opens as you come up the gallery, with a creak, and swings
-// shut behind you once you're well past.
+// shut behind you once you're well past. The cat goes where she likes: she shoulders a shut leaf open a crack and
+// slips through, and it drifts shut behind her.
 
 const LEAF = { w: ELEVATOR.doorHalf, h: ELEVATOR.doorHeight - 0.05, t: 0.07 };
 const OPEN = Math.PI / 2 - 0.08;
 const OPEN_S = 0.9; // seconds to swing open
 const SHUT_S = 0.35; // and shut: quickly, so it's closed before the chamber goes
+const CRACK = 0.5; // radians: as far as the cat pushes a leaf
+const NUDGE_S = 0.3; // seconds for her push
+const DRIFT_S = 1.4; // and for the leaf to drift back
 
 let plankTex: THREE.CanvasTexture | null = null;
 /** Five upright oak planks with dark seams and a little grain, drawn once. */
@@ -84,13 +89,21 @@ export function ChamberDoors({ slots }: { slots: number[] }) {
   const doors = useMemo(() => slots.map(chamber), [slots]);
   const leaves = useRef(new Map<string, THREE.Group>());
   const swing = useRef(new Map<number, number>()); // slot -> 0 (shut) .. 1 (open)
+  const crack = useRef(new Map<string, number>()); // leaf -> 0 .. 1, how far the cat has pushed it
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    // window.__doors(): each leaf's angle in degrees, for checking the doors without seeing them
+    (window as unknown as Record<string, unknown>).__doors = () =>
+      Object.fromEntries([...leaves.current].map(([k, g]) => [k, Math.round(THREE.MathUtils.radToDeg(g.rotation.y))]));
+    return () => void delete (window as unknown as Record<string, unknown>).__doors;
+  }, []);
 
   useFrame(({ camera }, dt) => {
     const open = doorsOpen(camera.position.x, camera.position.z, slots);
+    const cat = theCat();
     for (const c of doors) {
       const was = swing.current.get(c.slot) ?? 0;
       const want = open.includes(c.slot) ? 1 : 0;
-      if (was === want) continue;
       const now = want ? Math.min(1, was + dt / OPEN_S) : Math.max(0, was - dt / SHUT_S);
       if (want && was === 0) {
         const d = Math.hypot(c.x - camera.position.x, c.z - camera.position.z) - HALF_D;
@@ -98,8 +111,16 @@ export function ChamberDoors({ slots }: { slots: number[] }) {
       }
       swing.current.set(c.slot, now);
       const eased = now * now * (3 - 2 * now);
-      leaves.current.get(`${c.slot}:-1`)?.rotation.set(0, eased * OPEN, 0);
-      leaves.current.get(`${c.slot}:1`)?.rotation.set(0, -eased * OPEN, 0);
+      // which leaf the cat is going through, if she's in this doorway on the floor
+      const pushing = cat && cat.y === 0 ? doorLeafAt(c, cat.x, cat.z) : 0;
+      for (const hinge of [-1, 1] as const) {
+        const key = `${c.slot}:${hinge}`;
+        const k0 = crack.current.get(key) ?? 0;
+        const k = pushing === hinge ? Math.min(1, k0 + dt / NUDGE_S) : Math.max(0, k0 - dt / DRIFT_S);
+        if (k !== k0) crack.current.set(key, k);
+        const angle = Math.max(eased * OPEN, k * (2 - k) * CRACK);
+        leaves.current.get(key)?.rotation.set(0, hinge === -1 ? angle : -angle, 0);
+      }
     }
   });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GALLERY, chamber, chambersToDraw, doorsOpen, dungeonColliders, galleryColliders, galleryEnd, inDungeon, roomAt, toLocal, toWorld, visitSpot } from './dungeon';
+import { GALLERY, chamber, chambersToDraw, doorLeafAt, doorsOpen, drawnFor, hallDrawn, dungeonColliders, galleryColliders, galleryEnd, inDungeon, roomAt, toLocal, toWorld, visitSpot } from './dungeon';
 import { HALF_D, HALF_W, collide, officeColliders, rect } from './layout';
 
 const near = (a: number, b: number) => expect(a).toBeCloseTo(b, 6);
@@ -195,5 +195,42 @@ describe('chamber doors', () => {
     expect(doorsOpen(c.x, c.z, slots)).toEqual([1]); // inside chamber 1: the door opposite stays shut
     expect(doorsOpen(0, 0, slots)).toEqual([]);
     expect(doorsOpen(0, c.z + 20, slots)).not.toContain(1);
+  });
+});
+
+describe('what is drawn for the viewer', () => {
+  const slots = [1, 2];
+  const c1 = chamber(1);
+  const c2 = chamber(2);
+
+  it('draws the hall from the hall and the first stretch of the gallery only', () => {
+    expect(hallDrawn(0, 0, slots)).toBe(true);
+    expect(hallDrawn(0, HALF_D + 5, slots)).toBe(true);
+    expect(hallDrawn(0, HALF_D + 40, slots)).toBe(false);
+    expect(hallDrawn(c1.x, c1.z, slots)).toBe(false);
+  });
+
+  it('says whether a spot is in a room being drawn for someone standing elsewhere', () => {
+    expect(drawnFor(c1.x, c1.z, c1.x + 3, c1.z, slots)).toBe(true); // same chamber
+    expect(drawnFor(c1.x, c1.z, c2.x, c2.z, slots)).toBe(false); // the chamber across the gallery
+    expect(drawnFor(c1.x, c1.z, 0, HALF_D + 6, slots)).toBe(true); // the gallery is always drawn
+    const long = [1, 2, 3, 4, 5, 6];
+    expect(drawnFor(0, galleryEnd(long) - 1, 0, 0, long)).toBe(true);
+    expect(drawnFor(-6, 0, 0, galleryEnd(long) - 1, long)).toBe(false); // the hall, seen from far down the gallery
+  });
+});
+
+describe('the cat at a door', () => {
+  it("knows which leaf she's going through, and none when she's clear of the doorway", () => {
+    const c = chamber(2);
+    const at = (x: number, z: number) => toWorld(c, x, z);
+    const p = at(-0.6, HALF_D);
+    expect(doorLeafAt(c, p.x, p.z)).toBe(-1);
+    const q = at(0.5, HALF_D + 0.3);
+    expect(doorLeafAt(c, q.x, q.z)).toBe(1);
+    const inside = at(0.5, HALF_D - 2);
+    expect(doorLeafAt(c, inside.x, inside.z)).toBe(0);
+    const wall = at(3, HALF_D);
+    expect(doorLeafAt(c, wall.x, wall.z)).toBe(0);
   });
 });
