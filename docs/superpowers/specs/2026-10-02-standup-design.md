@@ -108,4 +108,11 @@ Anything visual, any renaming in the UI, npm publishing.
 - **Models (decided 2026-10-02):** real 3D models (glTF), not code-built boxes. Filler props come from free-licence
   medieval packs (Kenney, Quaternius), restyled to match. Signature pieces (bar, kegs, the DungeonMaster's seat, the
   cat, the dart board) are made in Blender through the Blender MCP as needed. Each piece is one merged mesh.
-- Open for project 2: the agents' name list, the full props list, the cat's behaviour.
+- **Look (decided 2026-10-03): grim and moody.** Dark, near-realistic stone, deep shadows, warm pools of candle,
+  torch and hearth light. Kept light on an old laptop: few real lights (hearth, some torches), the rest baked into
+  textures, fog to hide distance. Free packs get darkened and retextured to fit; Blender where they can't.
+- **Names (decided):** name + trade, e.g. Aldric the Smith, Maud the Scribe, Osric the Tinker.
+- **Blender:** the Overlord leaves Blender open with the MCP add-on connected; use it as needed.
+- **Downloads:** the Overlord gave a standing yes to download the free Kenney and Quaternius packs (to H:, official
+  sites only; list each file, source and size in the morning summary).
+- Open for project 2: the full props list.
