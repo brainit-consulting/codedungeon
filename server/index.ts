@@ -128,6 +128,35 @@ app.post(
   }),
 );
 app.delete('/api/repos/:repo/preview', route((req) => swarm.stopPreview(repoId(req))));
+// SHIP IT: only the Overlord ships, from the panel
+const METHODS = ['git-promote', 'git-auto', 'cli'] as const;
+app.post('/api/repos/:repo/ship/check', route((req) => swarm.shipCheck(repoId(req))));
+app.get('/api/ship/options', route((req) => swarm.shipOptions(typeof req.query.scope === 'string' && req.query.scope ? req.query.scope : undefined)));
+app.post(
+  '/api/repos/:repo/ship/setup',
+  route((req) => {
+    const b = req.body ?? {};
+    if (!METHODS.includes(b.method)) throw new HttpError(400, `method must be one of ${METHODS.join(', ')}`);
+    if (!str(b.scope)) throw new HttpError(400, 'scope (the Vercel team) is required');
+    const project = b.project && typeof b.project.id === 'string' && typeof b.project.name === 'string' ? { id: b.project.id, name: b.project.name } : undefined;
+    const create = str(b.create).trim() || undefined;
+    if (!project && !create) throw new HttpError(400, 'Pick a project, or give a name to create one');
+    return swarm.shipSetup(repoId(req), { method: b.method, scope: str(b.scope), project, create });
+  }),
+);
+app.post('/api/repos/:repo/ship/ship', route((req) => swarm.shipIt(repoId(req), req.body?.confirmed === true)));
+app.post('/api/repos/:repo/ship/preview', route((req) => swarm.shipPreview(repoId(req))));
+app.post('/api/repos/:repo/ship/undo', route((req) => swarm.shipUndo(repoId(req), str(req.body?.deploymentId) || undefined)));
+app.post('/api/repos/:repo/ship/resume', route((req) => swarm.shipResume(repoId(req))));
+app.post('/api/repos/:repo/ship/launch', route((req) => swarm.shipLaunch(repoId(req), str(req.body?.domain))));
+app.post(
+  '/api/repos/:repo/ship/follow-up',
+  route((req) => {
+    const kind = req.body?.kind;
+    if (kind !== 'revert' && kind !== 'fix') throw new HttpError(400, "kind must be 'revert' or 'fix'");
+    return swarm.shipFollowUp(repoId(req), kind);
+  }),
+);
 app.post('/api/repos/:repo/pulls/:n/merge', route((req) => swarm.mergePull(repoId(req), num(req.params.n), req.body?.method ?? 'squash')));
 app.post('/api/repos/:repo/pulls/:n/close', route((req) => swarm.closePull(repoId(req), num(req.params.n))));
 app.post('/api/repos/:repo/pulls/:n/qa', route((req) => swarm.sendToQa(repoId(req), num(req.params.n))));

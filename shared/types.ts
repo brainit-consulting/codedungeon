@@ -1,5 +1,7 @@
 // Types shared between the swarm server and the 3D client.
 
+import type { ShipView } from './ship.ts';
+
 export type AgentStatus =
   | 'idle' // at desk, nothing assigned
   | 'preparing' // setting up the git worktree
@@ -74,6 +76,7 @@ export interface RepoView {
   syncError?: string;
   previewConfig: PreviewConfig;
   preview: PreviewView;
+  ship: ShipView; // SHIP IT: what's live on Vercel, what's waiting, and how this chamber ships
 }
 
 /**

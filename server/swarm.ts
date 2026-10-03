@@ -11,6 +11,8 @@ import { HttpError } from './httpError.ts';
 import { CHECKS_ALERT_MS, MAX_MERGE_FIXES, MERGE_RETRY_MS, mergeStep } from './mergeGate.ts';
 import { orphanedQa } from './qaOrphans.ts';
 import { DEFAULT_PREVIEW, Previews, parsePreviewPatch } from './previews.ts';
+import { Shipyard } from './ship.ts';
+import { DEFAULT_SHIP, type ShipConfig } from '../shared/ship.ts';
 import { drainDecision, lastUpdateMessage, POSTPONE_MS, type DrainInput, type LastUpdate } from './officeUpdate.ts';
 import { clampPacingSessions, DEFAULT_PACING_SESSIONS, mayStart, PACING_MS, pacingMessage, usageLabel, usageView, type UsageWarning, type WorkKind } from './pacing.ts';
 import { isCli } from './clis.ts';
@@ -65,6 +67,7 @@ interface PersistedRepo {
   summary: string;
   qaBrief: string;
   preview: PreviewConfig; // how the floor's app runs for the preview monitor
+  ship: ShipConfig; // SHIP IT: how this chamber ships to Vercel, and its ship log
   addedAt: number;
 }
 
@@ -408,6 +411,7 @@ export class Swarm {
   private flushTimer: NodeJS.Timeout | null = null;
   private logSeq = 1;
   private previews: Previews;
+  private shipyard: Shipyard;
   private officeHead: string | null = null; // the commit the office runs (null: not a git checkout, so no self-update)
   private officeUpdate = {
     behind: 0,
@@ -424,6 +428,23 @@ export class Swarm {
   private clis: CliView[] = []; // coding-agent CLIs found on this machine (detected at startup)
 
   constructor(private backend: Backend) {
+    this.shipyard = new Shipyard(
+      {
+        vercel: backend.vercel,
+        branchHead: (f, b) => backend.branchHead(f, b),
+        commitSubjects: (f, a, b) => backend.commitSubjects(f, a, b),
+        prepareShipCheckout: (f, b) => backend.prepareShipCheckout(f, b),
+      },
+      {
+        emit: (id) => {
+          const r = this.state.repos.find((x) => x.id === id);
+          if (r && this.repoRt.has(id)) this.emitRepo(r);
+        },
+        save: () => this.save(),
+        pulls: (id) => this.repoRt.get(id)?.pulls ?? [],
+        createIssue: (id, title, body) => this.createIssue(id, title, body),
+      },
+    );
     this.previews = new Previews(backend, {
       emit: (id) => {
         const r = this.state.repos.find((x) => x.id === id);
@@ -450,6 +471,7 @@ export class Swarm {
           qaBrief: r.qaBrief ?? '',
           localPath: r.localPath ?? null,
           preview: { command: r.preview?.command ?? null, env: { ...r.preview?.env } },
+          ship: { ...structuredClone(DEFAULT_SHIP), ...r.ship },
         })),
         agents: (loaded.agents ?? []).map((a) => ({
           ...a,
@@ -635,6 +657,7 @@ export class Swarm {
       syncError: rt.syncError,
       previewConfig: r.preview,
       preview: this.previews.view(r),
+      ship: this.shipyard.view(r),
     };
   }
 
@@ -871,6 +894,7 @@ export class Swarm {
       summary: '',
       qaBrief: '',
       preview: { ...DEFAULT_PREVIEW, env: {} },
+      ship: structuredClone(DEFAULT_SHIP),
       addedAt: Date.now(),
     };
     this.backend.setLocalPath(repo.fullName, folder);
@@ -949,6 +973,7 @@ export class Swarm {
     }
     for (const a of this.state.agents.filter((x) => x.repoId === id)) this.fireAgent(a.id, true);
     void this.previews.remove({ ...repo });
+    this.shipyard.forget(id);
     this.state.repos = this.state.repos.filter((r) => r.id !== id);
     for (const q of this.state.qa.filter((x) => x.repoId === id)) this.broadcast({ type: 'qaRemoved', repoId: id, prNumber: q.prNumber });
     this.state.qa = this.state.qa.filter((q) => q.repoId !== id);
@@ -1126,6 +1151,36 @@ export class Swarm {
   // ---------- the floor's app (preview monitor) ----------
 
   /** Run the floor's app from its preview worktree: the default branch, or an open PR. Replaces what it is running now. */
+  // ---------- SHIP IT ----------
+
+  shipCheck(id: string) {
+    return this.shipyard.check(this.repo(id));
+  }
+  shipOptions(scope?: string) {
+    return this.shipyard.options(scope);
+  }
+  shipSetup(id: string, body: { method: 'git-promote' | 'git-auto' | 'cli'; scope: string; project?: { id: string; name: string }; create?: string }) {
+    return this.shipyard.setup(this.repo(id), body).then(() => this.shipyard.view(this.repo(id)));
+  }
+  shipIt(id: string, confirmed: boolean) {
+    return this.shipyard.ship(this.repo(id), confirmed).then(() => this.shipyard.view(this.repo(id)));
+  }
+  shipPreview(id: string) {
+    return this.shipyard.preview(this.repo(id)).then(() => this.shipyard.view(this.repo(id)));
+  }
+  shipUndo(id: string, deploymentId?: string) {
+    return this.shipyard.undo(this.repo(id), deploymentId).then(() => this.shipyard.view(this.repo(id)));
+  }
+  shipResume(id: string) {
+    return this.shipyard.resume(this.repo(id)).then(() => this.shipyard.view(this.repo(id)));
+  }
+  shipLaunch(id: string, domain: string) {
+    return this.shipyard.launch(this.repo(id), domain).then(() => this.shipyard.view(this.repo(id)));
+  }
+  async shipFollowUp(id: string, kind: 'revert' | 'fix') {
+    return { number: await this.shipyard.followUp(this.repo(id), kind) };
+  }
+
   async startPreview(id: string, pr?: number | null): Promise<PreviewView> {
     const repo = this.repo(id);
     return this.previews.start(repo, `${repo.fullName.split('/')[1]} app`, pr);
@@ -1143,6 +1198,7 @@ export class Swarm {
     await this.writeState().catch((err) => console.warn('could not save the state', err));
     await this.backend.releaseClis(restart); // before the terminals are saved: whatever they print next waits in the keeper
     await this.saveTerminals(true);
+    this.shipyard.stopAll();
     await this.previews.stopAll(this.state.repos);
   }
 
@@ -1186,6 +1242,7 @@ export class Swarm {
         void this.syncFolder(repo);
       }
       void this.advanceMerges(repo);
+      void this.shipyard.refresh(repo);
     } catch (err) {
       rt.syncError = (err as Error).message;
     } finally {
@@ -1561,7 +1618,7 @@ export class Swarm {
         : `6. Open a pull request with the GitHub CLI: gh pr create --base ${repo.defaultBranch} --head ${branch} --title "<concise title>" --body "<what changed, how you verified it, assumptions>". The body must contain "Closes #<issue number>".`,
       fixing ? '' : '7. End your final message with the pull request URL on its own line.',
       '',
-      'Rules: never push to the default branch, never force-push, never merge pull requests yourself (the dungeon merges them once QA and the checks pass), and never edit files outside your worktree. If you cannot finish, open a draft PR (gh pr create --draft) explaining what is left and why.',
+      'Rules: never push to the default branch, never force-push, never merge pull requests yourself (the dungeon merges them once QA and the checks pass), and never edit files outside your worktree. Never deploy, promote or roll back on Vercel or anywhere else: the Overlord ships from the dungeon. If you cannot finish, open a draft PR (gh pr create --draft) explaining what is left and why.',
     ]
       .filter((l) => l !== '')
       .join('\n');
@@ -1864,7 +1921,7 @@ export class Swarm {
         : '4. Exercise the changed behaviour directly (run the program, call the API, write a quick script).',
       '5. You may write throwaway scripts to probe behaviour, but do not commit them.',
       '',
-      'Rules: do not modify the code under test, do not commit, push, comment on, review or merge anything on GitHub. The dungeon posts your report on the pull request. Finish with the structured QA report: verdict, summary, the checks you performed, the commands you ran and one caption per screenshot.',
+      'Rules: do not modify the code under test, do not commit, push, comment on, review or merge anything on GitHub. Never deploy, promote or roll back anything. The dungeon posts your report on the pull request. Finish with the structured QA report: verdict, summary, the checks you performed, the commands you ran and one caption per screenshot.',
     ].join('\n');
   }
 
