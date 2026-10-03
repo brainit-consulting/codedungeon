@@ -41,7 +41,7 @@ try {
   }
   if (!state || !Array.isArray(state.repos)) throw new Error('the office never answered /api/state');
   const page = await fetch(`http://127.0.0.1:${PORT}/`).then((r) => r.text());
-  if (!page.includes('<title>cubefarm</title>')) throw new Error('the office does not serve the client');
+  if (!page.includes('<title>Code Dungeon</title>')) throw new Error('the dungeon does not serve the client');
   console.log(`demo office up: ${state.repos.length} floors, ${state.agents.length} agents, client served`);
 } finally {
   server?.kill();
