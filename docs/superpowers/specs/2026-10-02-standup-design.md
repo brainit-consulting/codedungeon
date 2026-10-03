@@ -89,9 +89,22 @@ Anything visual, any renaming in the UI, npm publishing.
   modern. A bar scene with a barman, kegs, bottles and beer.
 - **Toys:** the balls, roomba, hoop, blasters and the rest go. **The only game is darts:** you throw darts at a
   dart board, in place of the blaster. The phone games (snake, tetris, pet, paint) go too.
-- **There must be a black cat.**
+- **There must be a black cat.** The mascot. It thinks it is the boss and is aloof. It wanders on a mix of seeded
+  random pathfinding and repeatable favourite spots: it visits each coder, sits on the bar counter, purrs, washes and
+  sleeps, all nicely animated. Boss habits (all agreed): it takes the DungeonMaster's seat when he's up, ignores
+  the Overlord when called and then follows a few seconds later, sits on the Kanban ledger just as you want to read
+  it, and nudges a mug toward the edge of the bar. It is decoration only: it never blocks an agent or a click.
+  Its brain is a pure, tested state machine like cubefarm's roomba (`roombaBrain.ts`, which has a grid path planner).
+- **Build order (agreed):** 1 clear out the toys and phone games; 2 the dungeon layout (hall + chambers, floors
+  replaced); 3 models (glTF) and candle/torch/hearth light; 4 furnishing (bar, barman, kegs, workbenches, seat,
+  dart board); 5 the people (medieval characters, names, titles); 6 the cat; 7 the UI and wording. Each is its own
+  spec, plan and build.
 - **UI:** the phone, consoles and terminal become medieval objects (a scroll, a ledger, a scrying glass). The agents'
   terminal output stays fully readable.
+- **Copy (agreed):** every label, button, heading, tip and message is medieval. Real data stays exact: terminal
+  output, issue/PR numbers and titles, branches, commits, paths, ports, tool and model names, and any command the
+  user must run. Errors keep their real cause and fix inside the medieval wording ("The ravens cannot reach GitHub.
+  Run `gh auth login` and try again."). Flavour, never a riddle: a label still says plainly what a button does.
 - **Models (decided 2026-10-02):** real 3D models (glTF), not code-built boxes. Filler props come from free-licence
   medieval packs (Kenney, Quaternius), restyled to match. Signature pieces (bar, kegs, the DungeonMaster's seat, the
   cat, the dart board) are made in Blender through the Blender MCP as needed. Each piece is one merged mesh.
