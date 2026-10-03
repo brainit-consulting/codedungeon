@@ -2331,7 +2331,7 @@ export class Swarm {
   private tickUsage() {
     if (this.pacingUntil && Date.now() >= this.pacingUntil) {
       this.pacingUntil = 0;
-      this.postMessage('office', "✅ Claude's usage is back to normal. The office starts new work at full speed again.");
+      this.postMessage('office', "✅ Claude's usage is back to normal. The dungeon starts new work at full speed again.");
     }
     this.emitUsage();
   }

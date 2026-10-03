@@ -56,7 +56,7 @@ describe('usageView and usageLabel', () => {
 describe('pacingMessage', () => {
   it('says which limit, how full, until when and how many sessions', () => {
     expect(pacingMessage({ resetsAt: null, rateLimitType: 'five_hour', utilization: 0.82 }, NOW + 150 * 60_000, 3, NOW)).toBe(
-      "🐢 Claude's usage is getting high (5-hour limit, 82%). Until 14:30 the office finishes open work first and starts at most 3 sessions at a time.",
+      "🐢 Claude's usage is getting high (5-hour limit, 82%). Until 14:30 the dungeon finishes open work first and starts at most 3 sessions at a time.",
     );
   });
 
