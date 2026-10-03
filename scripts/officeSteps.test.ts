@@ -20,15 +20,15 @@ describe('parseOfficeArgs', () => {
 });
 
 describe('swarmHome and clientPort', () => {
-  it('uses SWARM_HOME, else ~/.cubefarm', () => {
-    expect(swarmHome({ SWARM_HOME: path.join('x', 'home') }, 'h')).toBe(path.join('x', 'home'));
-    expect(swarmHome({}, path.join('users', 'me'))).toBe(path.join('users', 'me', '.cubefarm'));
+  it('uses SWARM_HOME, else codedungeon-home beside the repo', () => {
+    expect(swarmHome({ SWARM_HOME: path.join('x', 'home') }, 'r')).toBe(path.join('x', 'home'));
+    expect(swarmHome({}, path.join('h', 'codedungeon'))).toBe(path.resolve('h', 'codedungeon-home'));
   });
 
-  it('uses SWARM_CLIENT_PORT, else 5317', () => {
+  it('uses SWARM_CLIENT_PORT, else 5417', () => {
     expect(clientPort({ SWARM_CLIENT_PORT: '4422' })).toBe(4422);
-    expect(clientPort({})).toBe(5317);
-    expect(clientPort({ SWARM_CLIENT_PORT: '' })).toBe(5317);
+    expect(clientPort({})).toBe(5417);
+    expect(clientPort({ SWARM_CLIENT_PORT: '' })).toBe(5417);
   });
 });
 

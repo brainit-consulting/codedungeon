@@ -1,14 +1,25 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { SERVER_PORT, defaultHome, liveOfficeConflict } from '../shared/dungeon.mjs';
 
-export const PORT = Number(process.env.SWARM_PORT ?? 4317);
+export const PORT = Number(process.env.SWARM_PORT ?? SERVER_PORT);
 // package.json sits one folder up both from server/ and from the published dist-server/.
 export const VERSION: string = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '..', 'package.json'), 'utf8')).version;
 
 // Everything the swarm writes lives outside this project so that agents working in
 // cloned repos never pick up this project's CLAUDE.md or settings by walking up the tree.
-export const HOME_DIR = process.env.SWARM_HOME ?? path.join(os.homedir(), '.cubefarm');
+// Code Dungeon: beside the repo (H:\codedungeon-home), never the live cubefarm office's ~/.cubefarm.
+export const HOME_DIR = process.env.SWARM_HOME ?? defaultHome(path.resolve(import.meta.dirname, '..'));
+{
+  const conflict = liveOfficeConflict({ ports: [PORT], home: HOME_DIR, userHome: os.homedir() });
+  if (conflict) {
+    console.error(`
+  ${conflict}
+`);
+    process.exit(1);
+  }
+}
 export const WORKSPACE_ROOT = path.join(HOME_DIR, 'workspaces');
 export const DEMO = process.argv.includes('--demo') || process.env.SWARM_DEMO === '1' || process.env.SWARM_DEMO === 'true';
 export const STATE_FILE = path.join(HOME_DIR, DEMO ? 'demo-state.json' : 'state.json');

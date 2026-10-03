@@ -7,7 +7,7 @@ export interface OfficeArgs {
   help: boolean;
 }
 export function parseOfficeArgs(argv: string[]): OfficeArgs;
-export function swarmHome(env?: Record<string, string | undefined>, home?: string): string;
+export function swarmHome(env?: Record<string, string | undefined>, root?: string): string;
 export function clientPort(env?: Record<string, string | undefined>): number;
 export function parseSymref(output: string): string | null;
 export function refusal(state: { branch: string; defaultBranch: string; dirty: boolean; ahead: number }): string | null;

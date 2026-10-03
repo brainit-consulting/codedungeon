@@ -11,9 +11,11 @@
 // installed from npm, the office only reports that an update is ready.
 import { execFile, spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
 import { clientPort, isUpdateCommand, parseOfficeArgs, parseSymref, refusal, rollbackPlan, stepsFor, swarmHome } from './officeSteps.mjs';
+import { SERVER_PORT, liveOfficeConflict } from '../shared/dungeon.mjs';
 
 const HELP = `
   node scripts/office.mjs [--dev] [--demo] [--no-open]
@@ -392,6 +394,22 @@ process.on('exit', () => {
 readline.createInterface({ input: process.stdin }).on('line', (line) => {
   if (isUpdateCommand(line)) void update('you typed u');
 });
+
+// Code Dungeon never runs on the live cubefarm office's ports or data, and keeps its writes (and its agents') on H:.
+{
+  const home = swarmHome();
+  const conflict = liveOfficeConflict({ ports: [Number(process.env.SWARM_PORT ?? SERVER_PORT), clientPort()], home, userHome: os.homedir() });
+  if (conflict) {
+    warn(conflict);
+    process.exit(1);
+  }
+  const tmp = path.join(home, 'tmp');
+  fs.mkdirSync(tmp, { recursive: true });
+  process.env.TEMP = tmp;
+  process.env.TMP = tmp;
+  process.env.npm_config_cache = path.join(home, 'npm-cache');
+  process.env.PLAYWRIGHT_BROWSERS_PATH ??= path.join(home, 'ms-playwright');
+}
 
 if (opts.dev) watch();
 startChildren();

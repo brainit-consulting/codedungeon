@@ -22,13 +22,13 @@ const HELP = `
     npx cubefarm doctor     check that this machine is ready
 
   Options
-    --port <n>   port for the office (default 4317)
+    --port <n>   port for the office (default 4417)
     --demo       fake GitHub and fake agents: look around without spending any usage
     --no-open    don't open the browser
     -v, --version
     -h, --help
 
-  The office keeps its state and workspaces in ~/.cubefarm (set SWARM_HOME to use another folder).
+  The office keeps its state and workspaces in codedungeon-home next to this folder (set SWARM_HOME to use another folder).
 `;
 
 const color = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -233,7 +233,7 @@ if (command === 'login') {
 
 if (command !== 'start') fail(`Unknown command "${command}". Run npx cubefarm --help for the options.`);
 
-const port = Number(values.port ?? process.env.SWARM_PORT ?? 4317);
+const port = Number(values.port ?? process.env.SWARM_PORT ?? 4417);
 if (!Number.isInteger(port) || port < 0 || port > 65535) fail(`"${values.port ?? process.env.SWARM_PORT}" isn't a port number.`);
 const url = `http://localhost:${port}`;
 const demo = values.demo || process.env.SWARM_DEMO === '1' || process.env.SWARM_DEMO === 'true';
