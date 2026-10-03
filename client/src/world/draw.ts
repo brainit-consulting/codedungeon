@@ -215,28 +215,31 @@ function drawBrowser(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
 // ---------- kanban whiteboard ----------
 
 const COLS: { key: keyof KanbanColumns; title: string; chip: string; note: string }[] = [
-  { key: 'backlog', title: '📋 Backlog', chip: '#ffd166', note: '#fff3b0' },
-  { key: 'progress', title: '🔨 In progress', chip: '#4cc9f0', note: '#cfeefd' },
-  { key: 'qa', title: '🔍 In QA', chip: '#ff9f68', note: '#ffe3cf' },
-  { key: 'ready', title: '✅ Ready to merge', chip: '#80ed99', note: '#d8f9df' },
-  { key: 'merged', title: '🎉 Merged', chip: '#c77dff', note: '#eadcff' },
+  // parchment slips pinned to a cork board, each column's strip dyed a little differently
+  { key: 'backlog', title: '📋 Backlog', chip: '#c9a65a', note: '#e8d9b0' },
+  { key: 'progress', title: '🔨 In progress', chip: '#9a7b52', note: '#e4d3ad' },
+  { key: 'qa', title: '🔍 In QA', chip: '#b0703e', note: '#ead2b4' },
+  { key: 'ready', title: '✅ Ready to merge', chip: '#7d8f4a', note: '#dbdcb0' },
+  { key: 'merged', title: '🎉 Merged', chip: '#7a5a78', note: '#dccdc4' },
 ];
 
-const TONE = { warn: '#ffd8a8', bad: '#ffc9c9', good: '#d8f9df' };
+const TONE = { warn: '#e9c991', bad: '#e3b9a8', good: '#d3d9a6' };
 
 export function drawKanban(ctx: CanvasRenderingContext2D, w: number, h: number, repo: RepoView, cols: KanbanColumns) {
-  ctx.fillStyle = '#fbfbf8';
+  // cork, flecked
+  ctx.fillStyle = '#7d5d3b';
   ctx.fillRect(0, 0, w, h);
-  // faint marker smudges
-  ctx.fillStyle = 'rgba(120,140,170,0.05)';
-  for (let i = 0; i < 6; i++) ctx.fillRect((i * 431) % w, (i * 97) % h, 260, 40);
+  for (let i = 0; i < 900; i++) {
+    ctx.fillStyle = i % 2 ? 'rgba(40, 24, 12, 0.25)' : 'rgba(190, 150, 100, 0.18)';
+    ctx.fillRect((i * 733) % w, (i * 389) % h, 3 + (i % 4), 3 + ((i * 7) % 3));
+  }
 
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#2d3142';
+  ctx.fillStyle = '#f0e2c2';
   ctx.font = `700 46px ${SANS}`;
   ctx.fillText(repo.fullName, 40, 48);
   ctx.font = `500 26px ${SANS}`;
-  ctx.fillStyle = '#6c7086';
+  ctx.fillStyle = '#d6c39a';
   const synced = repo.lastSync ? `synced ${new Date(repo.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'syncing…';
   ctx.textAlign = 'right';
   ctx.fillText(`${repo.autoAssign ? '⚡ auto-assign on · ' : ''}${synced}`, w - 40, 50);
@@ -250,11 +253,11 @@ export function drawKanban(ctx: CanvasRenderingContext2D, w: number, h: number, 
     roundRect(ctx, x0 + 8, top, colW - 16, 52, 26);
     ctx.fillStyle = c.chip;
     ctx.fill();
-    ctx.fillStyle = '#1f2233';
-    ctx.font = `600 30px ${SANS}`;
+    ctx.fillStyle = '#21160e';
+    ctx.font = `700 30px ${SANS}`;
     ctx.fillText(`${c.title}  ${cards.length}`, x0 + 30, top + 27);
     if (ci > 0) {
-      ctx.strokeStyle = '#d9dbe3';
+      ctx.strokeStyle = 'rgba(30, 18, 10, 0.55)';
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(x0, top);
@@ -274,13 +277,13 @@ export function drawKanban(ctx: CanvasRenderingContext2D, w: number, h: number, 
       drawNote(ctx, nx, ny, noteW, noteH, card, card.tone ? TONE[card.tone] : c.note);
     });
     if (cards.length > shown.length) {
-      ctx.fillStyle = '#6c7086';
+      ctx.fillStyle = '#e6d6b0';
       ctx.font = `600 26px ${SANS}`;
       const i = shown.length;
       ctx.fillText(`+${cards.length - shown.length} more`, x0 + 30 + (i % perCol) * (noteW + 16), top + 68 + Math.floor(i / perCol) * (noteH + 12) + noteH / 2);
     }
     if (cards.length === 0) {
-      ctx.fillStyle = '#b4b7c5';
+      ctx.fillStyle = '#c7b28a';
       ctx.font = `italic 500 26px ${SANS}`;
       ctx.fillText(c.key === 'backlog' ? 'no open issues' : 'nothing here yet', x0 + 30, top + 110);
     }

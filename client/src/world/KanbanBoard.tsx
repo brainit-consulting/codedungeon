@@ -27,13 +27,13 @@ export function KanbanBoard({ repo, agents }: { repo: RepoView; agents: Agent[] 
   const cy = BOARD.y + BOARD.h / 2;
   return (
     <group ref={ref} position={[0, 0, BOARD.z]}>
-      <Box size={[BOARD.w + 0.24, BOARD.h + 0.24, 0.06]} position={[0, cy, 0.03]} color="#aab4c3" outline shadow={false} />
+      <Box size={[BOARD.w + 0.3, BOARD.h + 0.3, 0.08]} position={[0, cy, 0.03]} color="#2e1f14" shadow={false} />
       <mesh position={[0, cy, 0.065]}>
         <planeGeometry args={[BOARD.w, BOARD.h]} />
         <meshBasicMaterial map={tex} toneMapped={false} />
       </mesh>
-      <Box size={[3.2, 0.05, 0.16]} position={[3.5, BOARD.y - 0.12, 0.1]} color="#aab4c3" outline />
-      {['#e63946', '#1d3557', '#2a9d8f'].map((c, i) => (
+      <Box size={[3.2, 0.05, 0.16]} position={[3.5, BOARD.y - 0.12, 0.1]} color="#3a2819" />
+      {['#e8dcc0', '#d6c8a8', '#c9b893'].map((c, i) => (
         <Cyl key={c} r={0.018} h={0.16} position={[2.6 + i * 0.22, BOARD.y - 0.075, 0.12]} rotation={[0, 0, Math.PI / 2]} color={c} />
       ))}
     </group>

@@ -9,7 +9,7 @@ import { glow, mix } from './materials';
 import { Box } from './Toon';
 
 const PX = [1280, 720] as const;
-const BEZEL = '#2b2d42';
+const BEZEL = '#2e1f14'; // a dark wooden frame, like the coders' slates
 // A soft halo around the bezel while the app is live, blended toward the wall so it stays subtle.
 const LIVE_GLOW = mix('#7CFFB2', '#fbf3e4', 0.35);
 const LED: Record<string, string> = { running: '#7CFFB2', error: '#ff6b6b', preparing: '#ffd166', installing: '#ffd166', starting: '#ffd166' };
