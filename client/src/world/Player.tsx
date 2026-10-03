@@ -199,8 +199,8 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
         drag.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
         const { sensitivity, invertY } = useLookPrefs.getState();
         const k = LOOK_RADIANS_PER_PX * sensitivity * 1.6; // a drag covers less ground than a captured mouse
-        look.current.yaw += e.movementX * k; // drag the world: pull it the way you want to turn
-        look.current.pitch = Math.max(-1.35, Math.min(1.35, look.current.pitch + e.movementY * k * (invertY ? -1 : 1)));
+        look.current.yaw -= e.movementX * k; // turn the way you drag, as a captured mouse does
+        look.current.pitch = Math.max(-1.35, Math.min(1.35, look.current.pitch - e.movementY * k * (invertY ? -1 : 1)));
         return;
       }
       if (document.pointerLockElement !== gl.domElement || !document.hasFocus()) return;
@@ -228,6 +228,7 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
       if (e.code === 'KeyG' && !e.repeat) dropHeld();
       if (e.code === 'KeyC' && !e.repeat) callTheCat();
       if (e.code === 'KeyH') s.openOverlay({ kind: 'help' });
+      if (e.code === 'KeyB' && !e.repeat) s.openOverlay({ kind: 'guide' });
       if (e.code === 'KeyP') {
         e.preventDefault(); // don't type the "p" into the phone's message box
         s.openOverlay({ kind: 'phone', tab: pendingRequests(s.requests).length && !unreadMessages(s.messages, s.phoneReadAt) ? 'hires' : 'chat' });

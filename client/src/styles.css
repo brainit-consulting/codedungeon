@@ -8,6 +8,10 @@
   --bad: #8b1e1e;
   --warn: #b8862b;
   --accent: #a0441c;
+  /* copper banding round panels and cards: the metal of the dungeon's fittings */
+  --copper: #b0703a;
+  --copper-dark: #5b3417;
+  --copper-light: rgba(255, 214, 170, 0.35);
   --font: Alegreya, 'Iowan Old Style', Georgia, serif;
   --font-display: 'Alegreya SC', Alegreya, Georgia, serif;
   --mono: 'JetBrains Mono', Consolas, monospace;
@@ -89,18 +93,18 @@ code {
   border-radius: 3px;
   background: var(--vellum);
   color: var(--ink);
-  box-shadow: 0 3px 0 var(--ink);
+  box-shadow: 0 3px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
   cursor: pointer;
   transition: transform 0.06s, box-shadow 0.06s;
   white-space: nowrap;
 }
 .btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 4px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
 }
 .btn:active:not(:disabled) {
   transform: translateY(2px);
-  box-shadow: 0 1px 0 var(--ink);
+  box-shadow: 0 1px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
 }
 .btn:disabled {
   opacity: 0.45;
@@ -122,7 +126,7 @@ code {
   font-size: 0.82rem;
   border-radius: 3px;
   border-width: 2px;
-  box-shadow: 0 2px 0 var(--ink);
+  box-shadow: 0 2px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
 }
 .btn-ghost.btn-small {
   box-shadow: none;
@@ -134,7 +138,7 @@ code {
   background: var(--accent);
   color: #fff;
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
-  box-shadow: 0 5px 0 var(--ink);
+  box-shadow: 0 5px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
 }
 a.btn {
   display: inline-block;
@@ -323,9 +327,9 @@ input.inline:focus {
   align-items: center;
   padding: 8px 16px 8px 8px;
   background: var(--paper);
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-radius: 3px;
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 4px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
   max-width: min(520px, calc(100vw - 32px));
 }
 .floor-num {
@@ -335,7 +339,7 @@ input.inline:focus {
   height: 46px;
   border-radius: 3px;
   background: var(--accent);
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   font-weight: 700;
   font-size: 1.5rem;
   color: #fff;
@@ -369,7 +373,7 @@ input.inline:focus {
   left: 50%;
   transform: translateX(-50%);
   background: #cfa64a;
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-radius: 3px;
   padding: 8px 16px;
   font-weight: 600;
@@ -389,7 +393,7 @@ input.inline:focus {
   background: #e6cf96;
   border: 2px solid var(--ink);
   border-radius: 3px;
-  box-shadow: 0 3px 0 var(--ink);
+  box-shadow: 0 3px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
   cursor: pointer;
   text-align: left;
 }
@@ -404,17 +408,21 @@ input.inline:focus {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 8px;
-  height: 8px;
-  margin: -4px 0 0 -4px;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
   border-radius: 50%;
-  background: var(--vellum);
-  border: 2px solid var(--ink);
+  background: #f3d9a6;
+  border: 2px solid #1b120c;
+  /* a copper ring round the dot, so it reads on dark stone and in bright firelight alike */
+  box-shadow:
+    0 0 0 4px rgba(176, 112, 58, 0.55),
+    0 0 0 5px rgba(20, 12, 8, 0.55);
   pointer-events: none;
-  transition: transform 0.15s;
+  transition: transform 0.15s, background 0.15s;
 }
 .crosshair-hot {
-  transform: scale(1.8);
+  transform: scale(1.6);
   background: var(--accent);
 }
 .hud-hint {
@@ -423,9 +431,9 @@ input.inline:focus {
   left: 50%;
   transform: translateX(-50%);
   background: var(--paper);
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-radius: 3px;
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 4px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
   padding: 8px 16px;
   font-weight: 600;
   font-size: 1.05rem;
@@ -485,9 +493,9 @@ input.inline:focus {
   display: flex;
   flex-direction: column;
   background: var(--paper);
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-radius: 3px;
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 4px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
   overflow: hidden;
 }
 .workers-closed {
@@ -708,9 +716,9 @@ input.inline:focus {
 }
 .toast {
   background: var(--paper);
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-radius: 3px;
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 4px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
   padding: 10px 14px;
   font-weight: 500;
   cursor: pointer;
@@ -743,9 +751,9 @@ input.inline:focus {
 .start-card {
   width: min(640px, 100%);
   background: var(--paper);
-  border: 4px solid var(--ink);
+  border: 4px solid var(--copper);
   border-radius: 3px;
-  box-shadow: 0 8px 0 var(--ink);
+  box-shadow: 0 8px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
   padding: 28px 32px;
   text-align: center;
   max-height: calc(100vh - 32px);
@@ -813,9 +821,9 @@ input.inline:focus {
   display: flex;
   flex-direction: column;
   background: var(--paper);
-  border: 4px solid var(--ink);
+  border: 4px solid var(--copper);
   border-radius: 3px;
-  box-shadow: 0 8px 0 var(--ink);
+  box-shadow: 0 8px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
   overflow: hidden;
   animation: pop 0.2s ease-out;
 }
@@ -847,7 +855,7 @@ input.inline:focus {
   width: 36px;
   height: 36px;
   border-radius: 3px;
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   background: var(--vellum);
   font-weight: 700;
   cursor: pointer;
@@ -933,10 +941,10 @@ input.inline:focus {
   align-items: center;
   text-align: left;
   padding: 10px;
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-radius: 3px;
   background: var(--vellum);
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 4px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
   cursor: pointer;
   font-family: var(--font);
 }
@@ -955,7 +963,7 @@ input.inline:focus {
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   background: var(--accent);
   color: #fff;
   font-weight: 700;
@@ -987,7 +995,7 @@ input.inline:focus {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   color: #fff;
   font-weight: 700;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
@@ -1023,7 +1031,7 @@ input.inline:focus {
 .term {
   background: #1b1b29;
   color: #e8e8f2;
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-radius: 3px;
   padding: 12px 14px;
   overflow: auto;
@@ -1076,7 +1084,7 @@ input.inline:focus {
   min-height: 200px;
   min-width: 0;
   background: #1b1b29;
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -1125,7 +1133,7 @@ input.inline:focus {
 }
 .browser-bar {
   background: #e9ecf2;
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-bottom: none;
   border-radius: 3px 14px 0 0;
   padding: 6px 12px;
@@ -1137,7 +1145,7 @@ input.inline:focus {
 .browser-view {
   flex: 1;
   min-height: 0;
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-radius: 0 0 14px 14px;
   background: var(--vellum);
   overflow: auto;
@@ -1200,7 +1208,7 @@ input.inline:focus {
   flex-direction: column;
   min-height: 0;
   background: #ece0c4;
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -1340,7 +1348,7 @@ input.inline:focus {
   border: 2px solid var(--ink);
   border-radius: 3px;
   overflow: hidden;
-  box-shadow: 0 2px 0 var(--ink);
+  box-shadow: 0 2px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
 }
 .seg-btn {
   font-family: var(--font);
@@ -1370,7 +1378,7 @@ input.inline:focus {
   display: flex;
   justify-content: center;
   background: repeating-linear-gradient(45deg, #e6d9bb 0 12px, #efe4ca 12px 24px);
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -1397,7 +1405,7 @@ input.inline:focus {
   background: #efe1bd;
   border: 2.5px solid var(--ink);
   border-radius: 3px;
-  box-shadow: 0 3px 0 var(--ink);
+  box-shadow: 0 3px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
   font-size: 0.9rem;
   line-height: 1.4;
 }
@@ -1541,7 +1549,7 @@ input.inline:focus {
   background: var(--accent);
   color: #fff;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
-  box-shadow: 0 3px 0 var(--ink);
+  box-shadow: 0 3px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
 }
 .tab-body {
   flex: 1;
@@ -1572,7 +1580,7 @@ input.inline:focus {
 }
 .card {
   background: var(--vellum);
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-radius: 3px;
   padding: 12px 14px;
   margin-bottom: 12px;
@@ -1793,7 +1801,7 @@ input.inline:focus {
   background: var(--accent);
   color: #fff;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
-  box-shadow: 0 3px 0 var(--ink);
+  box-shadow: 0 3px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
 }
 .picker-mode {
   display: flex;
@@ -1819,10 +1827,10 @@ input.inline:focus {
   z-index: 45;
   width: min(390px, calc(100vw - 32px));
   background: var(--paper);
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-left: 10px solid var(--accent);
   border-radius: 3px;
-  box-shadow: 0 5px 0 var(--ink);
+  box-shadow: 0 5px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
   padding: 10px 14px 10px;
   animation: pop 0.25s ease-out;
 }
@@ -1885,9 +1893,9 @@ input.inline:focus {
 .confirm {
   width: min(440px, 100%);
   background: var(--paper);
-  border: 4px solid var(--ink);
+  border: 4px solid var(--copper);
   border-radius: 3px;
-  box-shadow: 0 8px 0 var(--ink);
+  box-shadow: 0 8px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
   padding: 20px 22px 14px;
   text-align: center;
   animation: pop 0.18s ease-out;
@@ -1959,9 +1967,9 @@ input.inline:focus {
   font-size: 0.9rem;
   color: var(--ink);
   background: var(--paper);
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-radius: 3px;
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 4px 0 var(--copper-dark), inset 0 0 0 1px var(--copper-light);
   cursor: pointer;
 }
 .phone-btn:hover {
@@ -2010,7 +2018,7 @@ input.inline:focus {
   display: flex;
   flex-direction: column;
   background: #23263a;
-  border: 4px solid var(--ink);
+  border: 4px solid var(--copper);
   border-radius: 3px;
   padding: 10px 10px 8px;
   box-shadow:
@@ -2395,7 +2403,7 @@ input.inline:focus {
 /* resumes */
 .resume {
   background: var(--vellum);
-  border: 3px solid var(--ink);
+  border: 3px solid var(--copper);
   border-radius: 3px;
   padding: 10px 12px;
   margin-bottom: 10px;
