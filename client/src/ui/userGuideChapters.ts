@@ -1,0 +1,315 @@
+// The User Guide's text (press B in the dungeon). Edit freely: each chapter is a list of blocks, and inside any
+// line [[Key]] draws a key, `code` a command and **bold** bold. Start every chapter with a paragraph that begins
+// with a letter: it gets the drop cap. guideBook.test.ts checks the shape.
+
+import type { GuideBlock, GuideChapter } from './guideBook';
+
+const p = (text: string): GuideBlock => ({ kind: 'p', text });
+const h = (text: string): GuideBlock => ({ kind: 'h', text });
+const list = (...items: string[]): GuideBlock => ({ kind: 'list', items });
+const keys = (...rows: [string, string][]): GuideBlock => ({ kind: 'keys', rows });
+
+export const CHAPTERS: GuideChapter[] = [
+  {
+    id: 'dungeon',
+    title: 'The dungeon and how it is laid out',
+    blocks: [
+      p(
+        'Code Dungeon is a real software workshop drawn as a dungeon. Every coder you see is a real coding agent working on one of your GitHub repos, and everything they do (issues, branches, pull requests, test reports) is real. The dungeon is one level: a great hall, a gallery running south from it, and a chamber for each project.',
+      ),
+      h('The great hall'),
+      p('You start in the great hall. Its corners and walls hold everything that is about the whole dungeon rather than one project:'),
+      list(
+        '**Your study**, the room at the back left. Your table is there: press [[E]] at it to open the Overlord\'s ledger (chapter 6).',
+        "**The DungeonMaster's quarters**, at the back right under the DUNGEONMASTER sign. Press [[E]] on his bench to see what he is working on.",
+        '**The bar**, in the middle of the hall, with kegs and bottles behind it. The cat likes to sit on it.',
+        '**The hearth** and two feasting tables, towards the south end.',
+        '**The recruits\' chairs** along the east wall. Anyone the DungeonMaster wants to recruit waits here for your decision.',
+        '**The dart board**, on the south wall at the west end (chapter 7).',
+      ),
+      h('The gallery and the chambers'),
+      p(
+        'The archway in the middle of the south wall leads into the gallery. Every connected repo has its own chamber off the gallery, alternating west and east. A chamber keeps its number for as long as its repo is connected, so removing one project never moves the others.',
+      ),
+      p('The directory beside the archway lists every chamber: press [[E]] on it to walk straight into one instead of finding the door.'),
+      h('Inside a chamber'),
+      list(
+        '**The notice board** on the far wall, facing you as you come in: the chamber\'s issues and pull requests (chapter 4).',
+        "**The coders' workbenches**, each with a slate on an easel showing that coder's live terminal (chapter 5).",
+        '**The assay room**: the testers in aprons along the east wall, who check every pull request before it is merged.',
+        "**The framed screen** on the left wall: the project's own app. Press [[E]] on it to start the app on the default branch or on any open pull request, and use it right there.",
+      ),
+      p(
+        'The plate at the top left of the screen always tells you where you are: the chamber number and repo name, or G and the great hall, with how many people are in the guild, how many are working, and how many pull requests are in QA or ready to merge.',
+      ),
+    ],
+  },
+  {
+    id: 'moving',
+    title: 'Moving about',
+    blocks: [
+      p(
+        'Click the view once to grab the mouse. From then on the mouse turns your head, and the small cross in the middle of the screen is what you are pointing at. That first click only grabs the mouse; it never presses anything.',
+      ),
+      keys(
+        ['W A S D or the arrow keys', 'Walk'],
+        ['Shift', 'Hold to run'],
+        ['Mouse', 'Look around'],
+        ['E or left click', 'Use whatever the cross is on: a bench, the notice board, the directory, your table'],
+        ['Esc', 'Let go of the mouse, or close the panel that is open'],
+      ),
+      p(
+        'When the cross is on something you can use, a hint under it says what [[E]] will do, for example "Open the notice board". Opening any panel frees the mouse so you can click in it. Closing the panel grabs the mouse again; if you would rather it didn\'t, untick **Grab the mouse when panels close** in the help ([[H]]).',
+      ),
+      h('When the mouse cannot be grabbed'),
+      p(
+        'Some browsers and embedded browser panes refuse to capture the mouse. The dungeon notices within a moment and switches to drag to look: hold the left button and drag to turn, and a click without a drag uses whatever the cross is on. Everything else works the same.',
+      ),
+      h('Mouse settings'),
+      p('The help ([[H]]) has a sensitivity slider and an Invert Y switch. Both are saved in this browser.'),
+    ],
+  },
+  {
+    id: 'guild',
+    title: 'Your guild',
+    blocks: [
+      p(
+        'Your guild is the people who do the work. Each of them is a real coding agent (Claude Code by default; Codex or OpenCode if you have them) running in its own terminal on this machine, each in its own git worktree, so nobody steps on anyone else\'s changes.',
+      ),
+      h('Coders'),
+      p(
+        'Coders pick up GitHub issues, write the change, run the project\'s checks, push a branch and open a pull request. Each has a trade and may have a specialty: an issue labelled `swarm:<specialty>` goes to a free specialist first, but anyone can take it.',
+      ),
+      h('Testers'),
+      p(
+        'Testers wear aprons and work in the assay room. They test pull requests and never change them. Every chamber always has at least one tester, and can have up to three. When every tester is busy, a free coder who didn\'t write the pull request covers for them.',
+      ),
+      h('The DungeonMaster'),
+      p(
+        'The DungeonMaster runs the dungeon for you. He studies each new chamber, writes its QA brief, turns your project briefs into GitHub issues, gives coders work that fits the project and puts forward recruits. He also reviews the whole dungeon every so often (Settings in the ledger sets how often). Write to him on your scroll ([[P]]).',
+      ),
+      h('Recruiting'),
+      p('There are three ways to add someone to a chamber:'),
+      list(
+        'Accept a recruit the DungeonMaster puts forward. They wait on the chairs along the great hall\'s east wall: press [[E]] on one to read their credentials, then recruit or decline. The **Recruits** tab of your scroll shows the same list.',
+        'Aim at an empty bench in a chamber and press [[E]] (or click it and confirm).',
+        "Use the Guild tab of the Overlord's ledger.",
+      ),
+      p(
+        'By default every recruit waits for your yes. In the ledger\'s Settings you can switch to auto-approve while a chamber is under the guild cap; anyone beyond the cap still waits for you.',
+      ),
+      h('Letting someone go'),
+      p(
+        'Open their terminal (press [[E]] on their bench) or find them in the Guild tab, and press **Let go**. Their worktree is removed; any branches they pushed stay on GitHub. The last tester in a chamber can\'t be let go.',
+      ),
+    ],
+  },
+  {
+    id: 'quests',
+    title: 'Quests: issues, pull requests and QA',
+    blocks: [
+      p(
+        'Work in the dungeon is GitHub issues. An issue goes from the backlog to a coder, becomes a pull request, is tested in the assay room and is merged. You can watch every step on the chamber\'s notice board, and step in at any of them.',
+      ),
+      h('Where issues come from'),
+      list(
+        'Your project briefs: write what a chamber should build next in the ledger (DungeonMaster & recruits tab), and the DungeonMaster turns it into issues.',
+        'The **Issues** tab of the ledger, or the notice board, where you can file one yourself.',
+        'Anything already open on GitHub for that repo.',
+      ),
+      p(
+        'An issue that says `Depends on #N` waits until #N is closed. Of the rest, the ones holding up the most other work go first, then the oldest.',
+      ),
+      h('The notice board'),
+      p('Press [[E]] on the board at the far end of a chamber. Its columns:'),
+      list(
+        '**Backlog**: open issues nobody has picked up. Assign one to a coder from here.',
+        '**In progress**: coders at work.',
+        '**In QA**: pull requests being tested, or being fixed after a failed test. Pull requests that people opened (not coders) show here as not tested yet, with a **Send to QA** button.',
+        '**Ready to merge**: QA passed, waiting for you or for auto-merge.',
+        '**Merged**: done.',
+      ),
+      p(
+        'With **auto-assign** on for a chamber (in the ledger), free coders take the next issue by themselves. With it off, you hand out issues from the board or from a coder\'s terminal.',
+      ),
+      h('Pull requests'),
+      p(
+        'A coder works on a branch called `swarm/issue-<n>-<name>` and opens a pull request that says `Closes #<n>`. Coders never push to the default branch and never merge: the dungeon merges, after QA.',
+      ),
+      h('QA in the assay room'),
+      p(
+        'A free tester checks out the pull request, reads it and its issue, reviews the diff, runs the tests, linters and build, and tries the change in a real browser with screenshots. The dungeon posts the report on the pull request as a comment: the verdict, a table of checks, the commands run and the screenshots.',
+      ),
+      p(
+        'If QA fails, the report goes back to the coder who wrote it. They fix the branch and it goes back to QA. After three failed rounds the pull request is marked **needs you**.',
+      ),
+      h('Merging'),
+      p(
+        'With **auto-merge** on (the default), a pull request merges itself once QA has passed its latest commit and GitHub\'s checks are green. If checks fail or it conflicts with the default branch, a coder fixes it and QA tests it again. With auto-merge off, read the pull request and its QA comment on GitHub, then press **Merge** on the notice board. Merging something that hasn\'t passed QA asks you to confirm first.',
+      ),
+    ],
+  },
+  {
+    id: 'watching',
+    title: 'Watching the work',
+    blocks: [
+      p(
+        'Nothing in the dungeon happens out of sight. Every coder\'s screen is their real terminal, and you can read it, type into it or stop it at any time.',
+      ),
+      h('Slates'),
+      p(
+        'The slate on each workbench is that coder\'s live terminal. Walk up behind them to read it. Press [[E]] on the bench (or click it) for the full terminal, where you can:',
+      ),
+      list(
+        'click into the terminal and type, as if it were your own (while it has focus, [[Esc]] goes to the agent and interrupts its turn);',
+        'use the message box underneath: [[Enter]] sends, [[Shift]] + [[Enter]] starts a new line. While they work it is typed into their session; afterwards it resumes it as a follow-up;',
+        'press **Stop**, hand them an issue from the backlog, or **Clear bench** when they are done.',
+      ),
+      h("Who's working"),
+      p(
+        'The list at the top right shows everyone working right now, with their latest thought, reply or tool call: everyone in this chamber, or everyone in the dungeon when you are in the great hall. Click a name to open their terminal. [[Tab]] shows or hides the list.',
+      ),
+      h('Your scroll'),
+      p('Press [[P]] anywhere to take out your scroll. It has three parts:'),
+      list(
+        '**Chat**: write to the DungeonMaster and read what he and the dungeon send you (merges, refused merges, usage warnings).',
+        '**Recruits**: the people waiting for your yes.',
+        '**Company**: every project at a glance.',
+      ),
+      p('The red badge on the scroll counts messages and decisions waiting for you.'),
+      h('Sound'),
+      p(
+        'A bell tolls when a pull request is ready to merge, fails QA or is merged, when someone hits an error and when a new recruit arrives. [[M]] mutes or unmutes anywhere; the volume is in the help ([[H]]).',
+      ),
+    ],
+  },
+  {
+    id: 'ledger',
+    title: "The Overlord's ledger",
+    blocks: [
+      p(
+        'The ledger is where you change how the dungeon runs. It sits on your table in your study (back left of the great hall): press [[E]] at the table to open it. It has five tabs.',
+      ),
+      h('Chambers & repos'),
+      p(
+        'One row per chamber. **Visit** walks you there. Switches for **Auto-assign issues**, **Auto-merge** and **Browser testing** (testers use a real browser through Playwright). You can pick the chamber\'s colour, link it to other chambers so its coders can read those repos, and **Disconnect** it: everyone in it is let go, nothing is deleted on GitHub, and the folder stays on disk.',
+      ),
+      p(
+        'Each row also shows whether your project folder is up to date with GitHub. After a merge it fast-forwards when that is safe; if it can\'t (local changes, another branch checked out), it says why, and **Sync now** tries again. Nothing is ever stashed or thrown away.',
+      ),
+      p(
+        '**Add a project** at the bottom connects a project folder or a GitHub repo, or starts a new one. Every project must be on GitHub, because issues and pull requests are how the guild works.',
+      ),
+      h('DungeonMaster & recruits'),
+      p(
+        'The DungeonMaster\'s model and effort, the recruits waiting for you, and a **project brief** for each chamber: what it should build next. **Re-study** asks him to read the repo again and rethink the guild.',
+      ),
+      h('Guild'),
+      p(
+        'Everyone in every chamber: name, job title, specialty, coding agent, model, effort and look. **Terminal** opens their terminal; **Let go** lets them go.',
+      ),
+      h('Issues'),
+      p('File a new issue on any chamber\'s repo, and see the open ones.'),
+      h('Settings'),
+      list(
+        '**Default coding agent, model and effort** for everyone (each person can override them in the Guild tab).',
+        '**Session limit**: how many agents may work at once. Empty means no limit.',
+        '**Sessions while pacing**: how many may run when Claude warns that usage is high (chapter 8).',
+        '**Recruiting**: approve every recruit, or auto-approve up to the **guild cap per chamber**.',
+        '**Dungeon review every** so many minutes: how often the DungeonMaster looks over everything (0 turns it off).',
+        '**How coders run**: real terminals (recommended) or the Agent SDK.',
+        'Your name, the company name, the folder new projects are created in, and **Replay the tour**.',
+      ),
+      p(
+        'When an update to the dungeon itself is ready, a row at the top of the ledger offers **Update now** or **Later**. Updating lets running sessions finish first, then restarts the dungeon.',
+      ),
+    ],
+  },
+  {
+    id: 'pastimes',
+    title: 'Pastimes: darts and the black cat',
+    blocks: [
+      p('Not everything in the dungeon is work.'),
+      h('Darts'),
+      p(
+        'The dart board hangs on the great hall\'s south wall, at the west end. Aim at it and press [[E]] to take the three darts. Click or press [[F]] to throw one: a tap lobs it, holding throws harder. [[G]] puts the darts back on the ledge, and so does freeing the mouse with [[Esc]].',
+      ),
+      p(
+        'Darts stick only in the board. A round is three darts, scored like the real game: doubles, trebles, 25 and the bull. The chalk tally beside the board keeps the best round. Press [[E]] on the board again to collect your darts. The coders are not targets.',
+      ),
+      h('The black cat'),
+      p(
+        'A black cat lives in the dungeon and thinks she runs it. She sleeps by the hearth, sits on the bar, keeps working coders company and takes the DungeonMaster\'s desk when he isn\'t looking.',
+      ),
+      p(
+        'Press [[C]] to call her. She will ignore you for a moment, then follow you about. She never blocks your way or a click.',
+      ),
+    ],
+  },
+  {
+    id: 'trouble',
+    title: 'When something goes wrong',
+    blocks: [
+      p(
+        'Most problems show up in one of three places: the banner at the top of the screen, a message on your scroll ([[P]]), or the coder\'s own terminal. Start there.',
+      ),
+      h('"GitHub CLI is not ready"'),
+      p(
+        'The dungeon reaches GitHub only through the `gh` command. Open a terminal and run `gh auth login`, then `gh auth status` to check. Restart the dungeon afterwards. From the Code Dungeon folder, `node bin/cubefarm.js doctor` checks Node, git, `gh` and the Claude login in one go.',
+      ),
+      h('Claude asks to sign in'),
+      p(
+        'Agents use your own Claude subscription. If an agent\'s terminal is waiting at a sign-in or first-run screen, it waits for you there: open the terminal and answer it, or run `node bin/cubefarm.js login` from the Code Dungeon folder.',
+      ),
+      h('Usage limits and pacing'),
+      p(
+        'Every agent on Claude draws on the same subscription. When Claude warns that usage is getting high, the dungeon paces itself: QA, fixes and the DungeonMaster carry on, but new issues only start while fewer sessions than **Sessions while pacing** (Settings, default 3) are running. Your scroll says when pacing starts and ends.',
+      ),
+      p(
+        'If Claude turns a session away because the limit is reached, the dungeon starts no new work until the time Claude gives, and tells you on your scroll. Sessions already running carry on. To use less at once, set a **Session limit** in the ledger\'s Settings.',
+      ),
+      h('A coder is stuck'),
+      list(
+        'Open their terminal ([[E]] on their bench) and read the last few lines. They may be waiting on a question or a slow command.',
+        'Tell them what to do: type in the message box, or straight into the terminal.',
+        'Press **Stop**, then hand the issue to them again or to someone else. **Clear bench** resets a finished or failed bench.',
+        'A failed session puts its issue back on the board; the coder gets new work after a two-minute rest. An issue that fails twice waits for you to assign it by hand.',
+      ),
+      h('A pull request will not merge'),
+      p(
+        'If GitHub refuses the merge (for example, branch protection wants an approving review), your scroll gets a message and the dungeon tries again every 10 minutes. Checks still running after 30 minutes also get a message. Pull requests marked **needs you** have failed QA or their fixes three times: read the QA comment on GitHub and decide.',
+      ),
+      h('The view or the mouse misbehaves'),
+      list(
+        'Can\'t look around: click the view once. If the mouse still won\'t lock, drag with the left button held.',
+        'The status pill says **reconnecting**: the dungeon\'s server is restarting or has stopped. Agents\' terminals keep working through a restart.',
+        'No sound: press [[M]], and check the volume in the help ([[H]]).',
+      ),
+    ],
+  },
+  {
+    id: 'keys',
+    title: 'Keys at a glance',
+    blocks: [
+      p('Every key the dungeon listens to. None of them act while you are typing in a box.'),
+      keys(
+        ['W A S D or arrows', 'Walk'],
+        ['Shift', 'Run'],
+        ['Mouse', 'Look around (click the view first)'],
+        ['E or left click', 'Use what the cross is on'],
+        ['Esc', 'Free the mouse, or close a panel'],
+        ['P', 'Your scroll'],
+        ['Tab', "Show or hide who's working"],
+        ['H', 'Help'],
+        ['B', 'This User Guide'],
+        ['C', 'Call the cat'],
+        ['F', 'Throw a dart (hold for a harder throw)'],
+        ['G', 'Put the darts back'],
+        ['M', 'Sound on or off'],
+        ['Enter', 'Send, in the scroll and in a terminal\'s message box'],
+        ['Shift + Enter', 'New line in those boxes'],
+      ),
+      p('In this book, [[←]] and [[→]] turn to the previous and next chapter.'),
+    ],
+  },
+];

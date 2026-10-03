@@ -9,6 +9,7 @@ import { ManagerConsole } from './ManagerConsole';
 import { Phone } from './Phone';
 import { SystemPanel } from './SystemPanel';
 import { TerminalView } from './TerminalView';
+import { UserGuide } from './UserGuide';
 import { getAudioPrefs, setAudioPrefs, subscribeAudio } from './sfx';
 
 // Closing a panel grabs the mouse again right away (world/lookLock.ts; "Grab the mouse when panels
@@ -103,6 +104,12 @@ function Help() {
   return (
     <Panel title="How the dungeon works">
       <div className="help">
+        <p>
+          The whole dungeon is explained chapter by chapter in the User Guide: press <kbd>B</kbd> anywhere, or{' '}
+          <button className="btn btn-small" onClick={() => useStore.getState().openOverlay({ kind: 'guide' })}>
+            📖 Open the User Guide
+          </button>
+        </p>
         <h3>Moving around</h3>
         <p>
           <kbd>W</kbd>
@@ -182,6 +189,8 @@ export function Overlays() {
       return <ManagerConsole initialTab={overlay.tab} initialRepo={overlay.repoId} />;
     case 'help':
       return <Help />;
+    case 'guide':
+      return <UserGuide chapter={overlay.chapter} />;
     case 'system':
       return <SystemPanel />;
   }

@@ -1,0 +1,366 @@
+/* The User Guide: an old book opened on the table. A tooled leather cover, two vellum pages with their edges
+   showing, the contents on the left and the chapter on the right. Flat shadows and ruled lines, like the panels;
+   the only soft shading is the fold between the pages. One page, contents on top, on narrow screens. */
+
+.ug-overlay {
+  background: rgba(10, 7, 5, 0.62);
+}
+
+.ug-book {
+  --leather: #4a2a17;
+  --leather-dark: #2b170c;
+  --tooling: rgba(184, 134, 43, 0.6);
+  --edge-1: #dccdaa;
+  --edge-2: #c7b48c;
+  position: relative;
+  width: 80vw;
+  height: 80vh;
+  padding: 16px 18px 20px;
+  background: var(--leather);
+  border: 3px solid var(--leather-dark);
+  border-radius: 4px 10px 10px 4px;
+  box-shadow:
+    inset 0 0 0 6px var(--leather),
+    inset 0 0 0 7px var(--tooling),
+    inset 0 0 0 10px var(--leather),
+    inset 0 0 0 11px var(--tooling),
+    0 10px 0 var(--leather-dark);
+  outline: none;
+  animation: ug-open 0.22s ease-out;
+}
+@keyframes ug-open {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+}
+
+/* The close button sits on the cover's corner, half off the book. */
+.ug-close {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  border: 3px solid var(--ink);
+  border-radius: 3px;
+  background: var(--vellum);
+  color: var(--ink);
+  font: 700 1rem var(--font);
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.ug-close:hover {
+  background: var(--accent);
+  color: var(--vellum);
+}
+.ug-close:focus-visible,
+.ug-toc-item:focus-visible,
+.ug-turn-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ug-spread {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 100%;
+  min-height: 0;
+}
+
+.ug-page {
+  position: relative;
+  min-height: 0;
+  background: var(--vellum);
+  color: var(--ink);
+  font-family: var(--font);
+}
+/* Page edges: a few leaves showing at the outer edge and the foot of each page. */
+.ug-left {
+  border-radius: 3px 0 0 3px;
+  box-shadow:
+    inset -22px 0 20px -18px rgba(42, 29, 20, 0.38),
+    -2px 2px 0 var(--edge-1),
+    -4px 4px 0 var(--edge-2),
+    -6px 6px 0 var(--edge-1),
+    -7px 7px 0 var(--leather-dark);
+}
+.ug-right {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(42, 29, 20, 0.28);
+  border-radius: 0 3px 3px 0;
+  box-shadow:
+    inset 22px 0 20px -18px rgba(42, 29, 20, 0.38),
+    2px 2px 0 var(--edge-1),
+    4px 4px 0 var(--edge-2),
+    6px 6px 0 var(--edge-1),
+    7px 7px 0 var(--leather-dark);
+}
+
+/* ---------- the left page: title and contents ---------- */
+
+.ug-left {
+  display: flex;
+  flex-direction: column;
+  padding: 44px 40px 24px 48px;
+  overflow: auto;
+}
+.ug-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.9rem, 3vw, 2.6rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+.ug-subtitle {
+  margin-top: 8px;
+  padding-bottom: 18px;
+  border-bottom: 3px double rgba(42, 29, 20, 0.55);
+  color: var(--muted);
+  font-style: italic;
+}
+.ug-contents-head {
+  margin: 22px 0 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.ug-toc {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ug-toc-item {
+  display: grid;
+  grid-template-columns: 3.2em 1fr;
+  align-items: baseline;
+  width: 100%;
+  padding: 7px 8px 7px 0;
+  border: 0;
+  border-bottom: 1px dotted rgba(42, 29, 20, 0.3);
+  background: none;
+  color: var(--ink);
+  font: 1.02rem/1.35 var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+.ug-toc-item:hover .ug-toc-title {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 3px;
+}
+.ug-toc-num {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--muted);
+}
+.ug-toc-on {
+  font-weight: 700;
+}
+.ug-toc-on .ug-toc-num {
+  color: var(--accent);
+}
+.ug-toc-on .ug-toc-title {
+  box-shadow: inset 0 -0.4em 0 rgba(160, 68, 28, 0.16);
+}
+.ug-left-foot {
+  margin-top: auto;
+  padding-top: 20px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ---------- the right page: the chapter ---------- */
+
+.ug-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 44px 52px 20px 44px;
+}
+.ug-eyebrow {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.ug-chapter-title {
+  margin: 4px 0 18px;
+  padding-bottom: 12px;
+  border-bottom: 3px double rgba(42, 29, 20, 0.55);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.5rem, 2.4vw, 2.05rem);
+  line-height: 1.15;
+}
+.ug-body {
+  max-width: 68ch;
+  font-size: 1.06rem;
+  line-height: 1.62;
+  animation: ug-turn 0.18s ease-out;
+}
+@keyframes ug-turn {
+  from {
+    opacity: 0;
+  }
+}
+.ug-body p {
+  margin: 0 0 0.8em;
+}
+.ug-body h3 {
+  margin: 1.3em 0 0.35em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.12rem;
+  letter-spacing: 0.02em;
+}
+.ug-body ul {
+  margin: 0 0 0.9em;
+  padding-left: 1.2em;
+}
+.ug-body li {
+  margin-bottom: 0.4em;
+}
+.ug-body li::marker {
+  color: var(--accent);
+}
+.ug-body kbd {
+  font-size: 0.8em;
+  border-width: 1.5px;
+  border-bottom-width: 3px;
+}
+/* The drop cap: the first letter of every chapter. */
+.ug-body > p:first-child::first-letter {
+  float: left;
+  margin: 0.06em 0.1em 0 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 3.5em;
+  line-height: 0.82;
+  color: var(--accent);
+}
+
+.ug-keys {
+  width: 100%;
+  margin: 0.4em 0 1em;
+  border-collapse: collapse;
+  font-size: 1rem;
+}
+.ug-keys th,
+.ug-keys td {
+  padding: 6px 10px 6px 0;
+  border-bottom: 1px dotted rgba(42, 29, 20, 0.3);
+  text-align: left;
+  vertical-align: baseline;
+}
+.ug-keys th {
+  width: 38%;
+  font-family: var(--font-display);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ug-turn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 44px 14px;
+  border-top: 1px solid rgba(42, 29, 20, 0.22);
+}
+.ug-turn-btn {
+  padding: 6px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+  font: 700 0.95rem var(--font-display);
+  cursor: pointer;
+  box-shadow: 0 2px 0 var(--ink);
+}
+.ug-turn-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--vellum);
+}
+.ug-turn-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.ug-folio {
+  flex: 1;
+  text-align: center;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ---------- narrow screens: one page, contents on top ---------- */
+
+@media (max-width: 760px) {
+  .ug-book {
+    width: 100%;
+    height: calc(100dvh - 40px);
+    padding: 10px 10px 14px;
+  }
+  .ug-close {
+    top: -10px;
+    right: -6px;
+  }
+  .ug-spread {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .ug-left {
+    max-height: 32vh;
+    padding: 18px 18px 10px;
+    border-radius: 3px 3px 0 0;
+    box-shadow: none;
+  }
+  .ug-right {
+    border-left: 0;
+    border-top: 3px double rgba(42, 29, 20, 0.45);
+    border-radius: 0 0 3px 3px;
+    box-shadow:
+      2px 2px 0 var(--edge-1),
+      4px 4px 0 var(--edge-2),
+      5px 5px 0 var(--leather-dark);
+  }
+  .ug-subtitle,
+  .ug-left-foot {
+    display: none;
+  }
+  .ug-title {
+    font-size: 1.4rem;
+  }
+  .ug-contents-head {
+    margin-top: 10px;
+  }
+  .ug-toc-item {
+    padding: 5px 0;
+    font-size: 0.95rem;
+  }
+  .ug-scroll {
+    padding: 20px 18px 12px;
+  }
+  .ug-turn {
+    padding: 8px 12px 10px;
+  }
+  .ug-turn-btn {
+    font-size: 0.85rem;
+  }
+  .ug-keys th {
+    white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ug-book,
+  .ug-body {
+    animation: none;
+  }
+}

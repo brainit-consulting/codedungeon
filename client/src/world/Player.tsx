@@ -229,6 +229,7 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
       if (e.code === 'KeyC' && !e.repeat) callTheCat();
       if (e.code === 'KeyH') s.openOverlay({ kind: 'help' });
       if (e.code === 'KeyB' && !e.repeat) s.openOverlay({ kind: 'guide' });
+      if (e.code === 'KeyB' && !e.repeat) s.openOverlay({ kind: 'guide' });
       if (e.code === 'KeyP') {
         e.preventDefault(); // don't type the "p" into the phone's message box
         s.openOverlay({ kind: 'phone', tab: pendingRequests(s.requests).length && !unreadMessages(s.messages, s.phoneReadAt) ? 'hires' : 'chat' });

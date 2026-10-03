@@ -103,7 +103,7 @@ export function HUD() {
       {started && !overlay && !locked && !dragLook && <div className="hud-resume">Click to look around</div>}
       {started && !(settings.setupDone && settings.tutorialStep >= 0) && (
         <div className="hud-help">
-          <kbd>WASD</kbd> move · <kbd>Shift</kbd> run · <kbd>E</kbd> / <kbd>Click</kbd> interact · <kbd>P</kbd> scroll · <kbd>Tab</kbd> who's working · <kbd>C</kbd> call the cat · <kbd>H</kbd> help · <kbd>Esc</kbd> free mouse
+          <kbd>WASD</kbd> move · <kbd>Shift</kbd> run · <kbd>E</kbd> / <kbd>Click</kbd> interact · <kbd>P</kbd> scroll · <kbd>Tab</kbd> who's working · <kbd>C</kbd> call the cat · <kbd>H</kbd> help · <kbd>B</kbd> guide · <kbd>Esc</kbd> free mouse
         </div>
       )}
 
