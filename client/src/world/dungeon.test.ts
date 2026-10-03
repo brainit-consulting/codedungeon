@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GALLERY, chamber, chambersToDraw, dungeonColliders, galleryColliders, galleryEnd, inDungeon, roomAt, toLocal, toWorld, visitSpot } from './dungeon';
+import { GALLERY, chamber, chambersToDraw, doorsOpen, dungeonColliders, galleryColliders, galleryEnd, inDungeon, roomAt, toLocal, toWorld, visitSpot } from './dungeon';
 import { HALF_D, HALF_W, collide, officeColliders, rect } from './layout';
 
 const near = (a: number, b: number) => expect(a).toBeCloseTo(b, 6);
@@ -174,5 +174,26 @@ describe('the great hall', () => {
     for (let i = 0; i < 140; i++) p = collide(p.x, p.z - 0.1, rects);
     expect(p.z).toBeLessThan(-1.5); // walked from the doorway to just in front of the bar's stools
     expect(p.x).toBeCloseTo(0, 6);
+  });
+});
+
+describe('chamber doors', () => {
+  const slots = [1, 2, 3, 4, 5];
+
+  it('only stand open on a chamber that is being drawn, wherever you are', () => {
+    for (let x = -30; x <= 30; x += 0.5) {
+      for (let z = -12; z <= galleryEnd(slots) + 2; z += 0.5) {
+        const drawn = chambersToDraw(x, z, slots);
+        for (const s of doorsOpen(x, z, slots)) expect(drawn, `door ${s} open at ${x}, ${z}`).toContain(s);
+      }
+    }
+  });
+
+  it("open as you come up the gallery, stay open while you're inside, and are shut from the hall", () => {
+    const c = chamber(1);
+    expect(doorsOpen(0, c.z, slots)).toContain(1);
+    expect(doorsOpen(c.x, c.z, slots)).toEqual([1]); // inside chamber 1: the door opposite stays shut
+    expect(doorsOpen(0, 0, slots)).toEqual([]);
+    expect(doorsOpen(0, c.z + 20, slots)).not.toContain(1);
   });
 });

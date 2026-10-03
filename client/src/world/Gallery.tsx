@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { ChamberDoors } from './Doors';
 import { GALLERY, chamber, galleryColliders, galleryEnd } from './dungeon';
 import { ELEVATOR, HALF_D, WALL_H } from './layout';
 import { WallTorch } from './lightPool';
@@ -66,6 +67,7 @@ export function Gallery({ slots }: { slots: number[] }) {
           </mesh>
         );
       })}
+      <ChamberDoors slots={slots} />
       {torches.map(({ z, side }) => (
         <WallTorch key={z} position={[side * (GALLERY.half - 0.02), TORCH_Y, z]} rotationY={side === -1 ? Math.PI / 2 : -Math.PI / 2} />
       ))}

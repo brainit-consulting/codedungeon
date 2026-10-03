@@ -115,6 +115,23 @@ export function chambersToDraw(x: number, z: number, slots: number[]): number[] 
   });
 }
 
+/** How much nearer than DRAW_NEAR a door opens, so it has swung shut again before its chamber stops being drawn. */
+const DOOR_MARGIN = 2;
+
+/**
+ * Which chambers' doors stand open for someone at (x, z): their own chamber's, or those close by in the gallery.
+ * Always a subset of chambersToDraw, so an open door never shows a chamber that isn't there.
+ */
+export function doorsOpen(x: number, z: number, slots: number[]): number[] {
+  const room = roomAt(x, z, slots);
+  if (room) return [room];
+  if (z <= HALF_D) return [];
+  return slots.filter((s) => {
+    const door = toWorld(chamber(s), 0, HALF_D);
+    return Math.hypot(door.x - x, door.z - z) < DRAW_NEAR - DOOR_MARGIN;
+  });
+}
+
 /** Just inside a chamber's door, facing in. yaw follows Player's convention: forward is (-sin yaw, -cos yaw). */
 export function visitSpot(slot: number) {
   const c = chamber(slot);
