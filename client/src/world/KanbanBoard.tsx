@@ -23,7 +23,7 @@ export function KanbanBoard({ repo, agents }: { repo: RepoView; agents: Agent[] 
   );
   const texH = Math.round((2560 * BOARD.h) / BOARD.w);
   const tex = useCanvasTexture(2560, texH, (ctx) => drawKanban(ctx, 2560, texH, repo, cols), [signature]);
-  const ref = useInteractable<THREE.Group>({ id: `board-${repo.id}`, label: 'Open the Kanban board', action: { kind: 'kanban', repoId: repo.id } }, 7);
+  const ref = useInteractable<THREE.Group>({ id: `board-${repo.id}`, label: 'Open the notice board', action: { kind: 'kanban', repoId: repo.id } }, 7);
   const cy = BOARD.y + BOARD.h / 2;
   return (
     <group ref={ref} position={[0, 0, BOARD.z]}>

@@ -64,7 +64,7 @@ function OfficeRow({ update }: { update: OfficeUpdateView }) {
           🏢
         </span>
         <div className="grow">
-          <b>Office</b> <span className="muted small">running {commit ? <code>{commit}</code> : 'an unknown commit'}</span>
+          <b>Dungeon</b> <span className="muted small">running {commit ? <code>{commit}</code> : 'an unknown commit'}</span>
           <div className={`small office-state ${tone}`} role="status">
             {officeUpdateText(update)}
           </div>
@@ -74,7 +74,7 @@ function OfficeRow({ update }: { update: OfficeUpdateView }) {
             <button
               className="btn btn-small btn-good"
               disabled={busy || !canUpdateNow(update)}
-              title={tip(canUpdateNow(update), 'Start nothing new, let running sessions finish, then update and restart the office')}
+              title={tip(canUpdateNow(update), 'Start nothing new, let running sessions finish, then update and restart the dungeon')}
               onClick={() => act('now')}
             >
               Update now
@@ -91,7 +91,7 @@ function OfficeRow({ update }: { update: OfficeUpdateView }) {
       )}
       {!update.launcher && pending && <div className="muted small">{NO_LAUNCHER}</div>}
       {typeof autoUpdate === 'boolean' && (
-        <label className="toggle" title="When an update is ready, start nothing new, let running sessions finish, then update and restart the office">
+        <label className="toggle" title="When an update is ready, start nothing new, let running sessions finish, then update and restart the dungeon">
           <input type="checkbox" checked={autoUpdate} onChange={(e) => void attempt(() => api.updateSettings({ autoUpdate: e.target.checked }))} /> Update automatically
         </label>
       )}
@@ -118,12 +118,12 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
           </a>
           {repo.summary && <div className="small">🧠 {repo.summary}</div>}
           <div className="muted small">
-            {team.length} agents · {repo.issues.length} open issues · {repo.pulls.filter((p) => p.state === 'OPEN').length} open PRs · default branch <code>{repo.defaultBranch}</code>
+            {team.length} in the guild · {repo.issues.length} open issues · {repo.pulls.filter((p) => p.state === 'OPEN').length} open PRs · default branch <code>{repo.defaultBranch}</code>
             {repo.cloneStatus !== 'ready' && ` · checkout: ${repo.cloneStatus}`}
           </div>
-          <div className="muted small" title={repo.localPath ? 'Your own project folder' : 'A clone the office manages'}>
+          <div className="muted small" title={repo.localPath ? 'Your own project folder' : 'A clone the dungeon manages'}>
             📁 <code>{repo.checkoutPath}</code>
-            {officeFolder ? " · the office's own folder, updated from the Office row" : repo.folderSync && ` · ${repo.folderSync}`}{' '}
+            {officeFolder ? " · the dungeon's own folder, updated from the Dungeon row" : repo.folderSync && ` · ${repo.folderSync}`}{' '}
             <button className="btn btn-small btn-ghost" title="Fast-forward it to GitHub's default branch, when that's safe" onClick={() => void attempt(() => api.syncFolder(repo.id))}>
               ⟳ Sync now
             </button>
@@ -131,7 +131,7 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
           {repo.cloneError && <div className="term-error small">clone failed: {repo.cloneError}</div>}
           {repo.syncError && <div className="term-error small">sync failed: {repo.syncError}</div>}
         </div>
-        <input type="color" value={repo.color} onChange={(e) => patch({ color: e.target.value })} title="Floor colour" />
+        <input type="color" value={repo.color} onChange={(e) => patch({ color: e.target.value })} title="Chamber colour" />
         <button className="btn btn-small" onClick={() => goToFloor(repo.floor)}>
           Visit
         </button>
@@ -153,7 +153,7 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
             void confirmDialog({
               tone: 'danger',
               title: `Disconnect ${repo.fullName}?`,
-              body: `Everyone on this floor is let go. Nothing is deleted on GitHub, and ${repo.localPath ? 'your folder stays exactly as it is' : 'the local clone stays on disk'}.`,
+              body: `Everyone in this chamber is let go. Nothing is deleted on GitHub, and ${repo.localPath ? 'your folder stays exactly as it is' : 'the local clone stays on disk'}.`,
               confirm: 'Disconnect',
             }).then((ok) => ok && attempt(() => api.disconnectRepo(repo.id)));
           }}
@@ -163,7 +163,7 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
       </div>
       {others.length > 0 && (
         <div className="row wrap links">
-          <span className="muted small">🔗 Agents here may read:</span>
+          <span className="muted small">🔗 Coders and testers here may read:</span>
           {others.map((o) => (
             <label key={o.id} className="toggle small">
               <input
@@ -204,8 +204,8 @@ function FloorsTab() {
     <div className="tab-grid">
       <div>
         {officeUpdate && <OfficeRow update={officeUpdate} />}
-        <h3 className="section">🏢 Floors</h3>
-        {repos.length === 0 && <p className="muted">No floors yet. Add a project →</p>}
+        <h3 className="section">🏰 Chambers</h3>
+        {repos.length === 0 && <p className="muted">No chambers yet. Add a project →</p>}
         {[...repos].sort((a, b) => a.floor - b.floor).map((r) => (
           <FloorRow key={r.id} repo={r} all={repos} />
         ))}
@@ -229,20 +229,20 @@ function FloorBrief({ repo }: { repo: RepoView }) {
         <span className="floor-badge">{repo.floor}</span>
         <div className="grow">
           <b>{repo.fullName}</b>
-          <div className="muted small">{repo.summary ? `🧠 ${repo.summary}` : 'The CEO has not studied this floor yet.'}</div>
+          <div className="muted small">{repo.summary ? `🧠 ${repo.summary}` : 'The DungeonMaster has not studied this chamber yet.'}</div>
         </div>
-        <button className="btn btn-small btn-ghost" onClick={() => void attempt(() => api.onboardFloor(repo.id))} title="Study the repo again and rethink the team">
+        <button className="btn btn-small btn-ghost" onClick={() => void attempt(() => api.onboardFloor(repo.id))} title="Study the repo again and rethink the guild">
           Re-study
         </button>
       </div>
-      <textarea value={mission} onChange={(e) => setMission(e.target.value)} rows={2} placeholder="Brief: what should this floor build next? The CEO turns it into issues and a team." />
+      <textarea value={mission} onChange={(e) => setMission(e.target.value)} rows={2} placeholder="Brief: what should this chamber build next? The DungeonMaster turns it into issues and a guild." />
       <div className="row">
         <button className="btn btn-small" disabled={mission === repo.mission} onClick={() => void attempt(() => api.updateRepo(repo.id, { mission }))}>
           Save brief
         </button>
         <span className="spacer" />
         <button className="btn btn-small btn-good" disabled={!mission.trim()} onClick={() => void attempt(() => api.planFloor(repo.id, mission))}>
-          🧠 Ask the CEO to plan it
+          🧠 Ask the DungeonMaster to plan it
         </button>
       </div>
       <details className="small">
@@ -272,7 +272,7 @@ function CeoTab() {
     const el = scroller.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [log.length]);
-  if (!ceo) return <p className="muted">The corner office is empty.</p>;
+  if (!ceo) return <p className="muted">The DungeonMaster's quarters are empty.</p>;
   const working = ceo.status === 'working';
   const pending = pendingRequests(requests);
   const decided = requests.filter((r) => r.status !== 'pending').slice(-6).reverse();
@@ -290,14 +290,14 @@ function CeoTab() {
               style={{ maxWidth: 140, fontWeight: 700 }}
               onBlur={(e) => e.target.value.trim() && e.target.value !== ceo.name && void attempt(() => api.updateAgent(ceo.id, { name: e.target.value }))}
             />
-            <span className="muted small">CEO</span>
+            <span className="muted small">DungeonMaster</span>
             <StatusPill status={ceo.status} />
             <span className="spacer" />
             <input
               className="inline"
               list="models-ceo"
               defaultValue={ceo.model}
-              title="The CEO's model"
+              title="The DungeonMaster's model"
               style={{ maxWidth: 150 }}
               onBlur={(e) => e.target.value !== ceo.model && void attempt(() => api.updateAgent(ceo.id, { model: e.target.value }))}
             />
@@ -306,7 +306,7 @@ function CeoTab() {
                 <option key={m} value={m} />
               ))}
             </datalist>
-            <select value={ceo.effort} title="The CEO's effort" onChange={(e) => void attempt(() => api.updateAgent(ceo.id, { effort: e.target.value }))} style={{ width: 'auto' }}>
+            <select value={ceo.effort} title="The DungeonMaster's effort" onChange={(e) => void attempt(() => api.updateAgent(ceo.id, { effort: e.target.value }))} style={{ width: 'auto' }}>
               {EFFORTS.map((x) => (
                 <option key={x} value={x}>
                   {x}
@@ -324,7 +324,7 @@ function CeoTab() {
             )}
           </div>
           <div className="muted small">
-            {info.nextReviewAt ? `Next company review around ${new Date(info.nextReviewAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (skipped if nothing changed).` : 'Periodic reviews are off (Settings).'}
+            {info.nextReviewAt ? `Next review of the dungeon around ${new Date(info.nextReviewAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (skipped if nothing changed).` : 'Periodic reviews are off (Settings).'}
           </div>
           {ceo.terminal ? (
             <LiveTerminal agentId={ceo.id} className="ceo-term" />
@@ -348,7 +348,7 @@ function CeoTab() {
               void attempt(() => api.messageCeo(t));
             }}
           >
-            <input value={text} onChange={(e) => setText(e.target.value)} placeholder={`Message ${ceo.name} (or press P anywhere for your phone)…`} />
+            <input value={text} onChange={(e) => setText(e.target.value)} placeholder={`Write to ${ceo.name} (or press P anywhere for your scroll)…`} />
             <button className="btn" disabled={!text.trim()}>
               Send
             </button>
@@ -360,17 +360,17 @@ function CeoTab() {
               </button>
             )}
             <button className="btn btn-small" disabled={repos.length === 0} onClick={() => void attempt(() => api.ceoReview())}>
-              🔎 Review the company now
+              🔎 Review the dungeon now
             </button>
             <button className="btn btn-small" onClick={() => openOverlay({ kind: 'phone', tab: 'chat' })}>
-              📱 Open the phone
+              📜 Open your scroll
             </button>
           </div>
         </div>
       </div>
       <div>
-        <h3 className="section">📄 Hiring {pending.length > 0 && <span className="badge">{pending.length}</span>}</h3>
-        {pending.length === 0 && <p className="muted small">No proposals waiting. The CEO proposes hires when they study a floor or notice the team can't cover the work.</p>}
+        <h3 className="section">📄 Recruiting {pending.length > 0 && <span className="badge">{pending.length}</span>}</h3>
+        {pending.length === 0 && <p className="muted small">No recruits waiting. The DungeonMaster puts forward recruits after studying a chamber, or when the guild can't cover the work.</p>}
         {pending.map((r) => (
           <Resume key={r.id} req={r} />
         ))}
@@ -405,7 +405,7 @@ function TeamTab() {
   const workerCli = (a: { cli: AgentCli | '' }): AgentCli => (terminal ? a.cli || settings.defaultCli : 'claude');
   const [names, setNames] = useState<Record<string, string>>({});
   const [openBrief, setOpenBrief] = useState<string | null>(null);
-  if (repos.length === 0) return <p className="muted">Connect a repo first; agents need a floor to sit on.</p>;
+  if (repos.length === 0) return <p className="muted">Connect a repo first; coders need a chamber to work in.</p>;
   return (
     <div>
       <datalist id="models">
@@ -428,7 +428,7 @@ function TeamTab() {
                   void attempt(() => api.hireAgent(repo.id, { name: names[repo.id] || undefined, role: 'dev' })).then(() => setNames({ ...names, [repo.id]: '' }))
                 }
               >
-                + Developer
+                + Coder
               </button>
               <button
                 className="btn btn-small"
@@ -457,8 +457,8 @@ function TeamTab() {
                       />
                     </td>
                     <td className="nowrap">
-                      <span className="chip" title={a.hiredBy === 'ceo' ? 'Hired on the CEO\'s proposal' : undefined}>
-                        {a.role === 'qa' ? '🔍 QA' : '💻 Dev'}
+                      <span className="chip" title={a.hiredBy === 'ceo' ? 'Recruited on the DungeonMaster\'s word' : undefined}>
+                        {a.role === 'qa' ? '🔍 QA' : '⚒️ Coder'}
                         {a.hiredBy === 'ceo' ? ' · 🧠' : ''}
                       </span>
                     </td>
@@ -467,7 +467,7 @@ function TeamTab() {
                         key={`t-${a.title}`}
                         className="inline"
                         defaultValue={a.title}
-                        placeholder={a.role === 'qa' ? 'QA tester' : 'Developer'}
+                        placeholder={a.role === 'qa' ? 'QA tester' : 'Coder'}
                         title="Job title"
                         onBlur={(e) => e.target.value !== a.title && void attempt(() => api.updateAgent(a.id, { title: e.target.value }))}
                       />
@@ -479,12 +479,12 @@ function TeamTab() {
                         style={{ width: 96 }}
                         defaultValue={a.specialty}
                         placeholder="specialty"
-                        title="Issues labelled swarm:<specialty> go to this agent first"
+                        title="Issues labelled swarm:<specialty> go to them first"
                         onBlur={(e) => e.target.value !== a.specialty && void attempt(() => api.updateAgent(a.id, { specialty: e.target.value }))}
                       />
                     </td>
                     <td>
-                      <button className="btn btn-small btn-ghost" title="Job description and look" onClick={() => setOpenBrief(openBrief === a.id ? null : a.id)}>
+                      <button className="btn btn-small btn-ghost" title="Duties and look" onClick={() => setOpenBrief(openBrief === a.id ? null : a.id)}>
                         📝{a.brief ? '' : ' +'}
                       </button>
                     </td>
@@ -596,7 +596,7 @@ function IssuesTab({ initialRepo }: { initialRepo?: string }) {
         <select value={repoId} onChange={(e) => setRepoId(e.target.value)}>
           {repos.map((r) => (
             <option key={r.id} value={r.id}>
-              Floor {r.floor} · {r.fullName}
+              Chamber {r.floor} · {r.fullName}
             </option>
           ))}
         </select>
@@ -657,7 +657,7 @@ function SettingsTab() {
   return (
     <div className="tab-grid">
       <div className="card">
-        <h3>🧠 Agents</h3>
+        <h3>🧠 Coders</h3>
         {terminal && (
           <label className="field">
             <span>Default coding agent</span>
@@ -693,15 +693,15 @@ function SettingsTab() {
         </label>
         <p className="muted small">
           {terminal
-            ? 'Each worker can use their own coding agent, model and effort (Team tab); the CEO always runs Claude Code. Claude Code reports every step; Codex and OpenCode are experimental: the office sees their task rather than each step.'
-            : 'The Agent SDK runs Claude Code. Each worker can use their own model and effort (Team tab).'}
+            ? 'Each coder can use their own coding agent, model and effort (Guild tab); the DungeonMaster always runs Claude Code. Claude Code reports every step; Codex and OpenCode are experimental: the dungeon sees their task rather than each step.'
+            : 'The Agent SDK runs Claude Code. Each coder can use their own model and effort (Guild tab).'}
         </p>
         <label className="field">
           <span>Session limit</span>
           <input type="number" min={0} placeholder="No limit" defaultValue={settings.sessionLimit || ''} onBlur={(e) => set({ sessionLimit: Number(e.target.value) || 0 })} />
         </label>
         <p className="muted small">
-          Leave empty so every agent with work runs at once. Agents on the same coding agent share its subscription's usage limits, and each one is its own process on this PC, so set a limit if
+          Leave empty so every coder with work runs at once. Coders on the same coding agent share its subscription's usage limits, and each one is its own process on this PC, so set a limit if
           you hit either.
         </p>
         <label className="field">
@@ -715,36 +715,36 @@ function SettingsTab() {
             onBlur={(e) => Number(e.target.value) !== settings.pacingSessions && set({ pacingSessions: Number(e.target.value) || 3 })}
           />
         </label>
-        <p className="muted small">When Claude warns that usage is getting high, new issues only start while fewer sessions than this are running. QA, fixes and the CEO carry on.</p>
-        <h3>🧠 The CEO</h3>
+        <p className="muted small">When Claude warns that usage is getting high, new issues only start while fewer sessions than this are running. QA, fixes and the DungeonMaster carry on.</p>
+        <h3>🧠 The DungeonMaster</h3>
         <label className="toggle block">
           <input type="radio" checked={settings.hiring === 'approve'} onChange={() => set({ hiring: 'approve' })} />
           <span>
-            <b>I approve every hire</b> (recommended): the CEO's proposals wait on your phone.
+            <b>I approve every recruit</b> (recommended): the DungeonMaster's picks wait on your scroll.
           </span>
         </label>
         <label className="toggle block">
           <input type="radio" checked={settings.hiring === 'auto'} onChange={() => set({ hiring: 'auto' })} />
           <span>
-            <b>Auto-approve</b> while a floor has fewer people than the team cap. Anything beyond the cap still waits for you.
+            <b>Auto-approve</b> while a chamber has fewer people than the guild cap. Anything beyond the cap still waits for you.
           </span>
         </label>
         <label className="field">
-          <span>Team cap per floor</span>
+          <span>Guild cap per chamber</span>
           <input type="number" min={1} max={15} defaultValue={settings.teamCap} onBlur={(e) => set({ teamCap: Number(e.target.value) })} />
         </label>
         <label className="field">
-          <span>Company review every (minutes, 0 = off)</span>
+          <span>Dungeon review every (minutes, 0 = off)</span>
           <input type="number" min={0} max={1440} defaultValue={settings.ceoHeartbeatMin} onBlur={(e) => set({ ceoHeartbeatMin: Number(e.target.value) })} />
         </label>
-        <p className="muted small">A review is skipped when nothing changed since the last one. The CEO's own model and effort are on the CEO tab.</p>
+        <p className="muted small">A review is skipped when nothing changed since the last one. The DungeonMaster's own model and effort are on the DungeonMaster tab.</p>
       </div>
       <div className="card">
-        <h3>⌨️ How agents run</h3>
+        <h3>⌨️ How coders run</h3>
         <label className="toggle block">
           <input type="radio" checked={settings.runtime === 'terminal'} onChange={() => set({ runtime: 'terminal' })} />
           <span>
-            <b>Real terminals</b> (recommended): every agent is its actual coding agent running in its own terminal. Open a desk to watch it live or type into it.
+            <b>Real terminals</b> (recommended): every coder is its actual coding agent running in its own terminal. Open a bench to watch it live or type into it.
           </span>
         </label>
         <label className="toggle block">
@@ -754,17 +754,17 @@ function SettingsTab() {
           </span>
         </label>
         <p className="muted small">
-          Agents work like your own coding agents in a terminal, with your skills, MCP servers and settings, and don't stop to ask. The office's workflow (branches, pull requests, QA reporting
+          Coders work like your own coding agents in a terminal, with your skills, MCP servers and settings, and don't stop to ask. The dungeon's workflow (branches, pull requests, QA reporting
           back) is in their instructions.
         </p>
-        <h3>🏢 Company</h3>
+        <h3>🏰 Company</h3>
         <label className="field">
           <span>Your name</span>
-          <input defaultValue={settings.managerName} placeholder={user ?? 'Boss'} onBlur={(e) => e.target.value !== settings.managerName && set({ managerName: e.target.value })} />
+          <input defaultValue={settings.managerName} placeholder={user ?? 'Overlord'} onBlur={(e) => e.target.value !== settings.managerName && set({ managerName: e.target.value })} />
         </label>
         <label className="field">
           <span>Company name</span>
-          <input defaultValue={settings.companyName} placeholder="cubefarm" onBlur={(e) => e.target.value !== settings.companyName && set({ companyName: e.target.value })} />
+          <input defaultValue={settings.companyName} placeholder="Code Dungeon" onBlur={(e) => e.target.value !== settings.companyName && set({ companyName: e.target.value })} />
         </label>
         <label className="field">
           <span>Projects folder (new projects are created here)</span>
@@ -780,7 +780,7 @@ function SettingsTab() {
           GitHub: <b>{user ?? 'not signed in'}</b>
           {demo && ' (demo)'}
           <br />
-          Agent desks: <code>{workspaceRoot}</code>
+          Coders' benches: <code>{workspaceRoot}</code>
         </div>
       </div>
     </div>
@@ -791,14 +791,14 @@ export function ManagerConsole({ initialTab, initialRepo }: { initialTab?: Manag
   const [tab, setTab] = useState<ManagerTab>(initialTab ?? 'floors');
   const pending = useStore((s) => pendingRequests(s.requests).length);
   const tabs: [ManagerTab, string][] = [
-    ['floors', '🏢 Floors & repos'],
-    ['ceo', `🧠 CEO & hiring${pending ? ` (${pending})` : ''}`],
-    ['team', '👩‍💻 Team'],
+    ['floors', '🏰 Chambers & repos'],
+    ['ceo', `🧠 DungeonMaster & recruits${pending ? ` (${pending})` : ''}`],
+    ['team', '⚒️ Guild'],
     ['issues', '📝 Issues'],
     ['settings', '⚙️ Settings'],
   ];
   return (
-    <Panel wide title="🧑‍💼 Manager's console">
+    <Panel wide title="📖 The Overlord's Ledger">
       <div className="tabs">
         {tabs.map(([k, label]) => (
           <button key={k} className={`tab ${tab === k ? 'tab-on' : ''}`} onClick={() => setTab(k)}>

@@ -70,7 +70,7 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
         rotationY={-Math.PI / 2}
         size={[3.2, 0.55]}
         px={[768, 132]}
-        draw={(ctx) => drawSign(ctx, 768, 132, [{ text: `🔍 QA LAB · ${inQa} in testing`, size: 56 }], '#ff9f68')}
+        draw={(ctx) => drawSign(ctx, 768, 132, [{ text: `🔍 ASSAY ROOM · ${inQa} in testing`, size: 56 }], '#ff9f68')}
         deps={[inQa]}
       />
 
@@ -106,7 +106,7 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
             1024,
             317,
             [
-              { text: `👩‍💻 ${agents.length} on the team`, size: 54, color: '#2d3142' },
+              { text: `⚒️ ${agents.length} in the guild`, size: 54, color: '#2d3142' },
               { text: `⚙️ ${working} busy · 🔍 ${inQa} in QA · ✅ ${ready} to merge`, size: 46, color: '#2d3142', weight: 600 },
               { text: `📋 ${repo.issues.length} open issue${repo.issues.length === 1 ? '' : 's'}${repo.autoAssign ? ' · ⚡ auto' : ''}`, size: 44, color: '#5c6078', weight: 500 },
             ],
@@ -133,7 +133,7 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
         px={[512, 326]}
         draw={(ctx) =>
           drawSign(ctx, 512, 326, [
-            { text: '🚀', size: 90 },
+            { text: '⚔️', size: 90 },
             { text: 'SHIP IT', size: 64 },
             { text: 'small PRs, happy reviewers', size: 26, weight: 500 },
           ], '#3a86ff')

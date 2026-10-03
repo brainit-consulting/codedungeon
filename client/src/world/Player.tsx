@@ -65,7 +65,7 @@ export function runFocusAction(focus: Focus, via: 'key' | 'click' = 'key') {
     const hire = () =>
       api
         .hireAgent(repoId, { role })
-        .then(() => s.pushToast('success', role === 'qa' ? 'New QA tester hired! They will take the next free station in the QA lab.' : 'New teammate hired! They will sit at the next free desk.'))
+        .then(() => s.pushToast('success', role === 'qa' ? 'New tester recruited. They will take the next free testing bench in the assay room.' : 'New coder recruited. They will sit at the next free bench.'))
         .catch(() => undefined);
     if (via === 'key') {
       void hire();
@@ -75,8 +75,8 @@ export function runFocusAction(focus: Focus, via: 'key' | 'click' = 'key') {
     if (document.pointerLockElement) document.exitPointerLock();
     void confirmDialog({
       icon: role === 'qa' ? '🔍' : '🪑',
-      title: role === 'qa' ? 'Hire a QA tester for this station?' : 'Hire an agent for this desk?',
-      confirm: 'Hire',
+      title: role === 'qa' ? 'Recruit a tester for this testing bench?' : 'Recruit a coder for this bench?',
+      confirm: 'Recruit',
     }).then((ok) => {
       if (ok) void hire();
     });

@@ -56,20 +56,20 @@ export function Resume({ req, highlight }: { req: HireRequestView; highlight?: b
           <div className="resume-name">{hire ? req.name : `Let ${req.name} go?`}</div>
           <div className="resume-title">{req.title}</div>
         </div>
-        {!pending && <span className={`chip ${req.status === 'approved' ? 'chip-good' : ''}`}>{req.status === 'approved' ? (hire ? '✅ hired' : '👋 left') : '✋ declined'}</span>}
+        {!pending && <span className={`chip ${req.status === 'approved' ? 'chip-good' : ''}`}>{req.status === 'approved' ? (hire ? '✅ recruited' : '👋 left') : '✋ declined'}</span>}
       </div>
       <div className="resume-meta">
         <span className="chip" style={{ background: repo?.color }}>
-          Floor {repo?.floor ?? '?'}
+          Chamber {repo?.floor ?? '?'}
         </span>
-        <span className="muted small">{repo?.fullName.split('/')[1] ?? 'removed floor'}</span>
-        <span className="chip">{req.role === 'qa' ? '🔍 QA' : '💻 Dev'}</span>
+        <span className="muted small">{repo?.fullName.split('/')[1] ?? 'removed chamber'}</span>
+        <span className="chip">{req.role === 'qa' ? '🔍 QA' : '⚒️ Coder'}</span>
         {req.specialty && <span className="chip">🎯 {req.specialty}</span>}
       </div>
       {req.reason && <Markdown className="resume-reason" text={req.reason} />}
       {hire && req.brief && (
         <button className="linkish small" aria-expanded={open} onClick={() => setOpen(!open)}>
-          {open ? '▾ Job description' : '▸ Job description'}
+          {open ? '▾ Duties' : '▸ Duties'}
         </button>
       )}
       {open && <Markdown className="resume-brief" text={req.brief} />}
@@ -86,7 +86,7 @@ export function Resume({ req, highlight }: { req: HireRequestView; highlight?: b
           </button>
           <span className="spacer" />
           <button className="btn btn-small btn-good" disabled={busy} onClick={() => act(() => api.approveRequest(req.id))}>
-            {hire ? `Hire ${req.name}` : `Let ${req.name} go`}
+            {hire ? `Recruit ${req.name}` : `Let ${req.name} go`}
           </button>
         </div>
       )}
@@ -98,7 +98,7 @@ export function Resume({ req, highlight }: { req: HireRequestView; highlight?: b
             void act(() => api.rejectRequest(req.id, note));
           }}
         >
-          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Why not? (optional, the CEO reads it)" autoFocus />
+          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Why not? (optional, the DungeonMaster reads it)" autoFocus />
           <button className="btn btn-small btn-bad" disabled={busy}>
             {hire ? 'Decline' : 'Keep'}
           </button>
@@ -115,7 +115,7 @@ function Hires({ focusId }: { focusId?: string }) {
   return (
     <div className="phone-scroll">
       <h3 className="phone-h">📄 Waiting on you {pending.length > 0 && <span className="badge">{pending.length}</span>}</h3>
-      {pending.length === 0 && <p className="muted small phone-empty">Nobody's waiting. When the CEO wants to hire someone, or let someone go, their resume shows up here.</p>}
+      {pending.length === 0 && <p className="muted small phone-empty">Nobody's waiting. When the DungeonMaster wants to recruit someone, or let someone go, their credentials show up here.</p>}
       {pending.map((r) => (
         <Resume key={r.id} req={r} highlight={r.id === focusId} />
       ))}
@@ -133,7 +133,7 @@ function Hires({ focusId }: { focusId?: string }) {
 
 // ---------- chat ----------
 
-const QUICK = ["What's everyone working on?", 'Do we need anyone new?', 'Plan the next milestone for the busiest floor.'];
+const QUICK = ["What's the guild working on?", 'Do we need anyone new?', 'Plan the next milestone for the busiest chamber.'];
 
 function Bubble({ m, ceoName }: { m: PhoneMessage; ceoName: string }) {
   const req = useStore((s) => (m.requestId ? s.requests.find((r) => r.id === m.requestId) : undefined));
@@ -171,7 +171,7 @@ function Chat() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length, info.job?.kind]);
 
-  if (!ceo) return <p className="muted phone-empty">The corner office is empty.</p>;
+  if (!ceo) return <p className="muted phone-empty">The DungeonMaster's quarters are empty.</p>;
   const send = (t: string) => {
     const body = t.trim();
     if (!body) return;
@@ -183,7 +183,7 @@ function Chat() {
   const presence =
     ceo.status === 'working'
       ? replying
-        ? 'typing…'
+        ? 'writing…'
         : `busy: ${info.job?.label ?? 'working'}`
       : chatQueued
         ? settings.sessionLimit && running >= settings.sessionLimit
@@ -198,14 +198,14 @@ function Chat() {
       <div className="chat-head">
         <Avatar name={ceo.name} color={ceo.color} />
         <div className="grow">
-          <b>{ceo.name}</b> <span className="muted small">CEO</span>
+          <b>{ceo.name}</b> <span className="muted small">DungeonMaster</span>
           <div className={`small ${ceo.status === 'working' ? 'presence-busy' : 'muted'}`}>{presence}</div>
         </div>
       </div>
       <div className="chat-log" ref={scroller}>
         {messages.length === 0 && (
           <p className="muted small phone-empty">
-            Say hi to {ceo.name}. Ask how things are going, hand over a project brief, or ask who the team should hire. Replies land here, and the phone buzzes when {ceo.name} needs you.
+            Greet {ceo.name}. Ask how things are going, hand over a project brief, or ask who the guild should recruit. Replies land here, and your scroll shows a badge when {ceo.name} needs you.
           </p>
         )}
         {messages.map((m) => (
@@ -235,7 +235,7 @@ function Chat() {
           send(text);
         }}
       >
-        <MessageBox value={text} onChange={setText} placeholder={`Message ${ceo.name}…`} aria-label={`Message ${ceo.name}`} title="Enter sends · Shift+Enter adds a new line" autoFocus />
+        <MessageBox value={text} onChange={setText} placeholder={`Write to ${ceo.name}…`} aria-label={`Write to ${ceo.name}`} title="Enter sends · Shift+Enter adds a new line" autoFocus />
         <button className="btn btn-small btn-good" disabled={!text.trim()}>
           Send
         </button>
@@ -286,7 +286,7 @@ function useCompany() {
         tone: 'good',
       });
     if (sum('stuck')) report.push({ icon: '⚠️', text: `${sum('stuck')} pull request${sum('stuck') === 1 ? '' : 's'} failed QA three times and need${sum('stuck') === 1 ? 's' : ''} your call.`, tone: 'warn' });
-    if (pending) report.push({ icon: '📄', text: `${pending} hiring decision${pending === 1 ? ' is' : 's are'} waiting in Hires.`, tone: 'warn' });
+    if (pending) report.push({ icon: '📄', text: `${pending} recruiting decision${pending === 1 ? ' is' : 's are'} waiting in Recruits.`, tone: 'warn' });
     report.push({
       icon: '⚙️',
       text: settings.sessionLimit
@@ -299,7 +299,7 @@ function useCompany() {
     });
     for (const f of floors) {
       if (f.issues > 0 && !f.repo.autoAssign && f.working === 0 && f.idleDevs > 0) {
-        report.push({ icon: '💤', text: `${f.repo.fullName.split('/')[1]} has ${f.issues} open issue${f.issues === 1 ? '' : 's'} and free developers, but auto-assign is off.` });
+        report.push({ icon: '💤', text: `${f.repo.fullName.split('/')[1]} has ${f.issues} open issue${f.issues === 1 ? '' : 's'} and idle coders, but auto-assign is off.` });
       }
     }
     const busiest = [...floors].sort((a, b) => b.issues + b.prs - (a.issues + a.prs))[0];
@@ -313,11 +313,11 @@ function useCompany() {
           ceo.status === 'working'
             ? `${ceo.name} is ${(info.job?.label ?? 'working').replace(/^\w/, (c) => c.toLowerCase())}.`
             : info.nextReviewAt
-              ? `${ceo.name} reviews the company next at ${clock(info.nextReviewAt)}.`
+              ? `${ceo.name} reviews the dungeon next at ${clock(info.nextReviewAt)}.`
               : `${ceo.name}'s periodic reviews are off.`,
       });
     }
-    if (floors.length === 0) report.splice(0, report.length, { icon: '👋', text: "No projects yet. Connect a repo in your office (great hall, back left) and the CEO will staff it." });
+    if (floors.length === 0) report.splice(0, report.length, { icon: '👋', text: 'No projects yet. Connect a repo in your study (great hall, back left) and the DungeonMaster will staff it.' });
     return { floors, staff: staff.length, running, max: settings.sessionLimit, issues: sum('issues'), prs: sum('prs'), report };
   }, [repos, agents, qa, requests, settings, info]);
 }
@@ -326,10 +326,10 @@ function Company() {
   const c = useCompany();
   const goToFloor = useStore((s) => s.goToFloor);
   const tiles: [string, string | number, string][] = [
-    ['🏢', c.floors.length, c.floors.length === 1 ? 'project' : 'projects'],
+    ['🏰', c.floors.length, c.floors.length === 1 ? 'project' : 'projects'],
     ['📋', c.issues, 'open issues'],
     ['🔀', c.prs, 'open PRs'],
-    ['👥', c.staff, 'on staff'],
+    ['👥', c.staff, 'in the guild'],
     ['⚙️', c.max ? `${c.running}/${c.max}` : `${c.running}`, 'working now'],
   ];
   return (
@@ -390,7 +390,7 @@ export function Phone({ tab: initialTab, requestId }: { tab?: PhoneTab; requestI
   const requests = useStore((s) => s.requests);
   const messages = useStore((s) => s.messages);
   const readAt = useStore((s) => s.phoneReadAt);
-  const ceoName = useStore((s) => s.agents[CEO_ID]?.name ?? 'CEO');
+  const ceoName = useStore((s) => s.agents[CEO_ID]?.name ?? 'DungeonMaster');
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 20_000);
@@ -418,7 +418,7 @@ export function Phone({ tab: initialTab, requestId }: { tab?: PhoneTab; requestI
   const unread = unreadMessages(messages, readAt);
   const tabs: [PhoneTab, string, string, number][] = [
     ['chat', '💬', ceoName, tab === 'chat' ? 0 : unread],
-    ['hires', '📄', 'Hires', pending],
+    ['hires', '📄', 'Recruits', pending],
     ['company', '📊', 'Company', 0],
   ];
   return (

@@ -101,7 +101,7 @@ export function PreviewSettings({ repo, saveLabel = 'Save', onSaved }: { repo: R
         <textarea value={env} onChange={(e) => setEnv(e.target.value)} rows={3} placeholder={'API_URL=http://localhost:{port}/api\nDATA_DIR={tmp}'} spellCheck={false} />
       </label>
       <p className="muted small">
-        Runs from the repo root in the floor's own preview worktree. <code>{'{port}'}</code> is this floor's port ({repo.preview.port}) and <code>PORT</code> is always set;{' '}
+        Runs from the repo root in the chamber's own preview worktree. <code>{'{port}'}</code> is this chamber's port ({repo.preview.port}) and <code>PORT</code> is always set;{' '}
         <code>{'{tmp}'}</code> is a scratch folder.{!unconfigured && ' Leave the command empty to use the auto-detected npm script.'}
       </p>
       {error && <div className="term-error">⚠️ {error}</div>}
@@ -163,7 +163,7 @@ export function AppViewer({ repoId }: { repoId: string }) {
   if (!repo || !preview) {
     return (
       <Panel title="App">
-        <p className="muted">This floor no longer exists.</p>
+        <p className="muted">This chamber no longer exists.</p>
       </Panel>
     );
   }
@@ -329,8 +329,8 @@ export function AppViewer({ repoId }: { repoId: string }) {
         </div>
       ) : preview.status === 'unconfigured' ? (
         <div className="app-state app-state-left">
-          <h3>🛠️ How should the office run this app?</h3>
-          <p className="muted">{preview.error ?? 'This floor has no package.json to fall back on.'} Give it a command that serves the app on the floor's port.</p>
+          <h3>🛠️ How should the dungeon run this app?</h3>
+          <p className="muted">{preview.error ?? 'This chamber has no package.json to fall back on.'} Give it a command that serves the app on the chamber's port.</p>
           <PreviewSettings repo={repo} saveLabel="Save & start" onSaved={() => void start()} />
         </div>
       ) : (
@@ -338,7 +338,7 @@ export function AppViewer({ repoId }: { repoId: string }) {
           <div className="app-state-icon">🖥️</div>
           <h3>The app isn't running</h3>
           <p className="muted">
-            Start it on <b>{refLabel(picked)}</b> to use it right here. It runs from the floor's own preview worktree on port {preview.port}.
+            Start it on <b>{refLabel(picked)}</b> to use it right here. It runs from the chamber's own preview worktree on port {preview.port}.
           </p>
           <button className="btn btn-good" disabled={busy} onClick={() => void start()}>
             ▶ Start {refLabel(picked)}

@@ -33,38 +33,38 @@ const STEPS: Step[] = [
     minMs: 5000,
   },
   {
-    title: 'Pull out your phone',
+    title: 'Take out your scroll',
     body: (c) => (
       <>
-        Press <kbd>P</kbd>. Your phone is how you talk to {c.ceo} from anywhere in the building.
+        Press <kbd>P</kbd>. Your scroll is how you talk to {c.ceo} from anywhere in the dungeon.
       </>
     ),
     done: (s) => s.overlay?.kind === 'phone',
   },
   {
-    title: 'Your phone',
+    title: 'Your scroll',
     body: (c) => (
       <>
-        💬 {c.ceo} texts you here, and you can text back. 📄 <b>Hires</b> shows candidates waiting for your OK. 📊 <b>Company</b> is every project at a glance. Put it away with <kbd>P</kbd>.
+        💬 {c.ceo} writes to you here, and you can write back. 📄 <b>Recruits</b> holds the people waiting for your yes. 📊 <b>Company</b> is every project at a glance. Put it away with <kbd>P</kbd>.
       </>
     ),
     done: (s) => s.overlay?.kind !== 'phone',
     minMs: 2500,
   },
   {
-    title: 'Visit the CEO',
+    title: 'Visit the DungeonMaster',
     body: (c) => (
       <>
-        {c.ceo}'s corner office is at the back right of the great hall, under the purple sign. Walk in and press <kbd>E</kbd> or click the desk to see what {c.ceo} is up to.
+        {c.ceo}'s quarters are at the back right of the great hall, under the DUNGEONMASTER sign. Walk in and press <kbd>E</kbd> or click the bench to see what {c.ceo} is up to.
       </>
     ),
     done: (s) => (s.overlay?.kind === 'terminal' && s.overlay.agentId === CEO_ID) || (s.overlay?.kind === 'manager' && s.overlay.tab === 'ceo'),
   },
   {
-    title: 'Candidates',
+    title: 'Recruits',
     body: (c) => (
       <>
-        When {c.ceo} wants to hire someone, the candidate waits on the green chairs along the east wall. Press <kbd>E</kbd> or click them to read their resume, then hire or decline. It all works from your phone too.
+        When {c.ceo} wants to recruit someone, the recruit waits on the chairs along the east wall. Press <kbd>E</kbd> or click them to read their credentials, then recruit or decline. It all works from your scroll too.
       </>
     ),
     done: (s) => s.requests.some((r) => r.status !== 'pending' && r.decidedBy === 'manager'),
@@ -78,34 +78,34 @@ const STEPS: Step[] = [
         </>
       ) : (
         <>
-          Every project gets its own chamber off the gallery. Add one in your office (the glass room at the back left), then walk through the archway in the middle of the south wall.
+          Every project gets its own chamber off the gallery. Add one in your study (the room at the back left), then walk through the archway in the middle of the south wall.
         </>
       ),
     done: (s) => s.floor > 0,
   },
   {
-    title: 'The whiteboard',
+    title: 'The notice board',
     body: () => (
       <>
-        The whiteboard at the front of every chamber is its Kanban board. Press <kbd>E</kbd> or click it to hand out issues, send pull requests to QA and merge them.
+        The notice board at the front of every chamber shows its issues and pull requests. Press <kbd>E</kbd> or click it to hand out issues, send pull requests to QA and merge them.
       </>
     ),
     done: (s) => s.overlay?.kind === 'kanban',
   },
   {
-    title: 'Watch the team',
+    title: 'Watch the guild',
     body: () => (
       <>
-        Walk up behind anyone to watch their screen, or press <kbd>E</kbd> or click a desk for their full terminal. The testers in lab coats along the east wall check every pull request before you merge.
+        Walk up behind anyone to watch their slate, or press <kbd>E</kbd> or click a bench for their full terminal. The testers in aprons along the east wall check every pull request before you merge.
       </>
     ),
     done: (s) => s.overlay?.kind === 'terminal' && s.overlay.agentId !== CEO_ID,
   },
   {
-    title: 'Your office',
+    title: 'Your study',
     body: (c) => (
       <>
-        Your glass office in the great hall (back left) has the manager's console: projects, the team, and the CEO's settings. Press <kbd>H</kbd> any time for help. Enjoy running {c.company}!
+        Your study in the great hall (back left) holds the Overlord's ledger: projects, the guild, and the DungeonMaster's settings. Press <kbd>H</kbd> any time for help. Enjoy running {c.company}.
       </>
     ),
   },
@@ -116,7 +116,7 @@ export function Tutorial() {
   const setupDone = useStore((s) => s.settings.setupDone);
   const started = useStore((s) => s.started);
   const company = useStore((s) => s.settings.companyName);
-  const ceo = useStore((s) => s.agents[CEO_ID]?.name ?? 'the CEO');
+  const ceo = useStore((s) => s.agents[CEO_ID]?.name ?? 'the DungeonMaster');
   const repo = useStore((s) => s.repos[0]?.fullName.split('/')[1] ?? null);
   const [cheer, setCheer] = useState(false);
   const moving = useRef(false);

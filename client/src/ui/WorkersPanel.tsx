@@ -44,7 +44,7 @@ function Row({ a, now }: { a: Agent; now: number }) {
   const last = found && (!a.startedAt || found.t >= a.startedAt) ? found : null;
   const task = doing(a);
   return (
-    <button className="wk-row" onClick={() => openOverlay({ kind: 'terminal', agentId: a.id })} title={`Watch ${a.name}'s screen`}>
+    <button className="wk-row" onClick={() => openOverlay({ kind: 'terminal', agentId: a.id })} title={`Watch ${a.name}'s slate`}>
       <span className="wk-dot" style={{ background: a.color }} />
       <span className="wk-main">
         <span className="wk-name">
@@ -132,11 +132,11 @@ export function WorkersPanel() {
   const ceo = agents[CEO_ID];
   const floors = [...repos].sort((x, y) => (x.floor === floor ? -1 : y.floor === floor ? 1 : x.floor - y.floor));
   const groups: Group[] = [
-    ...(ceo && isWorking(ceo) ? [{ key: 'hq', label: 'HQ', title: 'The CEO, in the great hall', color: ceo.color, list: [ceo] }] : []),
+    ...(ceo && isWorking(ceo) ? [{ key: 'hq', label: 'Hall', title: 'The DungeonMaster, in the great hall', color: ceo.color, list: [ceo] }] : []),
     ...floors.map((r: RepoView) => ({
       key: r.id,
       label: `${r.floor} · ${r.fullName.split('/')[1]}`,
-      title: `Floor ${r.floor}: ${r.fullName}`,
+      title: `Chamber ${r.floor}: ${r.fullName}`,
       color: r.color,
       list: agentsOnRepo(agents, r.id).filter(isWorking),
     })),

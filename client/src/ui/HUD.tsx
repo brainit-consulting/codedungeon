@@ -7,12 +7,12 @@ import { officeUpdateChip } from '../officeUpdate';
 
 /** While the office is on its way to updating itself (or restarting to do it); opens the console's Office row. */
 function OfficeUpdateChip() {
-  const text = useStore((s) => (s.restarting ? '⟳ Office restarting…' : officeUpdateChip(s.officeUpdate)));
+  const text = useStore((s) => (s.restarting ? '⟳ Dungeon restarting…' : officeUpdateChip(s.officeUpdate)));
   const overlay = useStore((s) => s.overlay);
   const openOverlay = useStore((s) => s.openOverlay);
   if (!text || overlay?.kind === 'manager') return null;
   return (
-    <button className="office-chip" onClick={() => openOverlay({ kind: 'manager', tab: 'floors' })} title="The office is updating itself. Open the manager's console">
+    <button className="office-chip" onClick={() => openOverlay({ kind: 'manager', tab: 'floors' })} title="The dungeon is updating itself. Open the Overlord's ledger">
       {text}
     </button>
   );
@@ -28,11 +28,11 @@ function PhoneButton() {
   if (!started || overlay?.kind === 'phone') return null;
   const busy = ceo?.status === 'working';
   return (
-    <button className={`phone-btn ${badge ? 'phone-btn-ring' : ''}`} onClick={() => openOverlay({ kind: 'phone' })} title="Your phone (P)">
-      <span className="phone-btn-icon">📱</span>
+    <button className={`phone-btn ${badge ? 'phone-btn-ring' : ''}`} onClick={() => openOverlay({ kind: 'phone' })} title="Your scroll (P)">
+      <span className="phone-btn-icon">📜</span>
       {badge > 0 && <span className="badge phone-btn-badge">{badge}</span>}
       <span className="phone-btn-label">
-        <kbd>P</kbd> {badge ? `${badge} waiting` : busy ? `${ceo.name} is working` : 'Phone'}
+        <kbd>P</kbd> {badge ? `${badge} waiting` : busy ? `${ceo.name} is working` : 'Scroll'}
       </span>
     </button>
   );
@@ -71,7 +71,7 @@ export function HUD() {
           <div className="floor-name">{repo ? repo.fullName : `${settings.companyName || 'Code Dungeon'} · Great hall`}</div>
           <div className="floor-sub">
             {repo
-              ? `${floorAgents.length} agents · ${floorAgents.filter((a) => a.status === 'working' || a.status === 'preparing').length} working · ${floorQa.filter((q) => q.status !== 'passed').length} in QA · ${floorQa.filter((q) => q.status === 'passed').length} ready to merge`
+              ? `${floorAgents.length} in the guild · ${floorAgents.filter((a) => a.status === 'working' || a.status === 'preparing').length} working · ${floorQa.filter((q) => q.status !== 'passed').length} in QA · ${floorQa.filter((q) => q.status === 'passed').length} ready to merge`
               : `${repos.length} chamber${repos.length === 1 ? '' : 's'} off the gallery`}
           </div>
         </div>
@@ -102,7 +102,7 @@ export function HUD() {
       {started && !overlay && !locked && <div className="hud-resume">Click to look around</div>}
       {started && !(settings.setupDone && settings.tutorialStep >= 0) && (
         <div className="hud-help">
-          <kbd>WASD</kbd> move · <kbd>Shift</kbd> run · <kbd>E</kbd> / <kbd>Click</kbd> interact · <kbd>P</kbd> phone · <kbd>Tab</kbd> workers · <kbd>H</kbd> help · <kbd>Esc</kbd> free mouse
+          <kbd>WASD</kbd> move · <kbd>Shift</kbd> run · <kbd>E</kbd> / <kbd>Click</kbd> interact · <kbd>P</kbd> scroll · <kbd>Tab</kbd> who's working · <kbd>H</kbd> help · <kbd>Esc</kbd> free mouse
         </div>
       )}
 

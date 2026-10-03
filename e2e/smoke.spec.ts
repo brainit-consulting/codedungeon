@@ -40,7 +40,7 @@ const test = base.extend<{ page: Page }>({
 /** Loads the office and walks in through the first-run flow (the setup wizard if it's up, else the start screen). */
 async function enterOffice(page: Page) {
   await page.goto('/');
-  const enter = page.getByRole('button', { name: 'Enter the office' });
+  const enter = page.getByRole('button', { name: 'Enter the dungeon' });
   const skipSetup = page.getByRole('button', { name: /skip setup/i });
   await expect(enter.or(skipSetup)).toBeVisible();
   if (await skipSetup.isVisible()) await skipSetup.click();
@@ -53,7 +53,7 @@ async function enterOffice(page: Page) {
   await expect(phoneButton(page)).toBeVisible(); // the HUD only shows it once you're inside
 }
 
-const phoneButton = (page: Page) => page.getByTitle('Your phone (P)');
+const phoneButton = (page: Page) => page.getByTitle('Your scroll (P)');
 
 async function savedView(page: Page): Promise<SavedView | null> {
   return page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? 'null'), VIEW_KEY);
@@ -101,7 +101,7 @@ test('the office loads, you can walk in and the 3D view renders', async ({ page 
 
 test('H opens help and Esc closes it', async ({ page }) => {
   await enterOffice(page);
-  const help = page.getByText('How the office works', { exact: true });
+  const help = page.getByText('How the dungeon works', { exact: true });
   await page.keyboard.press('h');
   await expect(help).toBeVisible();
   await page.keyboard.press('Escape');
@@ -109,9 +109,9 @@ test('H opens help and Esc closes it', async ({ page }) => {
   await expect(phoneButton(page)).toBeVisible();
 });
 
-test('the phone opens and closes with P, its button and Esc', async ({ page }) => {
+test('the scroll opens and closes with P, its button and Esc', async ({ page }) => {
   await enterOffice(page);
-  const hires = page.getByRole('button', { name: /Hires/ }); // one of the phone's tabs
+  const hires = page.getByRole('button', { name: /Recruits/ }); // one of the scroll's tabs
   const company = page.getByRole('button', { name: /Company/ });
   await page.keyboard.press('p');
   await expect(hires).toBeVisible();
@@ -139,14 +139,14 @@ test('the phone opens and closes with P, its button and Esc', async ({ page }) =
   await expect(phoneButton(page)).toBeVisible();
 });
 
-test("the manager's console opens with E at its desk and closes with Esc", async ({ page }) => {
+test("the Overlord's ledger opens with E at its table and closes with Esc", async ({ page }) => {
   // Start in the manager's office, just in front of the desk, looking down at the computer (-Z is north).
   const spot: SavedView = { x: MANAGER_DESK.x, z: MANAGER_DESK.z + MANAGER_DESK.d / 2 + 0.8, yaw: 0, pitch: -0.6 };
   await page.addInitScript(([key, view]) => localStorage.setItem(key, view), [VIEW_KEY, JSON.stringify(spot)] as const);
   await enterOffice(page);
-  await expect(page.getByText("Open the manager's console")).toBeVisible(); // the crosshair hint
+  await expect(page.getByText("Open the Overlord's ledger")).toBeVisible(); // the crosshair hint
   await page.keyboard.press('e');
-  const panel = page.getByText(/Manager's console/); // the panel's title; the hint and help text say "manager's"
+  const panel = page.getByText(/Overlord's Ledger/); // the panel's title; the hint and help text say "ledger"
   await expect(panel).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(panel).toBeHidden();

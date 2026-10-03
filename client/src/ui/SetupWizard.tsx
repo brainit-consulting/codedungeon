@@ -11,7 +11,7 @@ import { ProjectPicker } from './ProjectPicker';
 const COMPANIES = ['Pixel & Pine', 'Byte Bakery', 'Night Owl Software', 'Tiny Rocket Co.', 'Moonbeam Works', 'Happy Path Inc.', 'Merge Conflict Ltd.', 'Quokka Labs', 'Blue Kettle Studio', 'Paper Plane Software'];
 const CEO_NAMES = ['Mortimer', 'Morgana', 'Bertilak', 'Ysolde', 'Gawain', 'Brangwen', 'Percival', 'Elaine', 'Tristram', 'Vivienne', 'Lancelin', 'Guinevere'];
 const TIES = ['#e63946', '#3a86ff', '#06d6a0', '#ffbe0b', '#9b5de5', '#fb5607'];
-const STEPS = ['Welcome', 'You', 'Your CEO', 'First project', 'Ready'];
+const STEPS = ['Welcome', 'You', 'Your DungeonMaster', 'First project', 'Ready'];
 
 const pickOther = <T,>(list: T[], current: T) => {
   const rest = list.filter((x) => x !== current);
@@ -54,7 +54,7 @@ export function SetupWizard() {
   const [project, setProject] = useState<RepoView | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const me = managerName.trim() || user || 'Boss';
+  const me = managerName.trim() || user || 'Overlord';
   const ceo = ceoName.trim() || 'Mortimer';
   const company = companyName.trim() || COMPANIES[0];
 
@@ -96,12 +96,12 @@ export function SetupWizard() {
         {step === 0 && (
           <>
             <div className="start-logo">✻</div>
-            <h1>cubefarm</h1>
-            <p className="start-tag">Your own cartoon software company, staffed by AI coding agents.</p>
+            <h1>Code Dungeon</h1>
+            <p className="start-tag">Your own software dungeon, worked by a guild of AI coders.</p>
             <ul className="start-list">
-              <li>🏢 Every project gets its own floor, with developers and a QA lab working through its GitHub issues.</li>
-              <li>🧠 A CEO studies each project, plans the work and proposes the specialists it needs. You approve every hire.</li>
-              <li>📱 Your phone keeps you in the loop from anywhere in the building.</li>
+              <li>🏰 Every project gets its own chamber, with coders and an assay room working through its GitHub issues.</li>
+              <li>🧠 A DungeonMaster studies each project, plans the work and puts forward the specialists it needs. You approve every recruit.</li>
+              <li>📜 Your scroll keeps you informed from anywhere in the dungeon.</li>
             </ul>
             {!ghReady && ghError && <div className="term-error small">⚠️ {ghError}</div>}
             <button className="btn btn-big" onClick={() => setStep(1)}>
@@ -118,12 +118,12 @@ export function SetupWizard() {
 
         {step === 1 && (
           <>
-            <div className="wizard-icon">🧑‍💼</div>
-            <h2>Who's the boss?</h2>
-            <p className="start-tag">That's you. You run the company; the agents do the typing.</p>
+            <div className="wizard-icon">👑</div>
+            <h2>Who's the Overlord?</h2>
+            <p className="start-tag">That's you. You run the company; the coders do the typing.</p>
             <label className="field">
               <span>Your name</span>
-              <input value={managerName} onChange={(e) => setManagerName(e.target.value)} placeholder={user ?? 'Boss'} autoFocus />
+              <input value={managerName} onChange={(e) => setManagerName(e.target.value)} placeholder={user ?? 'Overlord'} autoFocus />
             </label>
             <label className="field">
               <span>Company name</span>
@@ -134,13 +134,13 @@ export function SetupWizard() {
                 </button>
               </div>
             </label>
-            <p className="muted small">It goes on the sign in the great hall. Change either any time in the manager's console.</p>
+            <p className="muted small">It goes on the sign in the great hall. Change either any time in the Overlord's ledger.</p>
           </>
         )}
 
         {step === 2 && (
           <>
-            <h2>Meet your CEO</h2>
+            <h2>Meet your DungeonMaster</h2>
             <div className="ceo-setup">
               <CeoPortrait color={ceoColor} look={ceoLook} />
               <div className="grow">
@@ -162,25 +162,25 @@ export function SetupWizard() {
                   </label>
                   <span className="spacer" />
                   {TIES.map((c) => (
-                    <button key={c} type="button" className={`swatch ${c === ceoColor ? 'swatch-on' : ''}`} style={{ background: c }} onClick={() => setCeoColor(c)} title="Tie colour" />
+                    <button key={c} type="button" className={`swatch ${c === ceoColor ? 'swatch-on' : ''}`} style={{ background: c }} onClick={() => setCeoColor(c)} title="Their colour" />
                   ))}
                 </div>
-                <div className="muted small">Claude Opus 5.5 at xhigh effort: the thinking-hardest person in the building.</div>
+                <div className="muted small">Claude Opus 5.5 at xhigh effort: the thinking-hardest soul in the dungeon.</div>
               </div>
             </div>
             <p className="start-tag" style={{ margin: '12px 0 6px' }}>
-              {ceo} studies every project, writes its QA checklist, plans the work as GitHub issues and proposes who to hire.
+              {ceo} studies every project, writes its QA checklist, plans the work as GitHub issues and puts forward who to recruit.
             </p>
             <label className="toggle block">
               <input type="radio" checked={hiring === 'approve'} onChange={() => setHiring('approve')} />
               <span>
-                <b>Ask me before every hire</b> (recommended). Candidates wait in the great hall and on your phone.
+                <b>Ask me before every recruit</b> (recommended). Recruits wait in the great hall and on your scroll.
               </span>
             </label>
             <label className="toggle block">
               <input type="radio" checked={hiring === 'auto'} onChange={() => setHiring('auto')} />
               <span>
-                <b>Let {ceo} hire</b> on their own, up to 6 people per floor.
+                <b>Let {ceo} recruit</b> on their own, up to 6 people per chamber.
               </span>
             </label>
           </>
@@ -193,15 +193,15 @@ export function SetupWizard() {
               <div className="wizard-done">
                 <div className="wizard-icon">🎉</div>
                 <p>
-                  <b>{project.fullName}</b> moved into floor {project.floor}.
+                  <b>{project.fullName}</b> moved into chamber {project.floor}.
                 </p>
                 <p className="muted">
-                  {ceo} is studying it right now and will text you when they know who the team needs. A QA tester is already in the lab.
+                  {ceo} is studying it right now and will write to you when they know who the guild needs. A tester is already in the assay room.
                 </p>
               </div>
             ) : (
               <>
-                <p className="start-tag">Pick one of your project folders, a GitHub repo, or start something new. Every project needs to be on GitHub: issues and pull requests are how the team works.</p>
+                <p className="start-tag">Pick one of your project folders, a GitHub repo, or start something new. Every project needs to be on GitHub: issues and pull requests are how the guild works.</p>
                 <ProjectPicker onConnected={setProject} />
               </>
             )}
@@ -210,22 +210,22 @@ export function SetupWizard() {
 
         {step === 4 && (
           <>
-            <div className="wizard-icon">🏢</div>
+            <div className="wizard-icon">🏰</div>
             <h2>{company} is open for business</h2>
             <ul className="start-list">
               <li>
                 🧠 {ceo}{project ? ` is studying ${project.fullName.split('/')[1]}` : ' is waiting for your first project'}.{' '}
-                {hiring === 'approve' ? "Hires wait for your OK." : 'Hires up to 6 per floor go through on their own.'}
+                {hiring === 'approve' ? 'Recruits wait for your yes.' : 'Recruits up to 6 per chamber go through on their own.'}
               </li>
               <li>
-                📱 Press <kbd>P</kbd> anywhere for your phone: chat with {ceo}, approve hires, and see every project at a glance.
+                📜 Press <kbd>P</kbd> anywhere for your scroll: write to {ceo}, approve recruits, and see every project at a glance.
               </li>
               <li>
                 🧭 A short tour starts when you walk in. Press <kbd>H</kbd> any time for help.
               </li>
             </ul>
             <button className="btn btn-big" onClick={finish} disabled={busy}>
-              {busy ? 'Opening the doors…' : 'Enter the office'}
+              {busy ? 'Opening the gates…' : 'Enter the dungeon'}
             </button>
           </>
         )}

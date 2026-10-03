@@ -91,7 +91,7 @@ function FolderMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoVi
             <div style={{ minWidth: 0 }}>
               <b>📁 {f.name}</b>{' '}
               {f.floor != null ? (
-                <span className="chip chip-good">floor {f.floor}</span>
+                <span className="chip chip-good">chamber {f.floor}</span>
               ) : f.github ? (
                 <span className="chip">🐙 {f.github}</span>
               ) : (
@@ -99,10 +99,10 @@ function FolderMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoVi
               )}
             </div>
             {f.floor != null ? (
-              <span className="muted small">in the office</span>
+              <span className="muted small">in the dungeon</span>
             ) : f.github ? (
               <button className="btn btn-small btn-good" disabled={!!busy} onClick={() => run(f, () => api.connectFolder(f.path, floor))}>
-                {busy === f.path ? 'Moving in…' : 'Add floor'}
+                {busy === f.path ? 'Moving in…' : 'Add chamber'}
               </button>
             ) : (
               <button className="btn btn-small" disabled={!!busy} onClick={() => void publish(f)}>
@@ -113,7 +113,7 @@ function FolderMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoVi
         ))}
       </div>
       <p className="muted small">
-        The office never touches your work in progress: after a merge it only fast-forwards your folder when it's on the default branch with no local changes (and runs npm install if dependencies changed). Each agent works in its own git worktree of it, kept outside your project (so your dev server and linters never see them).
+        The dungeon never touches your work in progress: after a merge it only fast-forwards your folder when it's on the default branch with no local changes (and runs npm install if dependencies changed). Each coder works in its own git worktree of it, kept outside your project (so your dev server and linters never see them).
       </p>
     </div>
   );
@@ -159,7 +159,7 @@ function GithubMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoVi
               {r.description && <div className="muted small">{r.description}</div>}
             </div>
             <button className="btn btn-small btn-good" disabled={!!busy} onClick={() => connect(r.nameWithOwner)}>
-              {busy === r.nameWithOwner ? 'Moving in…' : 'Add floor'}
+              {busy === r.nameWithOwner ? 'Moving in…' : 'Add chamber'}
             </button>
           </div>
         ))}
@@ -173,7 +173,7 @@ function GithubMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoVi
       >
         <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="…or type owner/name" />
         <button className="btn btn-small" disabled={!manual.trim() || !!busy}>
-          Add floor
+          Add chamber
         </button>
       </form>
       <p className="muted small">
@@ -218,7 +218,7 @@ function NewMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoView)
         </button>
       </div>
       <p className="muted small">
-        Creates <code>{slug ? `${projectsDir}${sep(projectsDir)}${slug}` : `${projectsDir}${sep(projectsDir)}…`}</code> with a README and pushes it to a new {visibility} GitHub repo. Give the CEO a brief below and
+        Creates <code>{slug ? `${projectsDir}${sep(projectsDir)}${slug}` : `${projectsDir}${sep(projectsDir)}…`}</code> with a README and pushes it to a new {visibility} GitHub repo. Give the DungeonMaster a brief below and
         they'll plan the first milestone.
       </p>
     </form>
@@ -252,11 +252,11 @@ export function ProjectPicker({ onConnected, initial = 'folder' }: { onConnected
         value={mission}
         onChange={(e) => setMission(e.target.value)}
         rows={2}
-        placeholder={mode === 'new' ? 'What should the team build? e.g. A cozy 3D browser game where you run a tiny island bakery.' : 'Brief for the CEO (optional): what should the team work on next?'}
+        placeholder={mode === 'new' ? 'What should the guild build? e.g. A cozy 3D browser game where you run a tiny island bakery.' : 'Brief for the DungeonMaster (optional): what should the guild work on next?'}
       />
       <label className="toggle small">
         <input type="checkbox" checked={autoAssign} onChange={(e) => setAutoAssign(e.target.checked)} />
-        ⚡ Start work automatically: free developers pick up issues as soon as they're filed (you can switch this off per floor)
+        ⚡ Start work automatically: idle coders pick up issues as soon as they're filed (you can switch this off per chamber)
       </label>
       {mode === 'folder' && <FolderMode floor={floor} onDone={done} />}
       {mode === 'github' && <GithubMode floor={floor} onDone={done} />}

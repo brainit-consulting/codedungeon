@@ -42,7 +42,7 @@ export function IssueForm({ repoId, agents, onDone }: { repoId: string; agents: 
       }}
     >
       <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Issue title, e.g. Add a dark mode toggle" autoFocus />
-      <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Describe what you want. Acceptance criteria help the developer and the QA tester a lot." rows={5} />
+      <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Describe what you want. Acceptance criteria help the coder and the tester a lot." rows={5} />
       <div className="row">
         <select value={assignTo} onChange={(e) => setAssignTo(e.target.value)}>
           <option value="">Leave in backlog (auto-assign picks it up if enabled)</option>
@@ -81,8 +81,8 @@ export function KanbanView({ repoId }: { repoId: string }) {
 
   if (!repo || !cols) {
     return (
-      <Panel title="Kanban">
-        <p className="muted">This floor no longer exists.</p>
+      <Panel title="Notice board">
+        <p className="muted">This chamber no longer exists.</p>
       </Panel>
     );
   }
@@ -178,14 +178,14 @@ export function KanbanView({ repoId }: { repoId: string }) {
         </button>
         <label className="toggle">
           <input type="checkbox" checked={repo.autoAssign} onChange={(e) => void api.updateRepo(repo.id, { autoAssign: e.target.checked }).catch(() => undefined)} />
-          ⚡ Auto-assign backlog to free developers
+          ⚡ Auto-assign backlog to idle coders
         </label>
         <label className="toggle" title="Merge a PR as soon as QA has signed off on its latest commit and GitHub's checks are green">
           <input type="checkbox" checked={repo.autoMerge} onChange={(e) => void api.updateRepo(repo.id, { autoMerge: e.target.checked }).catch(() => undefined)} />
           🔀 Auto-merge when QA and checks pass
         </label>
         <span className="spacer" />
-        <button className="btn" onClick={() => openOverlay({ kind: 'app', repoId: repo.id })} title="Open this floor's running app">
+        <button className="btn" onClick={() => openOverlay({ kind: 'app', repoId: repo.id })} title="Open this chamber's running app">
           🖥️ View app
         </button>
         <span className="muted small">{repo.lastSync ? `Synced ${new Date(repo.lastSync).toLocaleTimeString()}` : 'Syncing…'}</span>
@@ -218,7 +218,7 @@ export function KanbanView({ repoId }: { repoId: string }) {
               </select>
             </div>
           ),
-          'No open issues. File one above!',
+          'No open issues. File one above.',
         )}
         {column(
           '🔨 In progress',

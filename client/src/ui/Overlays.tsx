@@ -100,7 +100,7 @@ function MouseSettings() {
 
 function Help() {
   return (
-    <Panel title="How the office works">
+    <Panel title="How the dungeon works">
       <div className="help">
         <h3>Moving around</h3>
         <p>
@@ -117,41 +117,41 @@ function Help() {
         </p>
         <h3>Sound</h3>
         <p>
-          The office chimes when a PR is ready to merge, fails QA or gets merged, when someone hits an error and when a new teammate arrives. <kbd>M</kbd> mutes or unmutes anywhere.
+          The dungeon's bell tolls when a PR is ready to merge, fails QA or gets merged, when someone hits an error and when a new recruit arrives. <kbd>M</kbd> mutes or unmutes anywhere.
         </p>
         <SoundControls />
-        <h3>The building</h3>
+        <h3>The dungeon</h3>
         <p>
-          The great hall: your office is the glass room at the back left, the CEO's corner office is at the back right, and candidates wait on the chairs by the entrance. Every connected GitHub repo gets its own
+          The great hall: your study is the room at the back left, the DungeonMaster's quarters are at the back right, and recruits wait on the chairs along the east wall. Every connected GitHub repo gets its own
           chamber off the gallery: walk through the archway in the middle of the south wall, or use the directory beside it to walk straight in.
         </p>
-        <h3>Your phone</h3>
+        <h3>Your scroll</h3>
         <p>
-          Press <kbd>P</kbd> anywhere to pull out your phone. Text the CEO, approve or decline the people they want to hire, see every project at a glance, or play Cubetris, Cable Snake or look after your Desk Pet while the team works. The red badge counts decisions and messages waiting for you. In the chat, and in an agent's
+          Press <kbd>P</kbd> anywhere to take out your scroll. Write to the DungeonMaster, approve or decline the recruits they put forward, and see every project at a glance. The red badge counts decisions and messages waiting for you. In the chat, and in a coder's
           terminal, <kbd>Enter</kbd> sends and <kbd>Shift</kbd>+<kbd>Enter</kbd> starts a new line.
         </p>
         <h3>Who's working</h3>
         <p>
-          The list at the top right shows everyone who is working right now (in this chamber, or in every chamber from the hall) with their latest thought, reply or tool call. Click someone to watch their screen. <kbd>Tab</kbd>{' '}
+          The list at the top right shows everyone who is working right now (in this chamber, or in every chamber from the hall) with their latest thought, reply or tool call. Click someone to watch their terminal. <kbd>Tab</kbd>{' '}
           shows or hides it.
         </p>
-        <h3>The CEO</h3>
+        <h3>The DungeonMaster</h3>
         <p>
-          The CEO studies every new chamber, writes its QA brief, gives each agent a job that fits the project, turns your project briefs into issues and proposes hires. Hires wait for your approval unless you switch hiring to
-          auto in the manager's console.
+          The DungeonMaster studies every new chamber, writes its QA brief, gives each coder a job that fits the project, turns your project briefs into issues and puts forward recruits. Recruits wait for your approval unless you switch
+          recruiting to auto in the Overlord's ledger.
         </p>
-        <h3>Your team</h3>
+        <h3>Your guild</h3>
         <p>
-          Each agent is a real coding agent running in its own terminal, working in its own git worktree. Walk up behind them to read their laptop, or press <kbd>E</kbd> (or click) on a desk to open their terminal: watch it live, type into it, send them instructions, stop them or hand them another issue. Aim at an empty desk and press <kbd>E</kbd> to hire, or click it and confirm.
+          Each coder is a real coding agent running in its own terminal, working in its own git worktree. Walk up behind them to read their slate, or press <kbd>E</kbd> (or click) on a bench to open their terminal: watch it live, type into it, send them instructions, stop them or hand them another issue. Aim at an empty bench and press <kbd>E</kbd> to recruit, or click it and confirm.
         </p>
-        <h3>The QA lab</h3>
+        <h3>The assay room</h3>
         <p>
-          The testers in lab coats along the east wall check every pull request before it can be merged. They run the tests, click through the change in a real browser, and post a report with screenshots on the PR. If a PR
-          fails, it goes back to the developer who wrote it, who fixes it and sends it back to QA.
+          The testers in aprons along the east wall check every pull request before it can be merged. They run the tests, click through the change in a real browser, and post a report with screenshots on the PR. If a PR
+          fails, it goes back to the coder who wrote it, who fixes it and sends it back to QA.
         </p>
-        <h3>The whiteboard</h3>
+        <h3>The notice board</h3>
         <p>
-          <b>Backlog</b>: open issues nobody has picked up. <b>In progress</b>: developers at work. <b>In QA</b>: being tested or fixed. <b>Ready to merge</b>: QA passed, waiting for you. Press <kbd>E</kbd> or click the board to
+          <b>Backlog</b>: open issues nobody has picked up. <b>In progress</b>: coders at work. <b>In QA</b>: being tested or fixed. <b>Ready to merge</b>: QA passed, waiting for you. Press <kbd>E</kbd> or click the board to
           assign, send to QA, merge and file new issues.
         </p>
       </div>

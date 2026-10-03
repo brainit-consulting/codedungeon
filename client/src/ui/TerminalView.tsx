@@ -61,7 +61,7 @@ export function TerminalView({ agentId }: { agentId: string }) {
   if (!agent || !repo) {
     return (
       <Panel title="Terminal">
-        <p className="muted">That agent has left the building.</p>
+        <p className="muted">That coder has left the dungeon.</p>
       </Panel>
     );
   }
@@ -94,7 +94,7 @@ export function TerminalView({ agentId }: { agentId: string }) {
           </span>
           <span>{agent.name}</span>
           <span className="chip" title={agent.brief || undefined}>
-            {isQa ? '🔍' : '💻'} {agent.title || (isQa ? 'QA tester' : 'Developer')}
+            {isQa ? '🔍' : '⚒️'} {agent.title || (isQa ? 'QA tester' : 'Coder')}
             {agent.specialty ? ` · 🎯 ${agent.specialty}` : ''}
           </span>
           <StatusPill status={agent.status} />
@@ -147,7 +147,7 @@ export function TerminalView({ agentId }: { agentId: string }) {
       {agent.lastError && agent.status !== 'working' && <div className="term-error">⚠️ {agent.lastError}</div>}
       {agent.brief && (
         <details className="small job-brief">
-          <summary>Job description{agent.hiredBy === 'ceo' ? ' (from the CEO)' : ''}</summary>
+          <summary>Duties{agent.hiredBy === 'ceo' ? ' (from the DungeonMaster)' : ''}</summary>
           <Markdown text={agent.brief} />
         </details>
       )}
@@ -177,7 +177,7 @@ export function TerminalView({ agentId }: { agentId: string }) {
           <div className="browser">
             <div className="browser-bar">🔒 {agent.browserUrl ?? 'about:blank'}</div>
             <div className="browser-view">
-              <img src={`/api/agents/${agent.id}/screen?t=${shotAt ?? agent.screenshotAt}`} alt="Latest browser screenshot from the agent" />
+              <img src={`/api/agents/${agent.id}/screen?t=${shotAt ?? agent.screenshotAt}`} alt={`Latest browser screenshot from ${agent.name}`} />
             </div>
             <div className="muted small">Latest Playwright screenshot{agent.screenshotAt ? ` · ${new Date(agent.screenshotAt).toLocaleTimeString()}` : ''}</div>
           </div>
@@ -244,7 +244,7 @@ export function TerminalView({ agentId }: { agentId: string }) {
             </button>
             {agent.status !== 'idle' && (
               <button className="btn" disabled={busy} onClick={() => run(() => api.reset(agent.id))}>
-                ↺ Clear desk
+                ↺ Clear bench
               </button>
             )}
           </>

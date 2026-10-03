@@ -55,7 +55,7 @@ function useOfficeStats() {
 
 function ManagerComputer() {
   const stats = useOfficeStats();
-  const ref = useInteractable<THREE.Group>({ id: 'manager-console', label: "Open the manager's console", action: { kind: 'manager' } }, 3.2);
+  const ref = useInteractable<THREE.Group>({ id: 'manager-console', label: "Open the Overlord's ledger", action: { kind: 'manager' } }, 3.2);
   const tex = useCanvasTexture(
     1024,
     640,
@@ -68,14 +68,14 @@ function ManagerComputer() {
       ctx.fillStyle = '#ffd6a5';
       ctx.font = `700 54px ${SANS}`;
       ctx.textBaseline = 'middle';
-      ctx.fillText('✻ Manager Console', 50, 70);
+      ctx.fillText("✻ The Overlord's Ledger", 50, 70);
       const rows: [string, string][] = [
-        ['Floors (repos)', `${stats.repos}`],
-        ['Agents on staff', `${stats.agents}`],
+        ['Chambers (repos)', `${stats.repos}`],
+        ['Guild members', `${stats.agents}`],
         ['Sessions running', stats.max ? `${stats.working} / ${stats.max}` : `${stats.working}`],
         ['Open issues', `${stats.issues}`],
         ['PRs in QA / ready to merge', `${stats.inQa} / ${stats.readyToMerge}`],
-        ['📄 Hiring decisions waiting', `${stats.pending}`],
+        ['📄 Recruits waiting for you', `${stats.pending}`],
       ];
       rows.forEach(([k, v], i) => {
         const y = 150 + i * 68;
@@ -93,7 +93,7 @@ function ManagerComputer() {
       });
       ctx.fillStyle = '#7CFFB2';
       ctx.font = `600 32px ${SANS}`;
-      ctx.fillText('Press E or click to manage floors, team & issues', 50, 592);
+      ctx.fillText('Press E or click to manage chambers, guild & issues', 50, 592);
     },
     [stats],
   );
@@ -119,7 +119,7 @@ function ManagerComputer() {
 
 function Directory() {
   const stats = useOfficeStats();
-  const ref = useInteractable<THREE.Group>({ id: 'directory', label: 'Floor directory — take the elevator', action: { kind: 'elevator' } }, 4);
+  const ref = useInteractable<THREE.Group>({ id: 'directory', label: 'Open the directory to walk to a chamber', action: { kind: 'elevator' } }, 4);
   const tex = useCanvasTexture(
     768,
     560,
@@ -163,12 +163,12 @@ function Directory() {
       ctx.textAlign = 'left';
       ctx.fillStyle = '#ffffff';
       ctx.font = `600 28px ${SANS}`;
-      ctx.fillText("Lobby & manager's office", 108, gy);
+      ctx.fillText('Great hall & your study', 108, gy);
       if (stats.floors.length === 0) {
         ctx.fillStyle = '#a9adc6';
         ctx.font = `500 26px ${SANS}`;
-        ctx.fillText('No floors yet: connect a repo in the', 36, gy + 80);
-        ctx.fillText("manager's office (back left corner).", 36, gy + 116);
+        ctx.fillText('No chambers yet: connect a repo in', 36, gy + 80);
+        ctx.fillText('your study (back left corner).', 36, gy + 116);
       }
     },
     [stats],
@@ -216,7 +216,7 @@ function CeoBoard() {
   const info = useStore((s) => s.ceo);
   const requests = useStore((s) => s.requests);
   const pending = pendingRequests(requests).length;
-  const now = ceo?.status === 'working' ? (info.job?.label ?? 'Working') : 'Free for a chat (press P)';
+  const now = ceo?.status === 'working' ? (info.job?.label ?? 'Working') : 'Free to talk (press P)';
   const next = info.queue.length ? `${info.queue[0].label}${info.queue.length > 1 ? ` (+${info.queue.length - 1})` : ''}` : 'nothing queued';
   return (
     <WallSign
@@ -230,10 +230,10 @@ function CeoBoard() {
           816,
           456,
           [
-            { text: `🧠 ${ceo?.name ?? 'CEO'}'s board`, size: 54 },
+            { text: `🧠 ${ceo?.name ?? 'The DungeonMaster'}'s board`, size: 54 },
             { text: `Now: ${now}`, size: 36, weight: 600 },
             { text: `Next: ${next}`, size: 32, weight: 500, color: 'rgba(255,255,255,0.8)' },
-            { text: pending ? `📄 ${pending} candidate${pending === 1 ? '' : 's'} waiting for you` : '📄 no candidates waiting', size: 34, weight: 600, color: pending ? '#ffe066' : '#ffffff' },
+            { text: pending ? `📄 ${pending} recruit${pending === 1 ? '' : 's'} waiting for you` : '📄 no recruits waiting', size: 34, weight: 600, color: pending ? '#ffe066' : '#ffffff' },
           ],
           '#3c2a63',
         )
@@ -258,7 +258,7 @@ function CeoOffice() {
         rotationY={0}
         size={[3.4, 0.5]}
         px={[816, 120]}
-        draw={(ctx) => drawSign(ctx, 816, 120, [{ text: `CEO${ceo ? ` · ${ceo.name}` : ''}`, size: 52 }], CEO_ACCENT)}
+        draw={(ctx) => drawSign(ctx, 816, 120, [{ text: `DUNGEONMASTER${ceo ? ` · ${ceo.name}` : ''}`, size: 44 }], CEO_ACCENT)}
         deps={[ceo?.name]}
       />
       {ceo && <Desk agent={ceo} accent={CEO_ACCENT} repoId="" position={[CEO_DESK.x, 0, CEO_DESK.z]} />}
@@ -323,7 +323,7 @@ function CandidateTag({ req }: { req: HireRequestView }) {
 
 function WaitingChair({ z, req }: { z: number; req: HireRequestView | null }) {
   const ref = useInteractable<THREE.Group>(
-    req ? { id: `candidate-${req.id}`, label: `Read ${req.name}'s resume (${req.title})`, action: { kind: 'phone', tab: 'hires', requestId: req.id } } : null,
+    req ? { id: `candidate-${req.id}`, label: `Read ${req.name}'s credentials (${req.title})`, action: { kind: 'phone', tab: 'hires', requestId: req.id } } : null,
     3.2,
   );
   const agent = useMemo(() => (req ? candidateAgent(req) : null), [req]);
@@ -351,7 +351,7 @@ function WaitingRoom() {
         size={[3.6, 0.62]}
         px={[864, 150]}
         draw={(ctx) =>
-          drawSign(ctx, 864, 150, [{ text: n ? `🪑 Waiting room · ${n} candidate${n === 1 ? '' : 's'}${n > WAITING.seats.length ? ` (${n - WAITING.seats.length} more outside)` : ''}` : '🪑 Waiting room', size: 50 }], '#06a77d')
+          drawSign(ctx, 864, 150, [{ text: n ? `🪑 Waiting room · ${n} recruit${n === 1 ? '' : 's'}${n > WAITING.seats.length ? ` (${n - WAITING.seats.length} more outside)` : ''}` : '🪑 Waiting room', size: 50 }], '#06a77d')
         }
         deps={[n]}
       />
@@ -381,7 +381,7 @@ export function Lobby() {
         rotationY={0}
         size={[3.4, 0.5]}
         px={[816, 120]}
-        draw={(ctx) => drawSign(ctx, 816, 120, [{ text: `MANAGER${boss ? ` · ${boss}` : ''}`, size: 52 }], '#2b2d42')}
+        draw={(ctx) => drawSign(ctx, 816, 120, [{ text: `OVERLORD${boss ? ` · ${boss}` : ''}`, size: 52 }], '#2b2d42')}
         deps={[boss]}
       />
       <ManagerComputer />
@@ -396,8 +396,8 @@ export function Lobby() {
         draw={(ctx) =>
           drawSign(ctx, 512, 256, [
             { text: '⭐', size: 70 },
-            { text: 'World’s Best', size: 44, weight: 600 },
-            { text: 'Agent Wrangler', size: 50 },
+            { text: 'The Realm’s Best', size: 44, weight: 600 },
+            { text: 'Overlord', size: 50 },
           ], '#9b5de5')
         }
         deps={[]}
@@ -414,8 +414,8 @@ export function Lobby() {
         px={[1400, 320]}
         draw={(ctx) =>
           drawSign(ctx, 1400, 320, [
-            { text: `✻ ${company || 'cubefarm'}`, size: 120 },
-            { text: company ? 'powered by a team of AI coding agents' : 'a team of AI coding agents', size: 48, weight: 500 },
+            { text: `✻ ${company || 'Code Dungeon'}`, size: 120 },
+            { text: company ? 'worked by a guild of AI coders' : 'a guild of AI coders', size: 48, weight: 500 },
           ], ACCENT)
         }
         deps={[company]}

@@ -29,21 +29,21 @@ export function StartScreen() {
     <div className="start">
       <div className="start-card">
         <div className="start-logo">✻</div>
-        <h1>{settings.companyName || 'cubefarm'}</h1>
-        <p className="start-tag">{settings.managerName ? `Welcome back, ${settings.managerName}.` : 'A cartoon office where a team of AI coding agents works through your GitHub issues.'}</p>
+        <h1>{settings.companyName || 'Code Dungeon'}</h1>
+        <p className="start-tag">{settings.managerName ? `Welcome back, ${settings.managerName}.` : 'A dungeon where a guild of AI coders works through your GitHub issues.'}</p>
         <ul className="start-list">
           <li>
-            🏢 {repos.length} project{repos.length === 1 ? '' : 's'}, {staff} {staff === 1 ? 'person' : 'people'} on staff{ceo ? `, and ${ceo.name} in the corner office` : ''}.
+            🏰 {repos.length} project{repos.length === 1 ? '' : 's'}, {staff} in the guild{ceo ? `, and ${ceo.name} in the DungeonMaster's quarters` : ''}.
           </li>
-          <li>{waiting ? `📱 ${waiting} thing${waiting === 1 ? '' : 's'} waiting on your phone. Press P once you're in.` : '📱 Press P anywhere for your phone.'}</li>
+          <li>{waiting ? `📜 ${waiting} thing${waiting === 1 ? '' : 's'} waiting on your scroll. Press P once you're in.` : '📜 Press P anywhere for your scroll.'}</li>
           <li>
-            💻 Walk up behind anyone to watch their screen, or press <kbd>E</kbd> (or click) on things to use them. <kbd>H</kbd> for help.
+            🕯️ Walk up behind anyone to watch their slate, or press <kbd>E</kbd> (or click) on things to use them. <kbd>H</kbd> for help.
           </li>
         </ul>
         <button className="btn btn-big" onClick={enter} disabled={!loaded}>
-          {loaded ? 'Enter the office' : connected ? 'Loading…' : 'Connecting to the swarm server…'}
+          {loaded ? 'Enter the dungeon' : connected ? 'Loading…' : 'Connecting to the dungeon server…'}
         </button>
-        <div className="start-meta">{demo && <span className="pill pill-demo">DEMO MODE: fake repos, fake agents</span>}</div>
+        <div className="start-meta">{demo && <span className="pill pill-demo">DEMO MODE: fake repos, fake coders</span>}</div>
       </div>
     </div>
   );

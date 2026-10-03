@@ -232,12 +232,12 @@ export function Desk({
     agent
       ? {
           id: `agent-${agent.id}`,
-          label: agent.role === 'ceo' ? `Open ${agent.name}'s desk (CEO) · P texts them from anywhere` : `View ${agent.name}'s ${qa ? 'test run' : 'terminal'}`,
+          label: agent.role === 'ceo' ? `Open ${agent.name}'s bench (DungeonMaster) · P writes to them from anywhere` : `View ${agent.name}'s ${qa ? 'test run' : 'terminal'}`,
           action: { kind: 'terminal', agentId: agent.id },
         }
       : {
           id: `vacant-${role}-${repoId}-${position.join()}`,
-          label: qa ? 'Hire a QA tester for this station' : 'Hire an agent for this desk',
+          label: qa ? 'Recruit a tester for this testing bench' : 'Recruit a coder for this bench',
           action: { kind: 'hire', repoId, role },
         },
     3.6,
