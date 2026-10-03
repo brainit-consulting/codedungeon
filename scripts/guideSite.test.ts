@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CHAPTERS } from '../client/src/ui/userGuideChapters.ts';
-import { buildSite, chapterFile, inlineHtml } from './guideSite.ts';
+import { SITE_CHAPTERS, buildSite, chapterFile, inlineHtml } from './guideSite.ts';
 
 describe('the public User Guide site', () => {
   const files = buildSite(CHAPTERS);
@@ -70,5 +70,22 @@ describe('the guide as a book with a contents column', () => {
       expect(html, name).toContain('aria-label="Larger text"');
       expect(html, name).toContain('<script src="/guide.js" defer></script>');
     }
+  });
+});
+
+describe('the quick start (website only)', () => {
+  const files = buildSite([...CHAPTERS, ...SITE_CHAPTERS]);
+
+  it('comes last, so the chapter numbers the text refers to stay right, and the title page points to it', () => {
+    expect(SITE_CHAPTERS.map((c) => c.id)).toEqual(['quick-start']);
+    expect(files['quick-start.html']).toContain('Quick start');
+    expect(files['index.html']).toContain('href="/quick-start"');
+    expect(CHAPTERS.map((c) => c.id)).not.toContain('quick-start');
+  });
+
+  it("says the code isn't public yet, and what to have ready", () => {
+    const html = files['quick-start.html'];
+    expect(html).toMatch(/not public yet/i);
+    for (const need of ['Node.js', 'git', 'GitHub', 'Claude']) expect(html).toContain(need);
   });
 });

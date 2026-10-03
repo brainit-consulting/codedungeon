@@ -97,6 +97,45 @@ ${opts.body}
 
 const running = `<p class="running"><a href="/">Code Dungeon · The User Guide</a></p>`;
 
+/**
+ * Chapters only the website has, after the in-app ones (so the chapter numbers the text refers to stay right): how to
+ * get Code Dungeon onto your own computer. Readers of the in-app guide already have it.
+ */
+export const SITE_CHAPTERS: GuideChapter[] = [
+  {
+    id: 'quick-start',
+    title: 'Quick start',
+    blocks: [
+      {
+        kind: 'p',
+        text: "Code Dungeon is shown at BrainIT Consulting's workshops, running on a real project. Its code is not public yet. It will be published as open source, free to use, and when it is, this chapter will give you the one line that sets it up on your own computer and opens the dungeon in your browser.",
+      },
+      { kind: 'h', text: 'What to have ready' },
+      {
+        kind: 'list',
+        items: [
+          '**A Windows 10 or 11 computer.** Linux works too.',
+          '**Node.js** 22 or newer, from nodejs.org.',
+          '**git**, from git-scm.com.',
+          '**A GitHub account** and the GitHub command line, signed in: install it from cli.github.com, then run `gh auth login`. Every project in the dungeon lives on GitHub.',
+          '**A Claude subscription.** The coders are Claude Code; you sign it in once.',
+          '**Google Chrome**, so the testers can try your app in a real browser.',
+          '**A Vercel account**, only if you want to put your apps on the internet from the dungeon.',
+        ],
+      },
+      { kind: 'h', text: 'When it is published' },
+      {
+        kind: 'p',
+        text: 'You will paste one line into a terminal. It fetches Code Dungeon, checks that your computer has what it needs, and opens the dungeon. A demo mode with pretend projects and pretend coders lets you walk round first without touching your own work or spending any of your subscription.',
+      },
+      {
+        kind: 'p',
+        text: 'Until then, the chapters before this one show how it all works, and a workshop is the place to see it running.',
+      },
+    ],
+  },
+];
+
 /** Shown only on the website, for readers who have never seen the dungeon. */
 const PROLOGUE = [
   'Code Dungeon is a software workshop drawn as a medieval dungeon. You walk through it in first person, from a great hall down a torchlit gallery into a chamber for each of your projects. The people at the workbenches are real AI coding agents, each running in its own terminal on your computer and working through the GitHub issues of that project.',
@@ -153,6 +192,7 @@ export function buildSite(chapters: readonly GuideChapter[]): Record<string, str
 <h1>Code Dungeon</h1>
 <p class="subtitle">The User Guide</p>
 <p class="mark" aria-hidden="true">✶</p>
+${chapters.some((c) => c.id === 'quick-start') ? '<p class="begin"><a href="/quick-start">New here? The quick start →</a></p>' : ''}
 </header>
 <section class="prologue">
 <h2>Before you go down</h2>
