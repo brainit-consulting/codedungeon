@@ -109,6 +109,12 @@ export const RECEPTION = { x: 3, z: -3.5, w: 5, d: 1.2 };
 export const BACK_BAR = { x: RECEPTION.x, z: RECEPTION.z - 1.9, w: 5.4, d: 0.8 };
 export const BAR_STOOLS = [1.2, 2.4, 3.6, 4.8].map((x) => ({ x, z: RECEPTION.z + 1.05 }));
 export const HEARTH = { z: 4, w: 3.4, d: 0.9 };
+// The wolf sleeps on a hide rug in front of the hearth, lying along it, with the cat's hearth spot against his
+// fire-side flank (Wolf.tsx). x and z are where he lies (his middle); his collider covers only his room side, so the
+// cat's spot and her way to it stay clear.
+export const WOLF = { x: -HALF_W + 1.85, z: HEARTH.z };
+export const WOLF_RUG = { x: WOLF.x, z: WOLF.z + 0.25, w: 1.4, d: 1.8 };
+export const WOLF_SOLID = rect(WOLF.x + 0.45, WOLF.z + 0.25, 0.7, 1.8, 0.6);
 export const FEAST_TABLES = [
   { x: -4.5, z: 5 },
   { x: 6, z: 5 },
@@ -141,6 +147,7 @@ export function lobbyColliders(): Rect[] {
   out.push(rect(BACK_BAR.x, BACK_BAR.z, BACK_BAR.w, BACK_BAR.d, 1.4)); // kegs and bottles behind it
   for (const s of BAR_STOOLS) out.push(rect(s.x, s.z, 0.42, 0.42, 0.6));
   out.push(rect(-HALF_W + HEARTH.d / 2, HEARTH.z, HEARTH.d, HEARTH.w)); // the hearth's chimney breast
+  out.push(WOLF_SOLID); // the wolf asleep in front of it
   for (const t of FEAST_TABLES) {
     out.push(rect(t.x, t.z, 2.85, 1.1, 0.81));
     for (const dz of [-0.85, 0.85]) out.push(rect(t.x, t.z + dz, 2.78, 0.5, 0.53)); // benches

@@ -4,7 +4,7 @@ Takes Wolf.blend (it keeps the pack's leg IK, which makes posing him lying down 
 mouth is cut along its lip line and lined with a dark mouth), eyelids (each eye gets a bone that squashes it shut),
 and the clips he needs by the hearth, keyed here on the IK rig: lying asleep, lying with his head up, a lying yawn,
 getting up, a stretch with a yawn, lying down. The pack's Idle and Walk are kept for standing and turning round;
-the rest of its clips are dropped. No textures (the pack is flat colours). He faces +Z, about 2 m nose to tail tip.
+the rest of its clips are dropped. No textures (the pack is flat colours). He faces +Z, about 2.3 m nose to tail tip.
 
     "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --factory-startup --python scripts/build-wolf.py
 
@@ -27,8 +27,8 @@ OUT = os.path.join(ROOT, 'client', 'public', 'characters')
 PREVIEW = os.environ.get('PREVIEW')
 
 FPS = 30
-# The pack's units are about three times a metre; the export scales him (in the root node) to a big grey wolf.
-SCALE = 0.34
+# The pack's units are about two and a half to the metre; the export scales him (in the root node) to a big grey wolf.
+SCALE = 0.42
 KEEP = ['Idle', 'Walk']
 CLIPS = ['Lie_Sleep', 'Lie_HeadUp', 'Lie_Yawn', 'Stand_Up', 'Stretch_Yawn', 'Lie_Down']
 # Colours from the pack's own glTF (linear), plus the inside of his mouth.

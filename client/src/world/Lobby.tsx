@@ -19,6 +19,7 @@ import { Shell, torchesOn } from './Shell';
 const HALL_TORCHES = [...torchesOn.west([-1.2, 9.2]), ...torchesOn.east([1.5]), ...torchesOn.north([-3.2]), ...torchesOn.south([-8, 8])];
 import { Box } from './Toon';
 import { Toys } from './toys';
+import { Wolf } from './Wolf';
 
 const SLATE_FRAME = new THREE.MeshStandardMaterial({ color: '#2e1f14', roughness: 0.85 });
 
@@ -406,6 +407,7 @@ export function Lobby() {
       {/* the tavern */}
       <Bar />
       <Hearth />
+      <Wolf />
       <FeastTables />
       <WallSign
         position={[3, 2.25, -HALF_D + 0.03]}
