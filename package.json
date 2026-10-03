@@ -1,6 +1,7 @@
 {
-  "name": "cubefarm",
+  "name": "codedungeon",
   "version": "0.3.2",
+  "private": true,
   "description": "A cartoon 3D office where a team of AI coding agents works through your GitHub issues.",
   "keywords": [
     "claude-code",
@@ -35,7 +36,6 @@
   },
   "scripts": {
     "dev": "node scripts/office.mjs --dev",
-    "demo": "node scripts/office.mjs --dev --demo",
     "build": "tsc --noEmit -p tsconfig.json && vite build && node scripts/build-server.mjs",
     "start": "node scripts/office.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",

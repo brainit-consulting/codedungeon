@@ -20,11 +20,9 @@ import { SERVER_PORT, liveOfficeConflict } from '../shared/dungeon.mjs';
 const HELP = `
   node scripts/office.mjs [--dev] [--demo] [--no-open]
 
-    --dev       run the server from source with Vite on SWARM_CLIENT_PORT (default 5317), restarting it on code changes
+    --dev       run the server from source with Vite on SWARM_CLIENT_PORT (default 5417), restarting it on code changes
     --demo      fake GitHub and fake agents
     --no-open   start mode: don't open the browser
-
-  Type u + Enter to update the office now (only on the default branch with no local changes).
 `;
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -124,9 +122,7 @@ function startChildren() {
   startServer();
   if (opts.dev) {
     startClient();
-    log(`Open http://localhost:${clientPort()}  ·  type u + Enter to update the office`);
-  } else {
-    log('Type u + Enter to update the office');
+    log(`Open http://localhost:${clientPort()}`);
   }
   firstStart = false;
 }
@@ -219,15 +215,9 @@ async function defaultBranch() {
 let updating = null; // the running update
 
 function update(trigger) {
-  if (shuttingDown) return Promise.resolve();
-  if (updating) {
-    log('Already updating');
-    return updating;
-  }
-  updating = runUpdate(trigger).finally(() => {
-    updating = null;
-  });
-  return updating;
+  // Code Dungeon has no upstream to update from yet; pulling is done by hand.
+  log(`Not updating (${trigger}): Code Dungeon is updated by hand`);
+  return Promise.resolve();
 }
 
 async function runUpdate(trigger) {
