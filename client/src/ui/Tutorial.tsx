@@ -55,7 +55,7 @@ const STEPS: Step[] = [
     title: 'Visit the CEO',
     body: (c) => (
       <>
-        {c.ceo}'s corner office is at the back right of the lobby, under the purple sign. Walk in and press <kbd>E</kbd> or click the desk to see what {c.ceo} is up to.
+        {c.ceo}'s corner office is at the back right of the great hall, under the purple sign. Walk in and press <kbd>E</kbd> or click the desk to see what {c.ceo} is up to.
       </>
     ),
     done: (s) => (s.overlay?.kind === 'terminal' && s.overlay.agentId === CEO_ID) || (s.overlay?.kind === 'manager' && s.overlay.tab === 'ceo'),
@@ -70,15 +70,15 @@ const STEPS: Step[] = [
     done: (s) => s.requests.some((r) => r.status !== 'pending' && r.decidedBy === 'manager'),
   },
   {
-    title: 'Go upstairs',
+    title: 'Visit a chamber',
     body: (c) =>
       c.repo ? (
         <>
-          {c.repo} has its own floor. Walk into the elevator in the middle of the south wall, or press <kbd>E</kbd> or click the directory beside it.
+          {c.repo} has its own chamber. Walk through the archway in the middle of the hall's south wall into the gallery and find its door, or press <kbd>E</kbd> on the directory beside the archway to walk straight in.
         </>
       ) : (
         <>
-          Every project gets its own floor. Add one in your office (the glass room at the back left), then take the elevator in the middle of the south wall.
+          Every project gets its own chamber off the gallery. Add one in your office (the glass room at the back left), then walk through the archway in the middle of the south wall.
         </>
       ),
     done: (s) => s.floor > 0,
@@ -87,7 +87,7 @@ const STEPS: Step[] = [
     title: 'The whiteboard',
     body: () => (
       <>
-        The whiteboard at the front of every floor is its Kanban board. Press <kbd>E</kbd> or click it to hand out issues, send pull requests to QA and merge them.
+        The whiteboard at the front of every chamber is its Kanban board. Press <kbd>E</kbd> or click it to hand out issues, send pull requests to QA and merge them.
       </>
     ),
     done: (s) => s.overlay?.kind === 'kanban',
@@ -105,7 +105,7 @@ const STEPS: Step[] = [
     title: 'Your office',
     body: (c) => (
       <>
-        Your glass office in the lobby (back left) has the manager's console: projects, the team, and the CEO's settings. Press <kbd>H</kbd> any time for help. Enjoy running {c.company}!
+        Your glass office in the great hall (back left) has the manager's console: projects, the team, and the CEO's settings. Press <kbd>H</kbd> any time for help. Enjoy running {c.company}!
       </>
     ),
   },

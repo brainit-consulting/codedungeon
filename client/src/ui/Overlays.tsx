@@ -107,12 +107,12 @@ function Help() {
           <kbd>W</kbd>
           <kbd>A</kbd>
           <kbd>S</kbd>
-          <kbd>D</kbd> walk · <kbd>Shift</kbd> run · mouse to look · <kbd>E</kbd> or left click interacts with whatever the crosshair is on (the first click only grabs the mouse) · <kbd>Esc</kbd> frees the mouse. Closing a panel or changing floor grabs it again.
+          <kbd>D</kbd> walk · <kbd>Shift</kbd> run · mouse to look · <kbd>E</kbd> or left click interacts with whatever the crosshair is on (the first click only grabs the mouse) · <kbd>Esc</kbd> frees the mouse. Closing a panel grabs it again.
         </p>
         <MouseSettings />
         <h3>Darts</h3>
         <p>
-          The dart board hangs on the lobby's south wall, at the west end. Aim at it and press <kbd>E</kbd> to take the three darts. Click or press <kbd>F</kbd> to throw one: a tap lobs it, holding throws harder.
+          The dart board hangs on the great hall's south wall, at the west end. Aim at it and press <kbd>E</kbd> to take the three darts. Click or press <kbd>F</kbd> to throw one: a tap lobs it, holding throws harder.
           Darts stick only in the board; a round is three darts, scored like the real game (doubles, trebles, 25 and the bull), and the chalk tally beside it keeps the best round. Press <kbd>E</kbd> on the board again to collect them. <kbd>G</kbd> puts the darts back on the ledge.
         </p>
         <h3>Sound</h3>
@@ -122,8 +122,8 @@ function Help() {
         <SoundControls />
         <h3>The building</h3>
         <p>
-          The ground floor is the lobby: your office is the glass room at the back left, the CEO's corner office is at the back right, and candidates wait on the chairs by the entrance. Every connected GitHub repo gets its own
-          floor. Walk into the elevator in the middle of the south wall to travel.
+          The great hall: your office is the glass room at the back left, the CEO's corner office is at the back right, and candidates wait on the chairs by the entrance. Every connected GitHub repo gets its own
+          chamber off the gallery: walk through the archway in the middle of the south wall, or use the directory beside it to walk straight in.
         </p>
         <h3>Your phone</h3>
         <p>
@@ -132,12 +132,12 @@ function Help() {
         </p>
         <h3>Who's working</h3>
         <p>
-          The list at the top right shows everyone who is working right now (on this floor, or on every floor from the lobby) with their latest thought, reply or tool call. Click someone to watch their screen. <kbd>Tab</kbd>{' '}
+          The list at the top right shows everyone who is working right now (in this chamber, or in every chamber from the hall) with their latest thought, reply or tool call. Click someone to watch their screen. <kbd>Tab</kbd>{' '}
           shows or hides it.
         </p>
         <h3>The CEO</h3>
         <p>
-          The CEO studies every new floor, writes its QA brief, gives each agent a job that fits the project, turns your project briefs into issues and proposes hires. Hires wait for your approval unless you switch hiring to
+          The CEO studies every new chamber, writes its QA brief, gives each agent a job that fits the project, turns your project briefs into issues and proposes hires. Hires wait for your approval unless you switch hiring to
           auto in the manager's console.
         </p>
         <h3>Your team</h3>

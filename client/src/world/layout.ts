@@ -27,24 +27,18 @@ export const rect = (cx: number, cz: number, w: number, d: number, h?: number): 
 // How tall the furniture is, so toys can bounce off it (and land on it).
 const SOLID_H = { desk: 0.78, seated: 1.3, board: 3.45, couch: 0.95, coffeeTable: 0.5, kitchen: 2, cooler: 1.5, bookshelf: 2.2, cabinet: 2.1, reception: 1.13, glass: 2.8 };
 
-/** The shell every floor shares: outer walls (with the elevator doorway) and the elevator cabin. */
+/** The shell every room shares: outer walls, with the doorway in the south wall (into the gallery, or a chamber's door). */
 export function shellColliders(): Rect[] {
   const t = 0.4;
-  const { doorHalf, cabinHalf, depth } = ELEVATOR;
+  const { doorHalf } = ELEVATOR;
   return [
     { minX: -HALF_W - t, maxX: HALF_W + t, minZ: -HALF_D - t, maxZ: -HALF_D }, // north
     { minX: -HALF_W - t, maxX: -HALF_W, minZ: -HALF_D, maxZ: HALF_D }, // west
     { minX: HALF_W, maxX: HALF_W + t, minZ: -HALF_D, maxZ: HALF_D }, // east
     { minX: -HALF_W, maxX: -doorHalf, minZ: HALF_D, maxZ: HALF_D + t }, // south, left of door
     { minX: doorHalf, maxX: HALF_W, minZ: HALF_D, maxZ: HALF_D + t }, // south, right of door
-    { minX: -cabinHalf - t, maxX: -cabinHalf, minZ: HALF_D, maxZ: HALF_D + depth }, // cabin sides
-    { minX: cabinHalf, maxX: cabinHalf + t, minZ: HALF_D, maxZ: HALF_D + depth },
-    { minX: -cabinHalf, maxX: cabinHalf, minZ: HALF_D + depth, maxZ: HALF_D + depth + t }, // cabin back
   ];
 }
-
-/** Fills the elevator doorway for toys only, so nothing rolls into the cabin. The player walks straight through. */
-export const elevatorDoorway = (): Rect => ({ minX: -ELEVATOR.doorHalf, maxX: ELEVATOR.doorHalf, minZ: HALF_D, maxZ: HALF_D + 0.4 });
 
 // ---------- office floors ----------
 

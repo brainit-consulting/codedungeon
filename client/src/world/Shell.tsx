@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { ELEVATOR, HALF_D, HALF_W, WALL_H } from './layout';
 import { drawSky } from './draw';
@@ -44,12 +45,15 @@ export function Shell({
   westWindows = [-8, 0, 8],
   eastWindows = [-8, 0],
   seed = 1,
+  southWall = true,
 }: {
   accent: string;
   floorColor: string;
   westWindows?: number[];
   eastWindows?: number[];
   seed?: number;
+  /** A chamber's south wall is the gallery's wall (Gallery.tsx), so the chamber leaves it out. */
+  southWall?: boolean;
 }) {
   const wall = toon(WALL);
   const t = 0.3;
@@ -112,14 +116,17 @@ export function Shell({
       <mesh position={[HALF_W + t / 2, WALL_H / 2, 0]} material={wall} receiveShadow>
         <boxGeometry args={[t, WALL_H, HALF_D * 2]} />
       </mesh>
-      {[-1, 1].map((s) => (
-        <mesh key={s} position={[s * (doorHalf + southSeg / 2), WALL_H / 2, HALF_D + t / 2]} material={wall} receiveShadow>
-          <boxGeometry args={[southSeg, WALL_H, t]} />
+      {southWall &&
+        [-1, 1].map((s) => (
+          <mesh key={s} position={[s * (doorHalf + southSeg / 2), WALL_H / 2, HALF_D + t / 2]} material={wall} receiveShadow>
+            <boxGeometry args={[southSeg, WALL_H, t]} />
+          </mesh>
+        ))}
+      {southWall && (
+        <mesh position={[0, (WALL_H + doorHeight) / 2, HALF_D + t / 2]} material={wall}>
+          <boxGeometry args={[doorHalf * 2, WALL_H - doorHeight, t]} />
         </mesh>
-      ))}
-      <mesh position={[0, (WALL_H + doorHeight) / 2, HALF_D + t / 2]} material={wall}>
-        <boxGeometry args={[doorHalf * 2, WALL_H - doorHeight, t]} />
-      </mesh>
+      )}
 
       {/* skirting + accent stripe */}
       {[
@@ -149,13 +156,36 @@ export function Shell({
   );
 }
 
+// The sun's shadows only reach about one room, so the light (and the box its shadows are drawn in) follows the player,
+// moved in whole steps so the shadow edges don't crawl while you walk.
+const SUN = { x: 9, y: 14, z: 7, step: 4 };
+
 export function Lights() {
+  const light = useRef<THREE.DirectionalLight>(null);
+  const scene = useThree((s) => s.scene);
+  useEffect(() => {
+    const l = light.current;
+    if (!l) return;
+    scene.add(l.target);
+    return () => void scene.remove(l.target);
+  }, [scene]);
+  useFrame(({ camera }) => {
+    const l = light.current;
+    if (!l) return;
+    const x = Math.round(camera.position.x / SUN.step) * SUN.step;
+    const z = Math.round(camera.position.z / SUN.step) * SUN.step;
+    if (l.target.position.x === x && l.target.position.z === z) return;
+    l.target.position.set(x, 0, z);
+    l.position.set(x + SUN.x, SUN.y, z + SUN.z);
+    l.target.updateMatrixWorld();
+  });
   return (
     <>
       <hemisphereLight args={['#fffaf0', '#a48a6a', 0.95]} />
       <ambientLight intensity={0.18} />
       <directionalLight
-        position={[9, 14, 7]}
+        ref={light}
+        position={[SUN.x, SUN.y, SUN.z]}
         intensity={1.55}
         castShadow
         shadow-mapSize={[2048, 2048]}

@@ -30,7 +30,7 @@ export function throwHeld() {
 /** Throw the next dart in hand at `power` (0 to 1). Also what the dev-only window.__throwDart calls. */
 export function throwDart(power: number) {
   const s = useStore.getState();
-  if (!s.held || s.travel) return;
+  if (!s.held) return;
   const p = Math.min(1, Math.max(0, power));
   throws.push(p);
   noise({ dur: 0.1 + p * 0.06, peak: 0.02 + p * 0.04, filter: 'bandpass', freq: 700, to: 1800 + p * 900, q: 0.9 });

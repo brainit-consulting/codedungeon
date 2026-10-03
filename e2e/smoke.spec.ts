@@ -5,10 +5,9 @@ import { colourStats, decodePng } from './png';
 // Smoke tests against the demo office: it loads without errors, you can walk in, the 3D view renders and moves,
 // and the main panels open and close. Pointer lock may not work headless, so nothing here depends on it.
 
-const VIEW_KEY = 'cubefarm:view'; // where the client remembers the player's spot (store.ts saveView)
+const VIEW_KEY = 'codedungeon:view'; // where the client remembers the player's spot (store.ts saveView)
 
 interface SavedView {
-  floor: number;
   x: number;
   z: number;
   yaw: number;
@@ -72,7 +71,7 @@ async function canvasColours(page: Page) {
   return colourStats(decodePng(png));
 }
 
-test('/api/state returns JSON with floors', async ({ request }) => {
+test('/api/state returns JSON with chambers', async ({ request }) => {
   const res = await request.get('/api/state');
   expect(res.ok()).toBe(true);
   expect(res.headers()['content-type']).toContain('application/json');
@@ -142,7 +141,7 @@ test('the phone opens and closes with P, its button and Esc', async ({ page }) =
 
 test("the manager's console opens with E at its desk and closes with Esc", async ({ page }) => {
   // Start in the manager's office, just in front of the desk, looking down at the computer (-Z is north).
-  const spot: SavedView = { floor: 0, x: MANAGER_DESK.x, z: MANAGER_DESK.z + MANAGER_DESK.d / 2 + 0.8, yaw: 0, pitch: -0.6 };
+  const spot: SavedView = { x: MANAGER_DESK.x, z: MANAGER_DESK.z + MANAGER_DESK.d / 2 + 0.8, yaw: 0, pitch: -0.6 };
   await page.addInitScript(([key, view]) => localStorage.setItem(key, view), [VIEW_KEY, JSON.stringify(spot)] as const);
   await enterOffice(page);
   await expect(page.getByText("Open the manager's console")).toBeVisible(); // the crosshair hint
@@ -173,6 +172,5 @@ test('holding W walks forward', async ({ page }) => {
     await page.keyboard.up('w');
   }
   const to = (await savedView(page))!;
-  expect(to.floor).toBe(from.floor);
   expect(to.yaw).toBeCloseTo(from.yaw); // W walks, it doesn't turn
 });

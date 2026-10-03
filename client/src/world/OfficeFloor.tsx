@@ -4,7 +4,6 @@ import { agentsOnRepo, useStore } from '../store';
 import { AppMonitor } from './AppMonitor';
 import { Desk } from './Desk';
 import { drawSign } from './draw';
-import { Elevator } from './Elevator';
 import { useCanvasTexture } from './interact';
 import { KanbanBoard } from './KanbanBoard';
 import { DESK_ROWS, HALF_D, HALF_W, MAX_DESKS, QA_LAB, QA_ROTATION, deskPosition, qaDeskPosition } from './layout';
@@ -45,12 +44,11 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
   const qaRecords = useStore((s) => s.qa);
   const inQa = Object.values(qaRecords).filter((q) => q.repoId === repo.id && q.status !== 'passed').length;
   const ready = Object.values(qaRecords).filter((q) => q.repoId === repo.id && q.status === 'passed').length;
-  const name = repo.fullName.split('/')[1] ?? repo.fullName;
   const rugColor = shade(repo.color, 0.24);
 
   return (
     <group>
-      <Shell accent={repo.color} floorColor="#d9b48a" seed={repo.floor} />
+      <Shell accent={repo.color} floorColor="#d9b48a" seed={repo.floor} westWindows={[]} eastWindows={[]} southWall={false} />
       {DESK_ROWS.map((z) => (
         <Rug key={z} position={[0, 0.004, z + 0.35]} size={[24.4, 2.9]} color={rugColor} />
       ))}
@@ -77,7 +75,6 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
 
       <KanbanBoard repo={repo} agents={agents} />
       <AppMonitor repo={repo} agents={agents} />
-      <Elevator floorLabel={`▲ ${repo.floor} · ${name}`} accent={repo.color} />
 
       <WallSign
         position={[-4.6, 1.95, HALF_D - 0.03]}
@@ -89,7 +86,7 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
             1024,
             317,
             [
-              { text: `FLOOR ${repo.floor}`, size: 58, color: 'rgba(255,255,255,0.85)', weight: 600 },
+              { text: `CHAMBER ${repo.floor}`, size: 58, color: 'rgba(255,255,255,0.85)', weight: 600 },
               { text: repo.fullName, size: 74 },
               { text: repo.description || 'no description', size: 36, weight: 500, color: 'rgba(255,255,255,0.85)' },
             ],

@@ -174,17 +174,6 @@ export function chirp() {
   [1046.5, 1568].forEach((freq, i) => tone({ freq, type: 'triangle', at: i * 0.11, dur: 0.18, peak: 0.12 }));
 }
 
-/** The elevator "ding": two soft sine tones. */
-export function ding() {
-  [880, 1318.5].forEach((freq, i) => tone({ freq, at: i * 0.16, dur: 1.1, peak: 0.18, attack: 0.02 }));
-}
-
-/** Air rushing past the elevator car while it travels, rising then settling. */
-export function whoosh(dur = 0.75) {
-  noise({ dur, peak: 0.1, filter: 'bandpass', freq: 220, to: 900, q: 0.8, attack: dur * 0.45 });
-  tone({ freq: 70, to: 55, dur, peak: 0.05, attack: dur * 0.4 });
-}
-
 /** One soft footstep: a muffled thud. */
 export function footstep(running = false) {
   noise({ dur: running ? 0.09 : 0.12, peak: running ? 0.07 : 0.045, freq: (running ? 700 : 480) * (0.9 + Math.random() * 0.2), q: 0.7 });

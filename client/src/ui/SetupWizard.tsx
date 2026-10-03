@@ -134,7 +134,7 @@ export function SetupWizard() {
                 </button>
               </div>
             </label>
-            <p className="muted small">It goes on the sign in the lobby. Change either any time in the manager's console.</p>
+            <p className="muted small">It goes on the sign in the great hall. Change either any time in the manager's console.</p>
           </>
         )}
 
@@ -174,7 +174,7 @@ export function SetupWizard() {
             <label className="toggle block">
               <input type="radio" checked={hiring === 'approve'} onChange={() => setHiring('approve')} />
               <span>
-                <b>Ask me before every hire</b> (recommended). Candidates wait in the lobby and on your phone.
+                <b>Ask me before every hire</b> (recommended). Candidates wait in the great hall and on your phone.
               </span>
             </label>
             <label className="toggle block">

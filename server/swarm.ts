@@ -15,6 +15,7 @@ import { drainDecision, lastUpdateMessage, POSTPONE_MS, type DrainInput, type La
 import { clampPacingSessions, DEFAULT_PACING_SESSIONS, mayStart, PACING_MS, pacingMessage, usageLabel, usageView, type UsageWarning, type WorkKind } from './pacing.ts';
 import { isCli } from './clis.ts';
 import { AgentTerminal } from './terminal.ts';
+import { nextChamber } from '../shared/chambers.ts';
 import { blockers, holdUps, issueSpecialty } from '../shared/issues.ts';
 import { effectiveModel } from '../shared/models.ts';
 import { CEO_ID } from '../shared/types.ts';
@@ -837,7 +838,7 @@ export class Swarm {
     if (existing) throw new HttpError(409, `${fullName} is already floor ${existing.floor}`);
     const meta = await this.backend.repoMeta(fullName);
     const folder = opts.localPath ?? (await this.projectFolderFor(meta.nameWithOwner));
-    const floor = this.state.repos.reduce((m, r) => Math.max(m, r.floor), 0) + 1;
+    const floor = nextChamber(this.state.repos.map((r) => r.floor));
     const repo: PersistedRepo = {
       id: meta.nameWithOwner,
       fullName: meta.nameWithOwner,
@@ -938,8 +939,6 @@ export class Swarm {
     this.state.qa = this.state.qa.filter((q) => q.repoId !== id);
     for (const r of this.state.repos) r.links = r.links.filter((l) => l !== id);
     this.repoRt.delete(id);
-    // Keep floors contiguous.
-    this.state.repos.sort((a, b) => a.floor - b.floor).forEach((r, i) => (r.floor = i + 1));
     this.backend.setLocalPath(repo.fullName, null);
     this.save();
     this.broadcast({ type: 'repoRemoved', repoId: id });

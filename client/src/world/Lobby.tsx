@@ -6,7 +6,6 @@ import { CEO_ID, type HireRequestView } from '../../../shared/types';
 import { Character } from './Character';
 import { Desk } from './Desk';
 import { drawCandidateTag, drawSign, roundRect, SANS } from './draw';
-import { Elevator } from './Elevator';
 import { useCanvasTexture, useInteractable } from './interact';
 import { CEO_DESK, CEO_ROOM, HALF_D, HALF_W, MANAGER_DESK, MANAGER_ROOM, RECEPTION, WAITING, WAITING_ROTATION } from './layout';
 import { glow, shade } from './materials';
@@ -455,7 +454,6 @@ export function Lobby() {
 
       <CeoOffice />
       <WaitingRoom />
-      <Elevator floorLabel="▲ G · Lobby" accent={ACCENT} />
       <Toys />
       <Directory />
       <TrophyCabinet />

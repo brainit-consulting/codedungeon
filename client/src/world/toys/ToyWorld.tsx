@@ -1,6 +1,5 @@
 import { memo, useEffect, useMemo } from 'react';
 import { CuboidCollider, interactionGroups, Physics, RigidBody, useRapier } from '@react-three/rapier';
-import { useStore } from '../../store';
 import { HALF_D, HALF_W, WALL_H, lobbyColliders, type Rect } from '../layout';
 import { HandDarts } from './HandDarts';
 import { setToySource } from './probe';
@@ -48,9 +47,8 @@ function Probe() {
 }
 
 function ToyWorld() {
-  const paused = useStore((s) => s.travel !== null);
   return (
-    <Physics timeStep={STEP} paused={paused} numSolverIterations={8}>
+    <Physics timeStep={STEP} numSolverIterations={8}>
       <Building />
       <Probe />
       <HandDarts groups={DART_GROUPS} />

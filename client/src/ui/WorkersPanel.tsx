@@ -132,7 +132,7 @@ export function WorkersPanel() {
   const ceo = agents[CEO_ID];
   const floors = [...repos].sort((x, y) => (x.floor === floor ? -1 : y.floor === floor ? 1 : x.floor - y.floor));
   const groups: Group[] = [
-    ...(ceo && isWorking(ceo) ? [{ key: 'hq', label: 'HQ', title: 'The CEO, in the lobby', color: ceo.color, list: [ceo] }] : []),
+    ...(ceo && isWorking(ceo) ? [{ key: 'hq', label: 'HQ', title: 'The CEO, in the great hall', color: ceo.color, list: [ceo] }] : []),
     ...floors.map((r: RepoView) => ({
       key: r.id,
       label: `${r.floor} · ${r.fullName.split('/')[1]}`,

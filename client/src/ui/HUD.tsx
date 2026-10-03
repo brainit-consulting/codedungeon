@@ -54,7 +54,6 @@ export function HUD() {
   const overlay = useStore((s) => s.overlay);
   const locked = useStore((s) => s.locked);
   const started = useStore((s) => s.started);
-  const travel = useStore((s) => s.travel);
   const toasts = useStore((s) => s.toasts);
   const dismiss = useStore((s) => s.dismissToast);
 
@@ -69,11 +68,11 @@ export function HUD() {
       <div className="hud-floor" style={{ ['--accent' as string]: repo?.color ?? '#ff8a5b' }}>
         <div className="floor-num">{repo ? repo.floor : 'G'}</div>
         <div>
-          <div className="floor-name">{repo ? repo.fullName : `${settings.companyName || 'cubefarm'} · Lobby`}</div>
+          <div className="floor-name">{repo ? repo.fullName : `${settings.companyName || 'Code Dungeon'} · Great hall`}</div>
           <div className="floor-sub">
             {repo
               ? `${floorAgents.length} agents · ${floorAgents.filter((a) => a.status === 'working' || a.status === 'preparing').length} working · ${floorQa.filter((q) => q.status !== 'passed').length} in QA · ${floorQa.filter((q) => q.status === 'passed').length} ready to merge`
-              : `${repos.length} floor${repos.length === 1 ? '' : 's'} connected`}
+              : `${repos.length} chamber${repos.length === 1 ? '' : 's'} off the gallery`}
           </div>
         </div>
       </div>
@@ -92,24 +91,20 @@ export function HUD() {
 
       {!ghReady && ghError && <div className="hud-banner">⚠️ {ghError}</div>}
 
-      {started && !overlay && !travel && <div className={`crosshair ${focus ? 'crosshair-hot' : ''}`} />}
+      {started && !overlay && <div className={`crosshair ${focus ? 'crosshair-hot' : ''}`} />}
       {started && !overlay && focus && (
         <div className="hud-hint">
           <kbd>E</kbd> {!held && <>/ <kbd>Click</kbd> </>}
           {focus.label}
         </div>
       )}
-      {started && !overlay && !travel && <HeldHint />}
-      {started && !overlay && !locked && !travel && <div className="hud-resume">Click to look around</div>}
+      {started && !overlay && <HeldHint />}
+      {started && !overlay && !locked && <div className="hud-resume">Click to look around</div>}
       {started && !(settings.setupDone && settings.tutorialStep >= 0) && (
         <div className="hud-help">
           <kbd>WASD</kbd> move · <kbd>Shift</kbd> run · <kbd>E</kbd> / <kbd>Click</kbd> interact · <kbd>P</kbd> phone · <kbd>Tab</kbd> workers · <kbd>H</kbd> help · <kbd>Esc</kbd> free mouse
         </div>
       )}
-
-      <div className={`fade ${travel?.phase === 'closing' ? 'fade-in' : ''}`}>
-        {travel && <div className="fade-label">{travel.to === 0 ? 'Lobby' : `Floor ${travel.to}`}</div>}
-      </div>
 
       <PhoneButton />
       <div className="toasts">

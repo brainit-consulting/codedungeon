@@ -19,7 +19,7 @@ export function ElevatorPanel() {
 
   const floors = [...repos].sort((a, b) => b.floor - a.floor);
   return (
-    <Panel title="🛗 Elevator">
+    <Panel title="🗺️ Directory">
       <div className="elevator">
         {floors.map((r) => {
           const team = Object.values(agents).filter((a) => a.repoId === r.id);
@@ -37,11 +37,11 @@ export function ElevatorPanel() {
         })}
         <button className={`floor-btn ${floor === 0 ? 'floor-btn-here' : ''}`} style={{ ['--accent' as string]: '#ff8a5b' }} onClick={() => goToFloor(0)}>
           <span className="floor-btn-num">G</span>
-          <span className="floor-btn-name">Lobby &amp; manager's office</span>
+          <span className="floor-btn-name">Great hall &amp; your office</span>
           <span className="floor-btn-meta">connect repos · hire · file issues</span>
         </button>
-        {repos.length === 0 && <p className="muted">No floors yet. Head to the manager's office to connect a GitHub repo or start a new project.</p>}
-        <p className="muted small">Tip: press a floor number (or G) while this panel is open.</p>
+        {repos.length === 0 && <p className="muted">No chambers yet. Head to your office to connect a GitHub repo or start a new project.</p>}
+        <p className="muted small">Pick a chamber to walk straight in. Tip: press its number (or G for the hall) while this panel is open.</p>
       </div>
     </Panel>
   );

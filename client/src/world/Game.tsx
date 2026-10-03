@@ -1,41 +1,60 @@
-import { Suspense, useEffect, useMemo, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Suspense, useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { AdaptiveResolution, FrameWhilePaused, MAX_DPR, StatsProbe, statsEnabled, useRenderPaused } from '../perf';
 import { repoOnFloor, useStore } from '../store';
-import { ding, whoosh } from '../ui/sfx';
-import { lobbyColliders, officeColliders } from './layout';
+import { chamber, chambersToDraw, dungeonColliders, roomAt } from './dungeon';
+import { Gallery } from './Gallery';
+import { HALF_D } from './layout';
 import { Lobby } from './Lobby';
 import { OfficeFloor } from './OfficeFloor';
 import { Player } from './Player';
 import { Lights } from './Shell';
 
-function Travel() {
-  const travel = useStore((s) => s.travel);
-  const finish = useStore((s) => s.finishTravel);
-  useEffect(() => {
-    if (!travel) return;
-    if (travel.phase === 'closing') whoosh(0.75);
-    const t = setTimeout(
-      () => {
-        if (travel.phase === 'closing') {
-          finish('arrived');
-          ding();
-        } else finish('done');
-      },
-      travel.phase === 'closing' ? 750 : 650,
-    );
-    return () => clearTimeout(t);
-  }, [travel, finish]);
-  return null;
+// How far into the gallery (m past the hall's south wall) the hall is still drawn, so it's there when you turn round.
+const HALL_SEEN = 18;
+
+/** Which rooms to draw for where the player stands, re-checked a few times a second. */
+function useVisibleRooms(slots: number[]) {
+  const [seen, setSeen] = useState<{ hall: boolean; chambers: number[] }>({ hall: true, chambers: [] });
+  const frame = useRef(0);
+  useFrame(({ camera }) => {
+    if (++frame.current % 15) return;
+    const { x, z } = camera.position;
+    const chambers = chambersToDraw(x, z, slots);
+    const hall = roomAt(x, z, slots) === 0 && z < HALF_D + HALL_SEEN;
+    setSeen((cur) => (cur.hall === hall && cur.chambers.join() === chambers.join() ? cur : { hall, chambers }));
+  });
+  return seen;
+}
+
+/** The great hall when it's in view, the gallery always, and the chambers near you, each turned into its place. */
+function Dungeon({ slots }: { slots: number[] }) {
+  const repos = useStore((s) => s.repos);
+  const seen = useVisibleRooms(slots);
+  return (
+    <>
+      {seen.hall && <Lobby />}
+      <Gallery slots={slots} />
+      {seen.chambers.map((slot) => {
+        const repo = repoOnFloor(repos, slot);
+        if (!repo) return null;
+        const c = chamber(slot);
+        return (
+          <group key={repo.id} position={[c.x, 0, c.z]} rotation={[0, c.rot, 0]}>
+            <OfficeFloor repo={repo} />
+          </group>
+        );
+      })}
+    </>
+  );
 }
 
 export function Game() {
-  const floor = useStore((s) => s.floor);
   const repos = useStore((s) => s.repos);
-  const repo = floor === 0 ? null : repoOnFloor(repos, floor);
-  const isOffice = !!repo;
-  const colliders = useMemo(() => (isOffice ? officeColliders() : lobbyColliders()), [isOffice]);
+  const slotKey = repos.map((r) => r.floor).sort((a, b) => a - b).join();
+  const slots = useMemo(() => (slotKey ? slotKey.split(',').map(Number) : []), [slotKey]);
+  const colliders = useMemo(() => dungeonColliders(slots), [slots]);
   // Stop drawing while nobody can see the office; switching back to 'always' draws a fresh frame at once.
   const paused = useRenderPaused();
   const [maxDpr, setMaxDpr] = useState(MAX_DPR);
@@ -56,9 +75,10 @@ export function Game() {
       <color attach="background" args={['#bfe3ff']} />
       <fog attach="fog" args={['#f3ece2', 30, 70]} />
       <Lights />
-      <Suspense fallback={null}>{repo ? <OfficeFloor key={repo.id} repo={repo} /> : <Lobby />}</Suspense>
-      <Player colliders={colliders} floor={floor} />
-      <Travel />
+      <Suspense fallback={null}>
+        <Dungeon slots={slots} />
+      </Suspense>
+      <Player colliders={colliders} slots={slots} />
       <FrameWhilePaused paused={paused} />
       <AdaptiveResolution onChange={setMaxDpr} />
       {statsEnabled && <StatsProbe paused={paused} />}

@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { loadView, pendingRequests, saveView, unreadMessages, useStore, type Focus } from '../store';
 import { api } from '../api';
+import { inDungeon, roomAt, visitSpot } from './dungeon';
 import { EYE_HEIGHT, SPAWN, collide, type Rect } from './layout';
 import { interactables } from './interact';
 import { LOOK_RADIANS_PER_PX, createLookFilter, filterLookDelta, resetLookFilter, useLookPrefs } from './look';
@@ -88,7 +89,7 @@ const isTyping = (e: KeyboardEvent) => {
   return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
 };
 
-export function Player({ colliders, floor }: { colliders: Rect[]; floor: number }) {
+export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[] }) {
   const { camera, gl } = useThree();
   const keys = useRef(new Set<string>());
   const look = useRef({ yaw: SPAWN.yaw, pitch: -0.05 });
@@ -98,19 +99,30 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
   const frame = useRef(0);
   const lookFilter = useMemo(createLookFilter, []);
 
-  // Arrive at the elevator whenever the floor changes; after a page reload, return to the remembered spot.
-  const restored = useRef(false);
+  // After a page reload, return to the remembered spot if it is still somewhere you can stand; otherwise the hall.
   useEffect(() => {
-    const saved = restored.current ? null : loadView();
-    restored.current = true;
-    if (saved && saved.floor === floor) {
+    const saved = loadView();
+    const p = saved && collide(saved.x, saved.z, colliders);
+    if (saved && p && Math.hypot(p.x - saved.x, p.z - saved.z) < 0.01 && inDungeon(saved.x, saved.z, slots)) {
       camera.position.set(saved.x, EYE_HEIGHT, saved.z);
       look.current = { yaw: saved.yaw, pitch: saved.pitch };
       return;
     }
     camera.position.set(SPAWN.x, EYE_HEIGHT, SPAWN.z);
     look.current = { yaw: SPAWN.yaw, pitch: -0.05 };
-  }, [floor, camera]);
+    // only on mount: later the player walks, or is sent by a visit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [camera]);
+
+  // A walk-in (the directory, a "Visit" button): straight to just inside that chamber's door, or back to the hall.
+  const visit = useStore((s) => s.visit);
+  useEffect(() => {
+    if (!visit) return;
+    const to = visit.to && slots.includes(visit.to) ? visitSpot(visit.to) : SPAWN;
+    camera.position.set(to.x, EYE_HEIGHT, to.z);
+    look.current = { yaw: to.yaw, pitch: -0.05 };
+    useStore.getState().clearVisit();
+  }, [visit, slots, camera]);
   const lastSave = useRef(0);
 
   useEffect(() => {
@@ -131,7 +143,7 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
       if (e.button !== 0) return;
       if (document.pointerLockElement !== gl.domElement) return requestLook();
       const s = useStore.getState();
-      if (!s.started || s.overlay || s.travel || isConfirmOpen()) return;
+      if (!s.started || s.overlay || isConfirmOpen()) return;
       if (s.held) startCharge();
       else if (s.focus) runFocusAction(s.focus, 'click');
     };
@@ -171,7 +183,7 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
       keys.current.add(e.code);
       // E always acts on the crosshair's target, even with darts in hand (a panel opening puts them back on the ledge).
       if (e.code === 'KeyE' && !e.repeat && s.focus) runFocusAction(s.focus);
-      if (e.code === 'KeyF' && !e.repeat && !s.travel) startCharge();
+      if (e.code === 'KeyF' && !e.repeat) startCharge();
       if (e.code === 'KeyG' && !e.repeat) dropHeld();
       if (e.code === 'KeyH') s.openOverlay({ kind: 'help' });
       if (e.code === 'KeyP') {
@@ -221,7 +233,7 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
     const speed = k.has('ShiftLeft') || k.has('ShiftRight') ? 6.5 : 3.6;
     const { yaw, pitch } = look.current;
     let moving = false;
-    if ((fwd || strafe) && !s.travel) {
+    if (fwd || strafe) {
       const len = Math.hypot(fwd, strafe);
       const sin = Math.sin(yaw);
       const cos = Math.cos(yaw);
@@ -238,14 +250,15 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
     camera.rotation.set(pitch, yaw, 0, 'YXZ');
 
     const now = performance.now();
-    if (s.started && !s.travel && now - lastSave.current > 1000) {
+    if (++frame.current % 10 === 0) s.setFloor(roomAt(camera.position.x, camera.position.z, slots));
+    if (s.started && now - lastSave.current > 1000) {
       lastSave.current = now;
-      saveView({ floor: s.floor, x: camera.position.x, z: camera.position.z, yaw, pitch });
+      saveView({ x: camera.position.x, z: camera.position.z, yaw, pitch });
     }
 
     // what are we looking at?
-    if (++frame.current % 3 !== 0) return;
-    if (s.overlay || s.travel || isConfirmOpen()) {
+    if (frame.current % 3 !== 0) return;
+    if (s.overlay || isConfirmOpen()) {
       if (s.focus) s.setFocus(null);
       return;
     }

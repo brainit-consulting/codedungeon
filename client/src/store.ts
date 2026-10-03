@@ -57,8 +57,10 @@ interface State {
   usage: UsageView; // Claude's subscription usage: normal, pacing after a warning, or paused at the limit
   restarting: boolean; // the connection dropped because the office is restarting to update
 
-  floor: number; // 0 = lobby
-  travel: { to: number; phase: 'closing' | 'opening' } | null;
+  /** The room the player is standing in: a chamber's slot (the repo's `floor`), or 0 for the great hall and gallery. */
+  floor: number;
+  /** A walk-in asked for (the directory, a "Visit" button): Player moves you there and clears it. 0 is the hall. */
+  visit: { to: number; seq: number } | null;
   overlay: Overlay | null;
   focus: Focus | null;
   locked: boolean;
@@ -79,28 +81,30 @@ interface State {
   setCharge(at: number | null): void;
   setLocked(v: boolean): void;
   start(): void;
+  /** Walk straight into chamber n (0: back to the hall). */
   goToFloor(n: number): void;
-  finishTravel(phase: 'arrived' | 'done'): void;
+  /** Player reports the room it is standing in. */
+  setFloor(n: number): void;
+  clearVisit(): void;
   pushToast(level: Toast['level'], text: string): void;
   dismissToast(id: number): void;
 }
 
 let toastSeq = 1;
 
-// Where the viewer was standing, so a refresh puts them back on the same floor and spot.
+// Where the viewer was standing, so a refresh puts them back on the same spot (the room follows from it).
 export interface SavedView {
-  floor: number;
   x: number;
   z: number;
   yaw: number;
   pitch: number;
 }
-const VIEW_KEY = 'cubefarm:view';
+const VIEW_KEY = 'codedungeon:view';
 
 export function loadView(): SavedView | null {
   try {
     const v = JSON.parse(localStorage.getItem(VIEW_KEY) ?? 'null') as SavedView | null;
-    return v && [v.floor, v.x, v.z, v.yaw, v.pitch].every(Number.isFinite) ? v : null;
+    return v && [v.x, v.z, v.yaw, v.pitch].every(Number.isFinite) ? v : null;
   } catch {
     return null;
   }
@@ -152,8 +156,8 @@ export const useStore = create<State>((set, get) => ({
   usage: { state: 'normal', until: null },
   restarting: false,
 
-  floor: loadView()?.floor ?? 0,
-  travel: null,
+  floor: 0,
+  visit: null,
   overlay: null,
   focus: null,
   locked: false,
@@ -179,8 +183,6 @@ export const useStore = create<State>((set, get) => ({
         }
         const qa: Record<string, QaView> = {};
         for (const q of d.qa) qa[qaKey(q.repoId, q.prNumber)] = q;
-        // Stay on the current (or remembered) floor if it still exists; otherwise go to the lobby.
-        const floorExists = d.repos.some((r) => r.floor === get().floor);
         set({
           loaded: true,
           user: d.user,
@@ -203,7 +205,6 @@ export const useStore = create<State>((set, get) => ({
           usage: d.usage,
           clis: d.clis ?? [],
           restarting: false,
-          floor: floorExists ? get().floor : 0,
         });
         break;
       }
@@ -218,8 +219,7 @@ export const useStore = create<State>((set, get) => ({
       }
       case 'repoRemoved': {
         const repos = get().repos.filter((r) => r.id !== ev.repoId);
-        const floor = get().floor > repos.length ? 0 : get().floor;
-        set({ repos, floor });
+        set({ repos, floor: repos.some((r) => r.floor === get().floor) ? get().floor : 0 });
         break;
       }
       case 'agent': {
@@ -323,18 +323,12 @@ export const useStore = create<State>((set, get) => ({
   setLocked: (locked) => set({ locked }),
   start: () => set({ started: true }),
   goToFloor(n) {
-    if (n === get().floor || get().travel) {
-      set({ overlay: null });
-      return;
-    }
-    set({ overlay: null, held: null, chargeAt: null, travel: { to: n, phase: 'closing' } });
+    set({ overlay: null, held: null, chargeAt: null, visit: { to: n, seq: (get().visit?.seq ?? 0) + 1 } });
   },
-  finishTravel(phase) {
-    const t = get().travel;
-    if (!t) return;
-    if (phase === 'arrived') set({ floor: t.to, travel: { ...t, phase: 'opening' } });
-    else set({ travel: null });
+  setFloor(n) {
+    if (n !== get().floor) set({ floor: n });
   },
+  clearVisit: () => set({ visit: null }),
   pushToast(level, text) {
     const id = toastSeq++;
     set({ toasts: [...get().toasts.slice(-4), { id, level, text }] });

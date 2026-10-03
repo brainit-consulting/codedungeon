@@ -317,7 +317,7 @@ function useCompany() {
               : `${ceo.name}'s periodic reviews are off.`,
       });
     }
-    if (floors.length === 0) report.splice(0, report.length, { icon: '👋', text: "No projects yet. Connect a repo in the manager's office (lobby, back left) and the CEO will staff it." });
+    if (floors.length === 0) report.splice(0, report.length, { icon: '👋', text: "No projects yet. Connect a repo in your office (great hall, back left) and the CEO will staff it." });
     return { floors, staff: staff.length, running, max: settings.sessionLimit, issues: sum('issues'), prs: sum('prs'), report };
   }, [repos, agents, qa, requests, settings, info]);
 }
