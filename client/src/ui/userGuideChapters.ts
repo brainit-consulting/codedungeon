@@ -37,6 +37,7 @@ export const CHAPTERS: GuideChapter[] = [
         '**The notice board** on the far wall, facing you as you come in: the chamber\'s issues and pull requests (chapter 4).',
         "**The coders' workbenches**, each with a slate on an easel showing that coder's live terminal (chapter 5).",
         '**The assay room**: the testers in aprons along the east wall, who check every pull request before it is merged.',
+        '**The gauges** on the far wall, right of the SHIP IT sign: how hard this computer is working (processor, memory, disk) and how Claude usage stands. Press [[E]] on them for the full readout, refreshed every five seconds.',
         "**The framed screen** on the left wall: the project's own app. Press [[E]] on it to start the app on the default branch or on any open pull request, and use it right there.",
       ),
       p(
@@ -179,7 +180,7 @@ export const CHAPTERS: GuideChapter[] = [
       p('The red badge on the scroll counts messages and decisions waiting for you.'),
       h('Sound'),
       p(
-        'A bell tolls when a pull request is ready to merge, fails QA or is merged, when someone hits an error and when a new recruit arrives. [[M]] mutes or unmutes anywhere; the volume is in the help ([[H]]).',
+        'A bell tolls when a pull request is ready to merge, fails QA or is merged, when someone hits an error and when a new recruit arrives. Quiet music plays under it all. [[M]] mutes or unmutes everything, anywhere; [[N]] turns just the music off or on. Both volumes are in the help ([[H]]).',
       ),
     ],
   },
@@ -244,6 +245,9 @@ export const CHAPTERS: GuideChapter[] = [
       p(
         'Press [[C]] to call her. She will ignore you for a moment, then follow you about. She never blocks your way or a click.',
       ),
+      p(
+        'Rats get in now and then, never more than three at a time. When she spots one she creeps up on it, pounces, and carries the kill to her pile beside the hearth. Twelve is all there are: once the pile is full, no more come until the dungeon is reloaded.',
+      ),
     ],
   },
   {
@@ -283,7 +287,7 @@ export const CHAPTERS: GuideChapter[] = [
       list(
         'Can\'t look around: click the view once. If the mouse still won\'t lock, drag with the left button held.',
         'The status pill says **reconnecting**: the dungeon\'s server is restarting or has stopped. Agents\' terminals keep working through a restart.',
-        'No sound: press [[M]], and check the volume in the help ([[H]]).',
+        'No sound: press [[M]], and check the volume in the help ([[H]]). No music: press [[N]], and check its own volume there too.',
       ),
     ],
   },
@@ -305,7 +309,8 @@ export const CHAPTERS: GuideChapter[] = [
         ['C', 'Call the cat'],
         ['F', 'Throw a dart (hold for a harder throw)'],
         ['G', 'Put the darts back'],
-        ['M', 'Sound on or off'],
+        ['M', 'All sound on or off'],
+        ['N', 'Music on or off'],
         ['Enter', 'Send, in the scroll and in a terminal\'s message box'],
         ['Shift + Enter', 'New line in those boxes'],
       ),
