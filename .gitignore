@@ -5,3 +5,4 @@ dist-server
 *.log
 playwright-report
 test-results
+.swarm-home

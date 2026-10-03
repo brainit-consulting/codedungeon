@@ -1,34 +1,29 @@
-# cubefarm
+# Code Dungeon
 
-A cartoon first-person 3D office (React Three Fiber) over a Node orchestrator that runs one Claude Code session
-(Claude Agent SDK) per developer, QA tester and the CEO, each in its own git worktree, working through GitHub issues.
-This is the app the company runs on: a live office is running from this repo right now. README.md is the quick start; docs/how-it-works.md and CONTRIBUTING.md have the details.
-It ships on npm as `cubefarm` (`npx cubefarm`); it used to be called Office Swarm.
+A medieval first-person 3D dungeon (React Three Fiber) over a Node orchestrator that runs coding-agent CLI sessions
+for developers, QA testers and the DungeonMaster, each in its own git worktree, working through GitHub issues. It is
+a real software factory. It started as a fork of cubefarm (github.com/leonvanzyl/cubefarm, remote `upstream`); its
+own repo is the private github.com/brainit-consulting/codedungeon (`origin`). Most of the code and docs below still
+use cubefarm's names (office, floor, CEO) until the medieval rebuild renames them.
 
 ## SAFETY (read first)
 
-- The live office runs from `C:\Projects\office-swarm` on this machine, on ports 4317 (server) and 5317 (Vite),
-  with its state in `~/.cubefarm`. Never edit or run anything there, never read or write `~/.cubefarm` directly, and
-  never use ports 4317 or 5317.
-- Test only in demo mode (fake GitHub, fake agents, no Claude usage), with an isolated `SWARM_HOME` and your reserved
-  `SWARM_PORT` (from your job instructions):
+- **Two offices run on this machine. Never touch the other one.** cubefarm's live office runs from `H:\cubefarm`
+  on ports 4317/5317 with its data in `C:\Users\snake\.cubefarm`: never edit or run anything there, never read or
+  write that folder, never use those ports. The code refuses them (`shared/dungeon.mjs`).
+- **Code Dungeon's own live office** runs from this folder with `npm run dev`: server 4417, Vite 5417, data in
+  `H:\codedungeon-home`. Agents working on this repo don't start, stop or use it either.
+- **Nothing on C:.** The launcher points temp files, the npm cache and Playwright browsers at `H:\codedungeon-home`.
+- Test only in demo mode (fake GitHub, fake agents, no Claude usage), with an isolated `SWARM_HOME` on H: and your
+  reserved `SWARM_PORT` (from your job instructions, never 4317/5317/4417/5417):
 
-  ```bash
-  npm install
-  npm run build
-  SWARM_HOME="$PWD/.swarm-home" SWARM_PORT=<your port> node --import tsx server/index.ts --demo
-  ```
   ```powershell
   npm install; npm run build
   $env:SWARM_HOME="$PWD\.swarm-home"; $env:SWARM_PORT="<your port>"; node --import tsx server/index.ts --demo
   ```
-  Then open `http://localhost:<your port>` (the server serves the built `dist/`). The startup banner must say
-  `DEMO MODE` and print a `state:` path inside your `SWARM_HOME`. Stop it when done; don't commit `.swarm-home`.
-- Never real mode (no `--demo`), and never `npm run dev` / `npm run demo` / `npm start` / `npx cubefarm`: they default
-  to 4317, and `dev`/`demo` default Vite to 5317. The first three run `scripts/office.mjs`, the launcher, which also
-  updates its own folder (git fetch + merge, npm install, build) when the office or you ask for it (`u`). Run it
-  only in a throwaway clone outside the live office, with `--demo` and your `SWARM_HOME`, `SWARM_PORT` and
-  `SWARM_CLIENT_PORT`.
+  Then open `http://localhost:<your port>`. The startup banner must say `DEMO MODE` and print a `state:` path inside
+  your `SWARM_HOME`. Stop it when done; don't commit `.swarm-home`.
+- Never `npm run dev` / `npm start` / `node bin/cubefarm.js` from a job: they start a real office.
 - Agents are ordinary coding-agent CLI sessions on the manager's own setup, unsandboxed, by the manager's choice. The
   office's workflow rules (no pushes to the default branch, no merging, QA leaves GitHub alone) live in their prompts
   and instructions, not in enforcement: don't add hooks, permission rules or sandboxes that refuse tool calls.
