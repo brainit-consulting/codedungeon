@@ -1,161 +1,126 @@
 import { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { glass, glow, shade, toon } from './materials';
-import { Ball, Box, Cyl } from './Toon';
+import { FIRE, Flame, useFireLight, type FireLook } from './lightPool';
+import { Model } from './models';
+
+// The dungeon's furnishings. The names are the office's old ones (a "plant" is now a floor candle stand, the
+// "kitchenette" the ale corner) so the rooms that place them didn't have to change; each keeps its old footprint,
+// which layout.ts's colliders still describe.
 
 type P = [number, number, number];
 
-export function Plant({ position, scale = 1, pot = '#e07a5f' }: { position: P; scale?: number; pot?: string }) {
+const WOOD = new THREE.MeshStandardMaterial({ color: '#3a2819', roughness: 0.92 });
+const WOOD_DARK = new THREE.MeshStandardMaterial({ color: '#24180f', roughness: 0.95 });
+const IRON = new THREE.MeshStandardMaterial({ color: '#2b2a29', roughness: 0.6, metalness: 0.6 });
+
+/** Where a point of firelight sits, invisible: a flame drawn elsewhere, or a model's own candles. */
+function FirePoint({ position, look }: { position: P; look: FireLook }) {
+  const ref = useRef<THREE.Group>(null);
+  useFireLight(ref, look);
+  return <group ref={ref} position={position} />;
+}
+
+/** A tall iron candle stand with a lit candle (was: a potted plant). */
+export function Plant({ position, scale = 1 }: { position: P; scale?: number; pot?: string }) {
   return (
     <group position={position} scale={scale}>
-      <Cyl r={0.22} rTop={0.28} h={0.5} position={[0, 0.25, 0]} color={pot} outline />
-      <Ball r={0.36} position={[0, 0.8, 0]} color="#52b788" outline />
-      <Ball r={0.28} position={[0.2, 1.05, 0.08]} color="#40916c" outline />
-      <Ball r={0.25} position={[-0.18, 1.12, -0.05]} color="#74c69d" outline />
-      <Ball r={0.2} position={[0.02, 1.35, 0]} color="#52b788" outline />
+      <Model name="props/CandleStick_Stand" />
+      <group position={[0, 1.33, 0]}>
+        <Flame />
+      </group>
+      <FirePoint position={[0, 1.42, 0]} look={FIRE.candle} />
     </group>
   );
 }
 
+/** A water barrel on a block, with a bucket (was: the water cooler). */
 export function WaterCooler({ position }: { position: P }) {
   return (
     <group position={position}>
-      <Box size={[0.45, 1.0, 0.45]} position={[0, 0.5, 0]} color="#f1f3f5" outline />
-      <Cyl r={0.18} h={0.5} position={[0, 1.25, 0]} color="#8ecae6" outline />
-      <Box size={[0.08, 0.06, 0.06]} position={[0, 0.8, -0.24]} color="#457b9d" />
+      <Model name="props/Barrel" />
+      <Model name="props/Bucket_Wooden_1" position={[-0.05, 0.9, 0]} rotation={[0, 0.6, 0]} />
     </group>
   );
 }
 
-export function Couch({ position, rotationY = 0, color = '#6c63ff' }: { position: P; rotationY?: number; color?: string }) {
-  const dark = shade(color, -0.12);
+/** A long bench, back to the wall (was: the couch). Local +Z is the side you sit facing. */
+export function Couch({ position, rotationY = 0 }: { position: P; rotationY?: number; color?: string }) {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      <Box size={[3, 0.42, 1]} position={[0, 0.25, 0]} color={color} outline />
-      <Box size={[3, 0.6, 0.25]} position={[0, 0.7, 0.38]} color={dark} outline />
-      <Box size={[0.25, 0.55, 1]} position={[-1.5, 0.45, 0]} color={dark} outline />
-      <Box size={[0.25, 0.55, 1]} position={[1.5, 0.45, 0]} color={dark} outline />
-      <Box size={[0.5, 0.4, 0.14]} position={[-0.9, 0.62, 0.22]} color="#ffd166" outline />
-      <Box size={[0.5, 0.4, 0.14]} position={[0.9, 0.62, 0.22]} color="#ef476f" outline />
+      <Model name="props/Bench" />
     </group>
   );
 }
 
+/** A crate used as a table, a candle and a mug on it (was: the coffee table). */
 export function CoffeeTable({ position, rotationY = 0 }: { position: P; rotationY?: number }) {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      <Box size={[1.3, 0.08, 0.8]} position={[0, 0.42, 0]} color="#f1d19b" outline />
-      <Box size={[1.1, 0.38, 0.6]} position={[0, 0.2, 0]} color="#c9a26b" />
-      <Cyl r={0.05} h={0.1} position={[0.3, 0.51, 0.1]} color="#ffffff" outline />
-      <Box size={[0.3, 0.04, 0.22]} position={[-0.25, 0.48, -0.05]} color="#4cc9f0" outline />
+      <Model name="props/Crate_Wooden" scale={[0.9, 0.45, 0.7]} />
+      <Model name="props/Mug" position={[0.25, 0.51, 0.1]} />
+      <Model name="props/CandleStick" position={[-0.2, 0.51, -0.05]} />
+      <group position={[-0.24, 0.66, -0.05]}>
+        <Flame size={0.6} />
+      </group>
+      <FirePoint position={[-0.24, 0.72, -0.05]} look={FIRE.candle} />
     </group>
   );
 }
 
+/**
+ * The ale corner against the east wall (was: the kitchenette and fridge): a keg on its cradle, bottles on a shelf, a
+ * cupboard with mugs, and a spare barrel. Laid out along local Z, the wall at local +X, like the counter it replaces.
+ */
 export function Kitchenette({ position }: { position: P }) {
-  const steam = useRef<THREE.Group>(null);
-  useFrame(() => {
-    if (!steam.current) return;
-    const t = performance.now() / 1000;
-    steam.current.children.forEach((c, i) => {
-      const k = (t * 0.4 + i / 3) % 1;
-      c.position.y = k * 0.4;
-      c.scale.setScalar(0.5 + k);
-      ((c as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = 0.5 * (1 - k);
-    });
-  });
+  const facing: P = [0, -Math.PI / 2, 0]; // fronts face away from the east wall
   return (
     <group position={position}>
-      {/* counter runs along z */}
-      <Box size={[0.8, 0.9, 4]} position={[0, 0.45, 0]} color="#8ecae6" outline />
-      <Box size={[0.9, 0.06, 4.1]} position={[-0.02, 0.93, 0]} color="#f8f9fa" outline />
-      {/* coffee machine */}
-      <Box size={[0.45, 0.55, 0.4]} position={[0.05, 1.24, -1.1]} color="#343a40" outline />
-      <Box size={[0.3, 0.12, 0.3]} position={[-0.1, 1.1, -1.1]} color="#495057" />
-      <mesh position={[-0.2, 1.35, -1.1]} rotation={[0, -Math.PI / 2, 0]} material={glow('#ff6b6b')}>
-        <circleGeometry args={[0.03, 12]} />
-      </mesh>
-      <Cyl r={0.05} h={0.1} position={[-0.15, 1.01, -1.1]} color="#ffffff" outline />
-      <group ref={steam} position={[-0.15, 1.1, -1.1]}>
-        {[0, 1, 2].map((i) => (
-          <mesh key={i}>
-            <sphereGeometry args={[0.03, 8, 6]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.4} depthWrite={false} />
-          </mesh>
-        ))}
-      </group>
-      {/* fruit bowl + kettle */}
-      <Cyl r={0.2} rTop={0.24} h={0.1} position={[0, 1.01, 0.6]} color="#f4a261" outline />
-      <Ball r={0.07} position={[0.05, 1.1, 0.55]} color="#e63946" />
-      <Ball r={0.07} position={[-0.06, 1.1, 0.66]} color="#ffd166" />
-      <Ball r={0.07} position={[0.07, 1.1, 0.7]} color="#80ed99" />
-      <Cyl r={0.1} rTop={0.07} h={0.25} position={[0, 1.08, 1.4]} color="#ced4da" outline />
-      {/* fridge */}
-      <Box size={[0.8, 2, 0.8]} position={[0, 1, 2.45]} color="#f1f3f5" outline />
-      <Box size={[0.04, 0.5, 0.05]} position={[-0.42, 1.3, 2.2]} color="#adb5bd" />
+      <Model name="props/Barrel_Holder" position={[0, 0, -1.4]} rotation={facing} />
+      <Model name="props/Shelf_Small_Bottles" position={[0.42, 1.45, 0.4]} rotation={facing} />
+      <Model name="props/Cabinet" position={[0.22, 0, 0.6]} rotation={facing} />
+      <Model name="props/Mug" position={[0.15, 1.0, 0.25]} />
+      <Model name="props/Mug" position={[0.2, 1.0, 0.8]} rotation={[0, 1.2, 0]} />
+      <Model name="props/Bottle_1" position={[0.25, 1.0, 1.05]} />
+      <Model name="props/Barrel" position={[0.05, 0, 2.3]} />
     </group>
   );
 }
 
+/** A worn rug, its colour sunk deep into the dark. */
 export function Rug({ position, size, color }: { position: P; size: [number, number]; color: string }) {
+  const c = new THREE.Color(color).lerp(new THREE.Color('#1c130d'), 0.72);
   return (
-    <mesh position={position} rotation={[-Math.PI / 2, 0, 0]} receiveShadow material={toon(color)}>
+    <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>
       <planeGeometry args={size} />
+      <meshStandardMaterial color={c} roughness={1} />
     </mesh>
   );
 }
 
+/** A wooden shield hung on the wall (was: the wall clock). */
 export function WallClock({ position, rotationY = 0 }: { position: P; rotationY?: number }) {
-  const hour = useRef<THREE.Group>(null);
-  const minute = useRef<THREE.Group>(null);
-  useFrame(() => {
-    const d = new Date();
-    const m = d.getMinutes() + d.getSeconds() / 60;
-    const h = (d.getHours() % 12) + m / 60;
-    if (minute.current) minute.current.rotation.z = -(m / 60) * Math.PI * 2;
-    if (hour.current) hour.current.rotation.z = -(h / 12) * Math.PI * 2;
-  });
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      <Cyl r={0.36} h={0.06} rotation={[Math.PI / 2, 0, 0]} color="#ffffff" outline shadow={false} />
-      <group ref={hour} position={[0, 0, 0.04]}>
-        <mesh position={[0, 0.1, 0]} material={toon('#1f1d2b')}>
-          <boxGeometry args={[0.035, 0.2, 0.01]} />
-        </mesh>
-      </group>
-      <group ref={minute} position={[0, 0, 0.045]}>
-        <mesh position={[0, 0.14, 0]} material={toon('#e63946')}>
-          <boxGeometry args={[0.025, 0.28, 0.01]} />
-        </mesh>
-      </group>
+      <Model name="props/Shield_Wooden" scale={1.3} />
     </group>
   );
 }
 
+/** Three bookcases side by side, 4.4 m along local X, backs to the wall (was: the bookshelf). */
 export function Bookshelf({ position, rotationY = 0 }: { position: P; rotationY?: number }) {
-  const colors = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#9b5de5', '#ffbe0b', '#06d6a0'];
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      <Box size={[4.8, 2.2, 0.6]} position={[0, 1.1, 0]} color="#b08968" outline />
-      {[0.35, 0.95, 1.55].map((y, row) => (
-        <group key={y}>
-          <Box size={[4.6, 0.04, 0.55]} position={[0, y - 0.25, 0.04]} color="#9c6644" shadow={false} />
-          {Array.from({ length: 14 }, (_, i) => (
-            <Box
-              key={i}
-              size={[0.14 + ((i * row) % 3) * 0.03, 0.34 + ((i + row) % 4) * 0.04, 0.4]}
-              position={[-2.1 + i * 0.3, y - 0.05, 0.08]}
-              color={colors[(i + row * 3) % colors.length]}
-              shadow={false}
-            />
-          ))}
-        </group>
+      {[-1.47, 0, 1.47].map((x) => (
+        <Model key={x} name="props/Bookcase_2" position={[x, 0, 0]} />
       ))}
     </group>
   );
 }
 
+/**
+ * A wooden screen between two points (was: a glass wall): a low panelled wall, posts, and a top rail, so you can
+ * still see over and between. The colliders (layout.ts) are unchanged.
+ */
 export function GlassWall({ from, to, height = 2.8 }: { from: [number, number]; to: [number, number]; height?: number }) {
   const dx = to[0] - from[0];
   const dz = to[1] - from[1];
@@ -163,15 +128,44 @@ export function GlassWall({ from, to, height = 2.8 }: { from: [number, number]; 
   const cx = (from[0] + to[0]) / 2;
   const cz = (from[1] + to[1]) / 2;
   const rot = -Math.atan2(dz, dx);
+  const posts = Math.max(2, Math.round(len / 1.2) + 1);
   return (
     <group position={[cx, 0, cz]} rotation={[0, rot, 0]}>
-      <mesh position={[0, height / 2, 0]} material={glass}>
-        <boxGeometry args={[len, height, 0.04]} />
+      <mesh position={[0, 0.5, 0]} material={WOOD_DARK}>
+        <boxGeometry args={[len, 1, 0.08]} />
       </mesh>
-      <Box size={[len, 0.08, 0.1]} position={[0, height, 0]} color="#8d99ae" shadow={false} />
-      <Box size={[len, 0.08, 0.1]} position={[0, 0.04, 0]} color="#8d99ae" shadow={false} />
-      <Box size={[0.08, height, 0.1]} position={[-len / 2, height / 2, 0]} color="#8d99ae" shadow={false} />
-      <Box size={[0.08, height, 0.1]} position={[len / 2, height / 2, 0]} color="#8d99ae" shadow={false} />
+      <mesh position={[0, 1.02, 0]} material={WOOD}>
+        <boxGeometry args={[len, 0.06, 0.14]} />
+      </mesh>
+      <mesh position={[0, height - 0.05, 0]} material={WOOD}>
+        <boxGeometry args={[len, 0.1, 0.12]} />
+      </mesh>
+      {Array.from({ length: posts }, (_, i) => (
+        <mesh key={i} position={[-len / 2 + (len * i) / (posts - 1), height / 2, 0]} material={WOOD}>
+          <boxGeometry args={[0.1, height, 0.1]} />
+        </mesh>
+      ))}
     </group>
   );
 }
+
+// The chandelier model's six candles: on its ring, just below the top of the spikes.
+const CANDLE_Y = -0.98;
+const CANDLES = Array.from({ length: 6 }, (_, i) => [Math.cos((i * Math.PI) / 3) * 0.58, Math.sin((i * Math.PI) / 3) * 0.58] as const);
+
+/** An iron ring chandelier with candles, hung from the vault at `position` (its top). */
+export function Chandelier({ position }: { position: P }) {
+  return (
+    <group position={position}>
+      <Model name="props/Chandelier" />
+      {CANDLES.map(([x, z], i) => (
+        <group key={i} position={[x, CANDLE_Y, z]}>
+          <Flame size={0.55} />
+        </group>
+      ))}
+      <FirePoint position={[0, -1.1, 0]} look={FIRE.chandelier} />
+    </group>
+  );
+}
+
+export { IRON };

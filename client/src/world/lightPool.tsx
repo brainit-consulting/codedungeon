@@ -15,9 +15,10 @@ export interface FireLook {
   distance: number;
 }
 
-export const FIRE: Record<'torch' | 'candle' | 'hearth', FireLook> = {
+export const FIRE: Record<'torch' | 'candle' | 'chandelier' | 'hearth', FireLook> = {
   torch: { color: '#ff9a4a', intensity: 45, distance: 16 },
   candle: { color: '#ffb46b', intensity: 6, distance: 5 },
+  chandelier: { color: '#ffa65a', intensity: 60, distance: 14 },
   hearth: { color: '#ff7a2e', intensity: 110, distance: 22 },
 };
 
@@ -40,8 +41,8 @@ export function useFireLight(ref: React.RefObject<THREE.Object3D | null>, look: 
   }, [ref, look]);
 }
 
-/** How many point lights are ever lit at once. Six keeps an old laptop's GPU comfortable. */
-const POOL = 6;
+/** How many point lights are ever lit at once (measured: still 60 fps on the Overlord's laptop at eight). */
+const POOL = 8;
 const REACH = 26; // anchors further than this from the player are never picked
 
 export function LightPool() {

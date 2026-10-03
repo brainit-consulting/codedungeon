@@ -96,7 +96,7 @@ export function Shell({
 export function Lights() {
   return (
     <>
-      <hemisphereLight args={['#6b5040', '#1a120c', 1.1]} />
+      <hemisphereLight args={['#7a5c48', '#1c140e', 1.5]} />
       <ambientLight color="#4a382a" intensity={0.45} />
       <LightPool />
     </>

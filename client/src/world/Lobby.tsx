@@ -5,19 +5,22 @@ import { pendingRequests, useStore, type Agent } from '../store';
 import { CEO_ID, type HireRequestView } from '../../../shared/types';
 import { Character } from './Character';
 import { Desk } from './Desk';
+import { Bar, FeastTables, Hearth } from './GreatHall';
 import { drawCandidateTag, drawSign, roundRect, SANS } from './draw';
 import { useCanvasTexture, useInteractable } from './interact';
-import { CEO_DESK, CEO_ROOM, HALF_D, HALF_W, MANAGER_DESK, MANAGER_ROOM, RECEPTION, WAITING, WAITING_ROTATION } from './layout';
-import { glow, shade } from './materials';
+import { CEO_DESK, CEO_ROOM, HALF_D, HALF_W, MANAGER_DESK, MANAGER_ROOM, WAITING, WAITING_ROTATION } from './layout';
+import { Model } from './models';
 import { WallSign } from './OfficeFloor';
 import { Bookshelf, Couch, CoffeeTable, GlassWall, Plant, Rug, WallClock } from './Props';
 import { Shell, torchesOn } from './Shell';
 
 // Torches where the walls are clear: not over the bookshelf, the trophy cabinet, the CEO's board, the waiting-room
 // sign, the directory or the dart board.
-const HALL_TORCHES = [...torchesOn.west([0, 7]), ...torchesOn.east([1.5]), ...torchesOn.north([-4.5, 4.5]), ...torchesOn.south([-8, 8])];
-import { Ball, Box, Cyl } from './Toon';
+const HALL_TORCHES = [...torchesOn.west([-1.2, 9.2]), ...torchesOn.east([1.5]), ...torchesOn.north([-3.2]), ...torchesOn.south([-8, 8])];
+import { Box } from './Toon';
 import { Toys } from './toys';
+
+const SLATE_FRAME = new THREE.MeshStandardMaterial({ color: '#2e1f14', roughness: 0.85 });
 
 const ACCENT = '#ff8a5b';
 const CEO_ACCENT = '#9b5de5';
@@ -96,28 +99,20 @@ function ManagerComputer() {
   );
   return (
     <group ref={ref} position={[MANAGER_DESK.x, 0, MANAGER_DESK.z]}>
-      <Box size={[MANAGER_DESK.w, 0.08, MANAGER_DESK.d]} position={[0, 0.76, 0]} color="#8d5a3b" outline />
-      <Box size={[MANAGER_DESK.w - 0.1, 0.72, 0.06]} position={[0, 0.37, -MANAGER_DESK.d / 2 + 0.05]} color="#6f4530" />
-      <Box size={[0.08, 0.72, MANAGER_DESK.d - 0.1]} position={[-MANAGER_DESK.w / 2 + 0.08, 0.37, 0]} color="#6f4530" />
-      <Box size={[0.08, 0.72, MANAGER_DESK.d - 0.1]} position={[MANAGER_DESK.w / 2 - 0.08, 0.37, 0]} color="#6f4530" />
-      {/* big monitor facing the door */}
-      <Box size={[0.1, 0.34, 0.1]} position={[0, 0.97, -0.15]} color="#adb5bd" />
-      <Box size={[0.4, 0.03, 0.26]} position={[0, 0.815, -0.15]} color="#adb5bd" outline />
-      <Box size={[1.42, 0.92, 0.06]} position={[0, 1.55, -0.18]} color="#343a40" outline />
+      {/* the Overlord's table, a great slate on it facing the door */}
+      <Model name="props/Table_Large" scale={[0.91, 0.94, 1]} />
+      <mesh position={[0, 1.55, -0.18]} material={SLATE_FRAME}>
+        <boxGeometry args={[1.5, 1.0, 0.07]} />
+      </mesh>
       <mesh position={[0, 1.55, -0.145]}>
         <planeGeometry args={[1.34, 0.84]} />
         <meshBasicMaterial map={tex} toneMapped={false} />
       </mesh>
-      <Box size={[0.5, 0.025, 0.16]} position={[0, 0.815, 0.25]} color="#f4f4f8" outline />
-      <Cyl r={0.05} h={0.11} position={[0.9, 0.855, 0.1]} color="#ffd166" outline />
-      <Box size={[0.3, 0.2, 0.03]} position={[-0.95, 0.9, -0.1]} rotation={[-0.3, 0.3, 0]} color="#e9c46a" outline />
-      {/* manager chair (yours) */}
-      <group position={[0, 0, -1.1]}>
-        <Box size={[0.64, 0.12, 0.6]} position={[0, 0.48, 0]} color="#2b2d42" outline />
-        <Box size={[0.62, 0.8, 0.12]} position={[0, 0.95, -0.3]} color="#2b2d42" outline />
-        <Cyl r={0.04} h={0.4} position={[0, 0.22, 0]} color="#6c757d" />
-        <Cyl r={0.3} h={0.04} position={[0, 0.03, 0]} color="#6c757d" />
-      </group>
+      <Model name="props/Scroll_1" position={[-0.6, 0.77, 0.25]} rotation={[0, 0.4, 0]} />
+      <Model name="props/Chalice" position={[0.95, 0.77, 0.15]} />
+      <Model name="props/Book_Stack_1" position={[-1.0, 0.77, -0.25]} />
+      {/* your chair: the high-backed one */}
+      <Model name="props/Chair_1" position={[0, 0, -1.1]} scale={1.2} />
     </group>
   );
 }
@@ -199,16 +194,14 @@ function TrophyCabinet() {
   const cups = Math.min(8, stats.merged);
   return (
     <group position={[12, 0, -HALF_D + 0.55]}>
-      <Box size={[4.4, 2.1, 1]} position={[0, 1.05, 0]} color="#b08968" outline />
-      <Box size={[4.1, 1.2, 0.8]} position={[0, 1.2, 0.12]} color="#fdf6e3" shadow={false} />
-      <Box size={[4.1, 0.04, 0.8]} position={[0, 1.2, 0.12]} color="#b08968" shadow={false} />
+      {/* the DungeonMaster's trophies: a weapon stand, a chest of spoils, a chalice per merged PR (up to eight) */}
+      <Model name="props/WeaponStand" position={[-1.2, 0, 0]} />
+      <Model name="props/Chest_Wood" position={[1.2, 0, 0.05]} />
       {Array.from({ length: cups }, (_, i) => (
-        <group key={i} position={[-1.7 + (i % 4) * 1.1, i < 4 ? 0.62 : 1.22, 0.2]}>
-          <Cyl r={0.08} rTop={0.16} h={0.22} position={[0, 0.2, 0]} color="#ffd43b" outline />
-          <Cyl r={0.03} h={0.1} position={[0, 0.05, 0]} color="#ffd43b" />
-          <Box size={[0.2, 0.04, 0.2]} position={[0, 0.01, 0]} color="#495057" />
-        </group>
+        <Model key={i} name="props/Chalice" position={[0.75 + (i % 4) * 0.3, 0.69, -0.15 + Math.floor(i / 4) * 0.3]} />
       ))}
+      <Model name="props/Banner_1" position={[-2.0, 2.6, -0.48]} />
+      <Model name="props/Banner_2" position={[0.4, 2.6, -0.48]} />
       <mesh position={[0, 2.45, 0.02]}>
         <planeGeometry args={[2.4, 0.75]} />
         <meshBasicMaterial map={tex} transparent toneMapped={false} />
@@ -259,7 +252,7 @@ function CeoOffice() {
       <GlassWall from={[c.minX, c.minZ]} to={[c.minX, c.maxZ]} />
       <GlassWall from={[c.minX, c.maxZ]} to={[c.doorMinX, c.maxZ]} />
       <GlassWall from={[c.doorMaxX, c.maxZ]} to={[c.maxX, c.maxZ]} />
-      <Box size={[c.doorMaxX - c.doorMinX, 0.5, 0.1]} position={[(c.doorMinX + c.doorMaxX) / 2, 2.55, c.maxZ]} color="#8d99ae" />
+      <Box size={[c.doorMaxX - c.doorMinX, 0.5, 0.1]} position={[(c.doorMinX + c.doorMaxX) / 2, 2.55, c.maxZ]} color="#2e1f14" />
       <WallSign
         position={[(c.doorMinX + c.doorMaxX) / 2, 3.1, c.maxZ + 0.06]}
         rotationY={0}
@@ -334,19 +327,9 @@ function WaitingChair({ z, req }: { z: number; req: HireRequestView | null }) {
     3.2,
   );
   const agent = useMemo(() => (req ? candidateAgent(req) : null), [req]);
-  const seat = '#06d6a0';
   return (
     <group ref={ref} position={[WAITING.x, 0, z]} rotation={[0, WAITING_ROTATION, 0]}>
-      <Box size={[0.52, 0.08, 0.5]} position={[0, 0.44, 0]} color={seat} outline />
-      <Box size={[0.48, 0.42, 0.07]} position={[0, 0.72, 0.28]} color={seat} outline />
-      {[
-        [-0.22, -0.2],
-        [0.22, -0.2],
-        [-0.22, 0.2],
-        [0.22, 0.2],
-      ].map(([x, zz]) => (
-        <Box key={`${x}${zz}`} size={[0.05, 0.42, 0.05]} position={[x, 0.2, zz]} color="#444a5c" />
-      ))}
+      <Model name="props/Chair_1" rotation={[0, Math.PI, 0]} />
       {agent && <Character agent={agent} />}
       {req && <CandidateTag req={req} />}
     </group>
@@ -386,14 +369,13 @@ export function Lobby() {
     <group>
       {/* east windows clear of the CEO's board (z -9.1 to -5.7) and the waiting room sign (from z 6.7) */}
       <Shell torches={HALL_TORCHES} />
-      <Rug position={[3, 0.004, 3]} size={[14, 9]} color="#ffd6a5" />
 
       {/* manager's office */}
       <Rug position={[(m.minX + m.maxX) / 2, 0.005, (m.minZ + m.maxZ) / 2]} size={[m.maxX - m.minX, m.maxZ - m.minZ]} color="#cde7e1" />
       <GlassWall from={[m.maxX, m.minZ]} to={[m.maxX, m.maxZ]} />
       <GlassWall from={[m.minX, m.maxZ]} to={[m.doorMinX, m.maxZ]} />
       <GlassWall from={[m.doorMaxX, m.maxZ]} to={[m.maxX, m.maxZ]} />
-      <Box size={[m.doorMaxX - m.doorMinX, 0.5, 0.1]} position={[(m.doorMinX + m.doorMaxX) / 2, 2.55, m.maxZ]} color="#8d99ae" />
+      <Box size={[m.doorMaxX - m.doorMinX, 0.5, 0.1]} position={[(m.doorMinX + m.doorMaxX) / 2, 2.55, m.maxZ]} color="#2e1f14" />
       <WallSign
         position={[(m.doorMinX + m.doorMaxX) / 2, 3.1, m.maxZ + 0.06]}
         rotationY={0}
@@ -421,27 +403,10 @@ export function Lobby() {
         deps={[]}
       />
 
-      {/* reception */}
-      <group position={[RECEPTION.x, 0, RECEPTION.z]}>
-        <Box size={[RECEPTION.w, 1.05, RECEPTION.d]} position={[0, 0.525, 0]} color="#ffffff" outline />
-        <Box size={[RECEPTION.w + 0.1, 0.08, RECEPTION.d + 0.1]} position={[0, 1.09, 0]} color={ACCENT} outline />
-        <Box size={[RECEPTION.w - 0.4, 0.3, 0.02]} position={[0, 0.6, RECEPTION.d / 2 + 0.01]} color={shade(ACCENT, 0.15)} shadow={false} />
-        {/* a very cheerful receptionist bot */}
-        <group position={[0, 1.13, -0.1]}>
-          <Cyl r={0.2} rTop={0.16} h={0.4} position={[0, 0.2, 0]} color="#e9ecef" outline />
-          <Ball r={0.22} position={[0, 0.58, 0]} color="#f8f9fa" outline />
-          <mesh position={[-0.08, 0.6, 0.2]} material={glow('#4cc9f0')}>
-            <sphereGeometry args={[0.035, 10, 8]} />
-          </mesh>
-          <mesh position={[0.08, 0.6, 0.2]} material={glow('#4cc9f0')}>
-            <sphereGeometry args={[0.035, 10, 8]} />
-          </mesh>
-          <Cyl r={0.012} h={0.2} position={[0, 0.88, 0]} color="#adb5bd" />
-          <mesh position={[0, 0.99, 0]} material={glow(ACCENT)}>
-            <sphereGeometry args={[0.045, 10, 8]} />
-          </mesh>
-        </group>
-      </group>
+      {/* the tavern */}
+      <Bar />
+      <Hearth />
+      <FeastTables />
       <WallSign
         position={[3, 2.25, -HALF_D + 0.03]}
         rotationY={0}

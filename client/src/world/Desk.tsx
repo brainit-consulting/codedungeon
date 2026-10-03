@@ -3,14 +3,14 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore, type Agent } from '../store';
-import { Box, Cyl, Ball } from './Toon';
+import { FIRE, Flame, useFireLight } from './lightPool';
+import { Model } from './models';
 import { Character } from './Character';
 import { drawSign, drawTag, drawTerminal } from './draw';
 import { useCanvasTexture, useInteractable } from './interact';
-import { glow, shade, toon } from './materials';
+import { glow, toon } from './materials';
 
 const SCREEN = { w: 1.0, h: 0.6, px: 896, py: 538 };
-const WOOD = '#f1d19b';
 
 /** The live terminal texture for one agent's laptop. Only repaints when something changed and the player is nearby. */
 function useTerminalTexture(agent: Agent, anchor: React.RefObject<THREE.Object3D | null>) {
@@ -103,24 +103,32 @@ function NameTag({ agent }: { agent: Agent }) {
 }
 
 const MONITOR = { y: 1.31, z: -0.3, tilt: -0.06 };
-const BEZEL = '#2b2d42';
-const STAND = '#3d4152';
+const FRAME = new THREE.MeshStandardMaterial({ color: '#2e1f14', roughness: 0.85 });
+const BRASS = new THREE.MeshStandardMaterial({ color: '#8a6a32', roughness: 0.45, metalness: 0.8 });
+const PARCHMENT = new THREE.MeshStandardMaterial({ color: '#b9a682', roughness: 1 });
+const LEATHER = new THREE.MeshStandardMaterial({ color: '#3d2416', roughness: 0.9 });
 
-/** Desktop monitor on a slim stand, set back on the desk so it stays readable over the agent's head. */
+/** The scrying slate: the agent's live screen in a heavy wooden frame on an easel, readable over the agent's head. */
 function Monitor({ accent, children }: { accent: string; children: React.ReactNode }) {
   return (
     <group>
-      <Cyl r={0.17} rTop={0.15} h={0.025} position={[0, 0.782, MONITOR.z - 0.04]} color={STAND} outline />
-      <Box size={[0.07, 0.36, 0.05]} position={[0, 0.95, MONITOR.z - 0.07]} color={STAND} outline />
-      <group position={[0, MONITOR.y, MONITOR.z]} rotation={[MONITOR.tilt, 0, 0]}>
-        <Box size={[SCREEN.w + 0.07, SCREEN.h + 0.07, 0.05]} color={BEZEL} outline />
-        <Box size={[0.6, 0.36, 0.07]} position={[0, 0, -0.055]} color={STAND} />
-        {children}
-        <mesh position={[0, 0, -0.091]} rotation={[0, Math.PI, 0]} material={glow(accent)}>
-          <circleGeometry args={[0.06, 24]} />
+      {/* easel legs */}
+      {[-0.32, 0.32].map((x) => (
+        <mesh key={x} position={[x, 1.0, MONITOR.z - 0.06]} rotation={[0.08, 0, x < 0 ? 0.06 : -0.06]} material={FRAME}>
+          <boxGeometry args={[0.05, 0.5, 0.05]} />
         </mesh>
-        <mesh position={[SCREEN.w / 2 - 0.02, -SCREEN.h / 2 - 0.018, 0.026]} material={glow('#7CFFB2')}>
-          <circleGeometry args={[0.008, 10]} />
+      ))}
+      <group position={[0, MONITOR.y, MONITOR.z]} rotation={[MONITOR.tilt, 0, 0]}>
+        <mesh material={FRAME}>
+          <boxGeometry args={[SCREEN.w + 0.12, SCREEN.h + 0.12, 0.05]} />
+        </mesh>
+        {children}
+        {/* the house's colour as a brass-ringed seal on top of the frame */}
+        <mesh position={[0, SCREEN.h / 2 + 0.06, 0.03]} rotation={[Math.PI / 2, 0, 0]} material={BRASS}>
+          <cylinderGeometry args={[0.05, 0.05, 0.02, 16]} />
+        </mesh>
+        <mesh position={[0, SCREEN.h / 2 + 0.06, 0.041]} material={glow(accent)}>
+          <circleGeometry args={[0.035, 16]} />
         </mesh>
       </group>
     </group>
@@ -165,50 +173,44 @@ function VacantMonitor({ accent, qa }: { accent: string; qa: boolean }) {
   );
 }
 
-function Keyboard() {
-  const tex = useCanvasTexture(
-    512,
-    176,
-    (ctx) => {
-      ctx.fillStyle = '#d7dbe3';
-      ctx.fillRect(0, 0, 512, 176);
-      const rows = [14, 13, 12, 11];
-      rows.forEach((n, r) => {
-        const kw = (496 - (n - 1) * 5) / n;
-        for (let i = 0; i < n; i++) {
-          ctx.fillStyle = r === 0 && (i === 0 || i === n - 1) ? '#ffb4a2' : '#ffffff';
-          ctx.beginPath();
-          ctx.roundRect(8 + i * (kw + 5), 8 + r * 34, kw, 28, 6);
-          ctx.fill();
-        }
-      });
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.roundRect(130, 144, 252, 26, 6);
-      ctx.fill();
-    },
-    [],
-  );
+/** An open ledger and a quill in its inkpot, where the agent's hands rest (was: the keyboard and mouse). */
+function Ledger() {
   return (
-    <group position={[0, 0.77, 0.27]}>
-      <Box size={[0.52, 0.03, 0.18]} position={[0, 0.015, 0]} color="#c3c8d3" outline />
-      <mesh position={[0, 0.031, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[0.5, 0.17]} />
-        <meshToonMaterial map={tex} />
+    <group position={[0, 0.745, 0.27]}>
+      <mesh position={[0, 0.01, 0]} material={LEATHER}>
+        <boxGeometry args={[0.56, 0.02, 0.36]} />
       </mesh>
-      {/* mouse + pad */}
-      <mesh position={[0.46, 0.002, 0.02]} rotation={[-Math.PI / 2, 0, 0]} material={toon('#3d4152')}>
-        <planeGeometry args={[0.24, 0.2]} />
+      {[-0.135, 0.135].map((x) => (
+        <mesh key={x} position={[x, 0.024, 0]} rotation={[0, 0, x < 0 ? 0.04 : -0.04]} material={PARCHMENT}>
+          <boxGeometry args={[0.26, 0.012, 0.33]} />
+        </mesh>
+      ))}
+      {/* inkpot and quill */}
+      <mesh position={[0.46, 0.035, -0.02]} material={IRON_DARK}>
+        <cylinderGeometry args={[0.035, 0.04, 0.07, 10]} />
       </mesh>
-      <mesh position={[0.46, 0.022, 0.02]} scale={[0.75, 0.5, 1]} material={toon('#f4f4f8')} castShadow>
-        <sphereGeometry args={[0.05, 14, 10]} />
+      <mesh position={[0.48, 0.15, -0.02]} rotation={[0, 0, -0.35]} material={PARCHMENT}>
+        <coneGeometry args={[0.018, 0.22, 6]} />
       </mesh>
     </group>
   );
 }
 
-const LAB_BENCH = '#dfe7ef';
-const QA_ORANGE = '#ff9f68';
+const IRON_DARK = new THREE.MeshStandardMaterial({ color: '#1d1c1b', roughness: 0.5, metalness: 0.6 });
+
+/** A short candle on its holder, lit, with its own small light. */
+function DeskCandle({ position }: { position: [number, number, number] }) {
+  const fire = useRef<THREE.Group>(null);
+  useFireLight(fire, FIRE.candle);
+  return (
+    <group position={position}>
+      <Model name="props/CandleStick" />
+      <group ref={fire} position={[-0.04, 0.16, 0]}>
+        <Flame size={0.6} />
+      </group>
+    </group>
+  );
+}
 
 export function Desk({
   agent,
@@ -240,54 +242,35 @@ export function Desk({
         },
     3.6,
   );
-  const mug = agent ? shade(agent.color, 0.1) : '#ffffff';
-  const top = qa ? LAB_BENCH : WOOD;
-  const chair = qa ? QA_ORANGE : accent;
   return (
     <group ref={ref} position={position} rotation={[0, rotationY, 0]}>
-      {/* desk */}
-      <Box size={[1.9, 0.06, 0.95]} position={[0, 0.74, 0]} color={top} outline />
-      {[
-        [-0.88, -0.42],
-        [0.88, -0.42],
-        [-0.88, 0.42],
-        [0.88, 0.42],
-      ].map(([x, z]) => (
-        <Box key={`${x}${z}`} size={[0.06, 0.71, 0.06]} position={[x, 0.355, z]} color="#5c677d" />
-      ))}
-      <Box size={[1.76, 0.4, 0.03]} position={[0, 0.5, -0.44]} color={shade(top, -0.08)} />
+      {/* the workbench, its top at the old desk's height */}
+      <Model name="props/Workbench" scale={[0.94, 0.83, 0.93]} />
 
       {agent ? (
         <>
           <LiveMonitor agent={agent} accent={accent} />
-          <Keyboard />
-          <Cyl r={0.045} h={0.1} position={[0.76, 0.82, 0.02]} color={mug} outline />
+          <Ledger />
+          <Model name="props/Mug" position={[0.76, 0.74, 0.02]} />
           <NameTag agent={agent} />
         </>
       ) : (
         <VacantMonitor accent={accent} qa={qa} />
       )}
       {qa ? (
-        // test-tube rack: every good QA desk has one
-        <group position={[-0.72, 0.77, -0.2]}>
-          <Box size={[0.3, 0.05, 0.1]} position={[0, 0.06, 0]} color="#adb5bd" outline />
-          {['#ff6b6b', '#4cc9f0', '#80ed99'].map((c, i) => (
-            <Cyl key={c} r={0.022} h={0.16} position={[-0.09 + i * 0.09, 0.1, 0]} color={c} outline />
-          ))}
+        // the tester's potions: every good QA bench tests something
+        <group position={[-0.72, 0.74, -0.2]}>
+          <Model name="props/Potion_1" position={[-0.1, 0, 0]} />
+          <Model name="props/Potion_2" position={[0.02, 0, 0.04]} />
+          <Model name="props/Potion_4" position={[0.13, 0, -0.02]} />
         </group>
       ) : (
-        <>
-          <Cyl r={0.06} rTop={0.07} h={0.09} position={[-0.76, 0.815, -0.22]} color="#e07a5f" outline />
-          <Ball r={0.09} position={[-0.76, 0.92, -0.22]} color="#52b788" outline />
-        </>
+        <DeskCandle position={[-0.76, 0.74, -0.22]} />
       )}
 
       {/* chair */}
       <group position={[0, 0, agent ? 0.8 : 0.6]}>
-        <Box size={[0.52, 0.08, 0.5]} position={[0, 0.44, 0]} color={chair} outline />
-        <Box size={[0.48, 0.42, 0.07]} position={[0, 0.72, 0.28]} color={chair} outline />
-        <Cyl r={0.035} h={0.36} position={[0, 0.22, 0]} color="#444a5c" />
-        <Cyl r={0.26} h={0.04} position={[0, 0.03, 0]} color="#444a5c" />
+        <Model name="props/Chair_1" rotation={[0, Math.PI, 0]} />
         {agent && <Character agent={agent} />}
       </group>
     </group>

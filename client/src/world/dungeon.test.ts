@@ -152,3 +152,13 @@ describe('inDungeon', () => {
     expect(inDungeon(HALF_W + 5, 0, [1])).toBe(false);
   });
 });
+
+describe('the great hall', () => {
+  it('keeps the aisle from the gallery doorway up to the bar clear of the tables, benches and stools', () => {
+    const rects = dungeonColliders([1]);
+    let p = { x: 0, z: HALF_D - 0.5 };
+    for (let i = 0; i < 140; i++) p = collide(p.x, p.z - 0.1, rects);
+    expect(p.z).toBeLessThan(-1.5); // walked from the doorway to just in front of the bar's stools
+    expect(p.x).toBeCloseTo(0, 6);
+  });
+});

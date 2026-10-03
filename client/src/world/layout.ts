@@ -99,6 +99,16 @@ export function officeColliders(): Rect[] {
 export const MANAGER_ROOM = { minX: -HALF_W, maxX: -6.5, minZ: -HALF_D, maxZ: -3.5, doorMinX: -11, doorMaxX: -9.2 };
 export const MANAGER_DESK = { x: -11.2, z: -8.6, w: 2.6, d: 1.1 };
 export const RECEPTION = { x: 3, z: -3.5, w: 5, d: 1.2 };
+// The great hall's tavern: the bar is the old reception desk; behind it (north) the back bar of kegs and bottles,
+// in front of it a row of stools. The hearth fills the middle of the west wall; two feasting tables with benches stand
+// south of the bar, either side of the aisle from the gallery.
+export const BACK_BAR = { x: RECEPTION.x, z: RECEPTION.z - 1.9, w: 5.4, d: 0.8 };
+export const BAR_STOOLS = [1.2, 2.4, 3.6, 4.8].map((x) => ({ x, z: RECEPTION.z + 1.05 }));
+export const HEARTH = { z: 4, w: 3.4, d: 0.9 };
+export const FEAST_TABLES = [
+  { x: -4.5, z: 5 },
+  { x: 6, z: 5 },
+];
 // The CEO's corner office mirrors the manager's across the lobby; the trophy cabinet ends up behind their desk.
 export const CEO_ROOM = { minX: 6.5, maxX: HALF_W, minZ: -HALF_D, maxZ: -3.5, doorMinX: 8.2, doorMaxX: 10 };
 export const CEO_DESK = { x: 12, z: -7.4 };
@@ -123,7 +133,14 @@ export function lobbyColliders(): Rect[] {
   out.push(rect(MANAGER_DESK.x, MANAGER_DESK.z, MANAGER_DESK.w, MANAGER_DESK.d, SOLID_H.desk));
   out.push(rect(MANAGER_DESK.x, MANAGER_DESK.z - 1.1, 0.8, 0.8, SOLID_H.seated)); // manager chair
   out.push(rect(-HALF_W + 0.4, -8, 0.8, 5, SOLID_H.bookshelf)); // bookshelf
-  out.push(rect(RECEPTION.x, RECEPTION.z, RECEPTION.w, RECEPTION.d, SOLID_H.reception));
+  out.push(rect(RECEPTION.x, RECEPTION.z, RECEPTION.w, RECEPTION.d, SOLID_H.reception)); // the bar
+  out.push(rect(BACK_BAR.x, BACK_BAR.z, BACK_BAR.w, BACK_BAR.d, 1.4)); // kegs and bottles behind it
+  for (const s of BAR_STOOLS) out.push(rect(s.x, s.z, 0.42, 0.42, 0.6));
+  out.push(rect(-HALF_W + HEARTH.d / 2, HEARTH.z, HEARTH.d, HEARTH.w)); // the hearth's chimney breast
+  for (const t of FEAST_TABLES) {
+    out.push(rect(t.x, t.z, 2.85, 1.1, 0.81));
+    for (const dz of [-0.85, 0.85]) out.push(rect(t.x, t.z + dz, 2.78, 0.5, 0.53)); // benches
+  }
   out.push(rect(11.5, 4, 3.2, 1, SOLID_H.couch)); // sofa
   out.push(rect(11.5, 6.2, 1.6, 0.9, SOLID_H.coffeeTable)); // table
   out.push(rect(12, -HALF_D + 0.55, 4.4, 1.1, SOLID_H.cabinet)); // trophy cabinet

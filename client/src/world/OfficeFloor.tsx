@@ -6,9 +6,9 @@ import { Desk } from './Desk';
 import { drawSign } from './draw';
 import { useCanvasTexture } from './interact';
 import { KanbanBoard } from './KanbanBoard';
-import { DESK_ROWS, HALF_D, HALF_W, MAX_DESKS, QA_LAB, QA_ROTATION, deskPosition, qaDeskPosition } from './layout';
+import { DESK_ROWS, HALF_D, HALF_W, MAX_DESKS, QA_LAB, QA_ROTATION, WALL_H, deskPosition, qaDeskPosition } from './layout';
 import { shade } from './materials';
-import { CoffeeTable, Couch, Kitchenette, Plant, Rug, WallClock, WaterCooler } from './Props';
+import { Chandelier, CoffeeTable, Couch, Kitchenette, Plant, Rug, WallClock, WaterCooler } from './Props';
 import { Shell, torchesOn } from './Shell';
 
 // Torches where the chamber's walls are clear: not over the app screen, the clock, the whiteboard, the QA lab or
@@ -56,6 +56,8 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
       {DESK_ROWS.map((z) => (
         <Rug key={z} position={[0, 0.004, z + 0.35]} size={[24.4, 2.9]} color={rugColor} />
       ))}
+      {/* a chandelier over each row, between the desk columns */}
+      {DESK_ROWS.flatMap((z) => [-7, 7].map((x) => <Chandelier key={`${x},${z}`} position={[x, WALL_H, z + 0.3]} />))}
 
       {Array.from({ length: MAX_DESKS }, (_, slot) => {
         const { x, z } = deskPosition(slot);
