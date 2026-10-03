@@ -171,7 +171,7 @@ test('SHIP IT opens from the ledger and sets a chamber up in demo mode', async (
   await page.getByRole('button', { name: 'Set up' }).click();
   await page.getByRole('button', { name: 'Set it up' }).click(); // every merge will be public: it asks first
   await expect(page.getByText('Live now')).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText(/demo\.vercel\.app/).first()).toBeVisible();
+  await expect(page.getByText(/[a-z0-9-]+\.vercel\.app/).first()).toBeVisible(); // the project's address, live
 });
 
 test('holding W walks forward', async ({ page }) => {
