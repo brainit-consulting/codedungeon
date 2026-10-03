@@ -41,6 +41,22 @@ export function useFireLight(ref: React.RefObject<THREE.Object3D | null>, look: 
   }, [ref, look]);
 }
 
+/** The nearest fire to `p` and how far it is (for the crackle), or null when there is none in reach. */
+export function nearestFire(p: THREE.Vector3, reach = 10): { d: number; look: FireLook } | null {
+  let best: Anchor | null = null;
+  let bd = reach;
+  for (const a of anchors) {
+    const d = a.pos.distanceTo(p);
+    // the hearth is heard from further than a candle
+    const heard = d / Math.sqrt(a.intensity / FIRE.torch.intensity);
+    if (heard < bd) {
+      bd = heard;
+      best = a;
+    }
+  }
+  return best && { d: best.pos.distanceTo(p), look: best };
+}
+
 /** How many point lights are ever lit at once (measured: still 60 fps on the Overlord's laptop at eight). */
 const POOL = 8;
 const REACH = 26; // anchors further than this from the player are never picked

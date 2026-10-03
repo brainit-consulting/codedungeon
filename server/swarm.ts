@@ -872,7 +872,7 @@ export class Swarm {
     this.repoRt.set(repo.id, { issues: [], pulls: [], lastSync: null, syncing: false, cloneStatus: 'pending', lastMergedAt: null, folderSync: null, merging: false });
     this.save();
     this.emitRepo(repo);
-    this.toast('success', `${repo.fullName} moved into floor ${floor}`);
+    this.toast('success', `${repo.fullName} has its own chamber now: chamber ${floor}`);
     this.ensureQaTester(repo);
     void this.cloneRepo(repo.id);
     void this.syncRepo(repo.id);
@@ -952,7 +952,7 @@ export class Swarm {
     this.save();
     this.broadcast({ type: 'repoRemoved', repoId: id });
     for (const r of this.state.repos) this.emitRepo(r);
-    this.toast('info', repo.localPath ? `${repo.fullName} left the building. Your folder ${repo.localPath} is untouched.` : `${repo.fullName} disconnected (its clone stays on disk)`);
+    this.toast('info', repo.localPath ? `${repo.fullName} has left the dungeon. Your folder ${repo.localPath} is untouched.` : `${repo.fullName} has left the dungeon (its clone stays on disk)`);
   }
 
   updateRepo(
@@ -1982,8 +1982,8 @@ export class Swarm {
         pass
           ? `✅ ${a.name} passed PR #${rec.prNumber}${repo.autoMerge ? "; it merges once GitHub's checks are green" : ': ready to merge'}`
           : nextStatus === 'needs-human'
-            ? `❌ PR #${rec.prNumber} failed QA ${qaRounds} times and needs a human`
-            : `❌ ${a.name} failed PR #${rec.prNumber}; sending it back to the developer`,
+            ? `❌ PR #${rec.prNumber} failed QA ${qaRounds} times and needs the Overlord`
+            : `❌ ${a.name} failed PR #${rec.prNumber}; sending it back to the coder`,
       );
     }
   }
@@ -2861,7 +2861,7 @@ export class Swarm {
         by === 'auto' ? `🤖 Auto-approved: ${agent.name} joined floor ${repo.floor} as ${req.title}.` : `✅ You hired ${agent.name} as ${req.title} on floor ${repo.floor}.`,
         req.id,
       );
-      this.toast('success', `${agent.name} (${req.title}) joined floor ${repo.floor}`);
+      this.toast('success', `${agent.name} (${req.title}) joined chamber ${repo.floor}`);
       return;
     }
     const a = req.agentId ? this.state.agents.find((x) => x.id === req.agentId) : undefined;

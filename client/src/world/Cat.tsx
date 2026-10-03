@@ -12,6 +12,9 @@ import { makeNav, type Pt } from './nav';
 // her with C (Player.tsx).
 
 let calls = 0;
+let living: CatState | null = null;
+/** The cat as she is right now (for her purr), or null before she's in the dungeon. */
+export const theCat = () => living;
 /** The Overlord calls the cat (C). */
 export function callTheCat() {
   calls++;
@@ -327,6 +330,7 @@ export function Cat({ slots }: { slots: number[] }) {
 
   useEffect(() => {
     if (!brain.current) brain.current = createCat(Math.floor(Math.random() * 1e9), { x: -HALF_W + HEARTH.d + 0.6, z: HEARTH.z + 0.8 });
+    living = brain.current;
     // window.__dungeonCat: a read-only peek for QA (what she's doing, where, and where she's heading)
     const peek = () => {
       const c = brain.current;
