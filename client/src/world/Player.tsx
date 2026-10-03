@@ -39,6 +39,8 @@ export function requestLook() {
   // Browsers that can't do it reject with NotSupportedError (Firefox ignores the option).
   lockPointer(el, { unadjustedMovement: true })?.catch?.((err: unknown) => {
     if (err instanceof DOMException && err.name === 'NotSupportedError') lockPointer(el)?.catch?.(() => undefined);
+    // refused outright (e.g. the browser panel inside the Claude app disables pointer lock): drag to look at once
+    else if (err instanceof DOMException && err.name === 'SecurityError') useStore.getState().setDragLook(true);
   });
 }
 
