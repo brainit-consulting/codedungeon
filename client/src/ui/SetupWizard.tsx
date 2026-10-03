@@ -9,7 +9,7 @@ import { ProjectPicker } from './ProjectPicker';
 // "Skip" (or just pressing Next) gets a working office.
 
 const COMPANIES = ['Pixel & Pine', 'Byte Bakery', 'Night Owl Software', 'Tiny Rocket Co.', 'Moonbeam Works', 'Happy Path Inc.', 'Merge Conflict Ltd.', 'Quokka Labs', 'Blue Kettle Studio', 'Paper Plane Software'];
-const CEO_NAMES = ['Morgan', 'Avery', 'Jordan', 'Riley', 'Quinn', 'Harper', 'Rowan', 'Sasha', 'Casey', 'Jamie', 'Alex', 'Robin'];
+const CEO_NAMES = ['Mortimer', 'Morgana', 'Bertilak', 'Ysolde', 'Gawain', 'Brangwen', 'Percival', 'Elaine', 'Tristram', 'Vivienne', 'Lancelin', 'Guinevere'];
 const TIES = ['#e63946', '#3a86ff', '#06d6a0', '#ffbe0b', '#9b5de5', '#fb5607'];
 const STEPS = ['Welcome', 'You', 'Your CEO', 'First project', 'Ready'];
 
@@ -47,7 +47,7 @@ export function SetupWizard() {
   const [step, setStep] = useState(0);
   const [managerName, setManagerName] = useState('');
   const [companyName, setCompanyName] = useState(() => COMPANIES[Math.floor(Math.random() * COMPANIES.length)]);
-  const [ceoName, setCeoName] = useState(ceoAgent?.name ?? 'Morgan');
+  const [ceoName, setCeoName] = useState(ceoAgent?.name ?? 'Mortimer');
   const [ceoLook, setCeoLook] = useState<'feminine' | 'masculine'>(ceoAgent?.look ?? 'masculine');
   const [ceoColor, setCeoColor] = useState(ceoAgent?.color ?? TIES[0]);
   const [hiring, setHiring] = useState<'approve' | 'auto'>('approve');
@@ -55,7 +55,7 @@ export function SetupWizard() {
   const [busy, setBusy] = useState(false);
 
   const me = managerName.trim() || user || 'Boss';
-  const ceo = ceoName.trim() || 'Morgan';
+  const ceo = ceoName.trim() || 'Mortimer';
   const company = companyName.trim() || COMPANIES[0];
 
   const save = () => api.setup({ managerName: me, companyName: company, hiring, ceoName: ceo, ceoLook, ceoColor });
@@ -147,7 +147,7 @@ export function SetupWizard() {
                 <label className="field">
                   <span>Name</span>
                   <div className="row" style={{ margin: 0 }}>
-                    <input value={ceoName} onChange={(e) => setCeoName(e.target.value)} placeholder="Morgan" autoFocus />
+                    <input value={ceoName} onChange={(e) => setCeoName(e.target.value)} placeholder="Mortimer" autoFocus />
                     <button type="button" className="btn btn-small" title="Suggest another name" onClick={() => setCeoName(pickOther(CEO_NAMES, ceoName))}>
                       🎲
                     </button>

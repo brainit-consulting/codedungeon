@@ -8,7 +8,7 @@ import { useCanvasTexture } from './interact';
 import { KanbanBoard } from './KanbanBoard';
 import { DESK_ROWS, HALF_D, HALF_W, MAX_DESKS, QA_LAB, QA_ROTATION, WALL_H, deskPosition, qaDeskPosition } from './layout';
 import { shade } from './materials';
-import { Chandelier, CoffeeTable, Couch, Kitchenette, Plant, Rug, WallClock, WaterCooler } from './Props';
+import { Chandelier, CoffeeTable, Couch, Kitchenette, Plant, WallClock, WaterCooler } from './Props';
 import { Shell, torchesOn } from './Shell';
 
 // Torches where the chamber's walls are clear: not over the app screen, the clock, the whiteboard, the QA lab or
@@ -48,14 +48,10 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
   const qaRecords = useStore((s) => s.qa);
   const inQa = Object.values(qaRecords).filter((q) => q.repoId === repo.id && q.status !== 'passed').length;
   const ready = Object.values(qaRecords).filter((q) => q.repoId === repo.id && q.status === 'passed').length;
-  const rugColor = shade(repo.color, 0.24);
 
   return (
     <group>
       <Shell southWall={false} torches={CHAMBER_TORCHES} />
-      {DESK_ROWS.map((z) => (
-        <Rug key={z} position={[0, 0.004, z + 0.35]} size={[24.4, 2.9]} color={rugColor} />
-      ))}
       {/* a chandelier over each row, between the desk columns */}
       {DESK_ROWS.flatMap((z) => [-7, 7].map((x) => <Chandelier key={`${x},${z}`} position={[x, WALL_H, z + 0.3]} />))}
 
@@ -65,7 +61,6 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
       })}
 
       {/* QA lab */}
-      <Rug position={[QA_LAB.x - 0.4, 0.005, -2]} size={[3.4, 10.4]} color="#ffd8bf" />
       {QA_LAB.stations.map((_, slot) => {
         const { x, z } = qaDeskPosition(slot);
         return <Desk key={`qa${slot}`} role="qa" rotationY={QA_ROTATION} agent={qaBySlot.get(slot) ?? null} accent={repo.color} repoId={repo.id} position={[x, 0, z]} />;

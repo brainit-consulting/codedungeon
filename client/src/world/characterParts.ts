@@ -181,25 +181,22 @@ function headwearGeometry(kind: Headwear): THREE.BufferGeometry | null {
   switch (kind) {
     case 'none':
       return null;
-    case 'beanie': {
-      // dome + turned-up cuff + pom-pom, tipped back a little
-      const r = 0.228;
-      const t = 1.42;
-      const tip: Xf = { at: [0, 0.035, 0.02], rot: [0.35, 0, 0] };
+    case 'hood': {
+      // a cowl up over the head, open at the face, falling to a point behind and onto the shoulders
+      const r = 0.25;
       return merge(
-        xf(new THREE.SphereGeometry(r, 24, 12, 0, Math.PI * 2, 0, t), tip),
-        xf(xf(new THREE.TorusGeometry(r * Math.sin(t), 0.03, 8, 28), { at: [0, r * Math.cos(t), 0], rot: [Math.PI / 2, 0, 0] }), tip),
-        xf(sphere(0.06, 12, 8), { at: [0, 0.035 + (r + 0.03) * Math.cos(0.35), 0.02 + (r + 0.03) * Math.sin(0.35)] }),
+        xf(new THREE.SphereGeometry(r, 24, 14, Math.PI * 0.15, Math.PI * 1.7, 0, 2.1), { at: [0, 0.01, 0.02], rot: [0.25, Math.PI / 2, 0] }),
+        xf(new THREE.ConeGeometry(0.09, 0.22, 10), { at: [0, 0.12, 0.25], rot: [2.3, 0, 0] }),
+        xf(new THREE.CylinderGeometry(0.2, 0.26, 0.12, 20, 1, true), { at: [0, -0.21, 0.04] }),
       );
     }
-    case 'cap': {
-      const r = 0.224;
-      const t = 1.35;
-      const tip: Xf = { at: [0, 0.02, 0.015], rot: [0.18, 0, 0] };
+    case 'coif': {
+      // a close linen cap tied under the chin
+      const r = 0.222;
+      const tip: Xf = { at: [0, 0.015, 0.01], rot: [0.2, 0, 0] };
       return merge(
-        xf(new THREE.SphereGeometry(r, 24, 12, 0, Math.PI * 2, 0, t), tip),
-        xf(xf(new THREE.CylinderGeometry(0.14, 0.14, 0.014, 24, 1, false, Math.PI / 2, Math.PI), { at: [0, r * Math.cos(t), -0.13], rot: [-0.08, 0, 0], scale: [1, 1, 0.9] }), tip),
-        xf(sphere(0.022, 8, 6), { at: [0, 0.02 + r * Math.cos(0.18), 0.015 + r * Math.sin(0.18)] }),
+        xf(new THREE.SphereGeometry(r, 24, 12, 0, Math.PI * 2, 0, 1.55), tip),
+        ...[-1, 1].map((s) => xf(capsule(0.012, 0.16, 3, 6), { at: [s * 0.16, -0.12, -0.04], rot: [0, 0, s * 0.35] })),
       );
     }
   }
@@ -282,6 +279,6 @@ export const PARTS = {
   facialHair: build(['none', 'stubble', 'beard', 'moustache'] as const, facialGeometry),
   glasses: build(['none', 'round', 'square'] as const, (k) => glassesGeometry(k)),
   headphones: headphoneGeometry(),
-  headwear: build(['none', 'beanie', 'cap'] as const, headwearGeometry),
+  headwear: build(['none', 'hood', 'coif'] as const, headwearGeometry),
   outfit: build(['tee', 'hoodie', 'stripe', 'sweater'] as const, outfitGeometry),
 };

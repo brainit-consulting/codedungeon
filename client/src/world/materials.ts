@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 
-// Three-step ramp gives the flat, cel-shaded cartoon look.
-const ramp = new THREE.DataTexture(new Uint8Array([110, 190, 255]), 3, 1, THREE.RedFormat);
+// Three-step ramp gives the flat, cel-shaded look; kept low so cel-shaded people sit in the dungeon's dark with
+// everything else (the old office ramp, 110/190/255, made them glow).
+const ramp = new THREE.DataTexture(new Uint8Array([50, 125, 215]), 3, 1, THREE.RedFormat);
 ramp.minFilter = THREE.NearestFilter;
 ramp.magFilter = THREE.NearestFilter;
 ramp.generateMipmaps = false;

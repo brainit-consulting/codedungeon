@@ -6,7 +6,8 @@ import type { AgentLook, AgentRole } from '../../../shared/types';
 export type HairStyle = 'crop' | 'long' | 'ponytail' | 'bun' | 'quiff' | 'afro' | 'sidePart' | 'buzz' | 'bald' | 'curls';
 export type FacialHair = 'none' | 'stubble' | 'beard' | 'moustache';
 export type Glasses = 'none' | 'round' | 'square';
-export type Headwear = 'none' | 'beanie' | 'cap';
+/** A hood (up) or a linen coif: the dungeon's headwear. */
+export type Headwear = 'none' | 'hood' | 'coif';
 export type Outfit = 'tee' | 'hoodie' | 'stripe' | 'sweater';
 
 export interface Appearance {
@@ -100,19 +101,20 @@ export function appearanceFor(agent: { id: string; look: AgentLook; role: AgentR
       ])
     : 'none';
   // QA keep their inspector glasses, so only developers and the CEO get their own pair.
+  // Round rivet spectacles are the only kind the dungeon knows.
   const glasses = agent.role === 'qa' ? 'none' : pick<Glasses>(rGlasses, [
     ['none', 6],
-    ['round', 2],
-    ['square', 2],
+    ['round', 4],
   ]);
-  // Headphones and hats are for developers; both sit on the head, so a person gets at most one of them.
-  const headphones = dev && hair !== 'afro' && rPhones < 0.3;
+  // No headphones in the dungeon. rPhones is still drawn above, so nothing else reshuffles.
+  void rPhones;
+  const headphones = false;
   const headwear =
-    dev && !headphones && !TALL_HAIR.includes(hair)
+    dev && !TALL_HAIR.includes(hair)
       ? pick<Headwear>(rHat, [
-          ['none', 7],
-          ['beanie', 1],
-          ['cap', 1],
+          ['none', 5],
+          ['hood', 2],
+          ['coif', 2],
         ])
       : 'none';
   const outfit = dev

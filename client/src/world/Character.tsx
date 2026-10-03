@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Outlines } from '@react-three/drei';
 import type { Agent } from '../store';
-import { ACCENTS, appearanceFor } from './appearance';
+import { appearanceFor } from './appearance';
 import { PARTS } from './characterParts';
 import { mix, shade, toon } from './materials';
 
@@ -27,6 +27,7 @@ const POSES: Record<PoseName, Pose> = {
 
 const clone = (p: Pose): Pose => ({ ...p, l: { ...p.l }, r: { ...p.r } });
 const INK = '#1f1d2b';
+const LEATHER = '#3a2414';
 // Glasses frames, picked by the same accent index as hats and stripes.
 const FRAMES = ['#1f1d2b', '#7f5539', '#1f1d2b', '#c1121f', '#355070', '#1f1d2b'];
 
@@ -109,12 +110,12 @@ export function Character({ agent }: { agent: Agent }) {
   const isCeo = agent.role === 'ceo';
   const feminine = agent.look === 'feminine';
   const busy = agent.status === 'working' || agent.status === 'preparing';
-  // QA testers wear a white lab coat; their personal colour shows on the collar and badge.
-  // The CEO wears a navy suit; their colour is the tie.
-  const shirt = toon(isQa ? '#f8f9fa' : isCeo ? '#2b2d42' : agent.color);
+  // Dungeon dress: everyone's personal colour is a muted, earthy dye. Testers wear an undyed wool apron with a wax seal;
+  // the DungeonMaster a crimson robe and a gold chain of office.
+  const dyed = mix(agent.color, '#2e2219', 0.6);
+  const shirt = toon(isQa ? '#7d715d' : isCeo ? '#4a1418' : dyed);
   const hair = toon(look.hair === 'buzz' ? mix(agent.hair, agent.skin, 0.35) : agent.hair);
   const dark = toon(INK);
-  const accent = ACCENTS[look.accent];
   const sad = agent.status === 'error';
   const hairGeo = PARTS.hair[look.hair];
   const facialGeo = PARTS.facialHair[look.facialHair];
@@ -133,7 +134,7 @@ export function Character({ agent }: { agent: Agent }) {
   return (
     <group ref={root}>
       {/* legs never move, so both are one mesh */}
-      <mesh geometry={PARTS.legs} material={toon('#3d4a6b')} castShadow>
+      <mesh geometry={PARTS.legs} material={toon('#2b2219')} castShadow>
         <Outlines thickness={0.012} color={INK} angle={0} />
       </mesh>
       <mesh geometry={PARTS.shoes} material={dark} castShadow />
@@ -145,25 +146,25 @@ export function Character({ agent }: { agent: Agent }) {
             <Outlines thickness={0.015} color={INK} angle={0} />
           </mesh>
           {look.outfit !== 'sweater' && (
-            <mesh position={[0, 0.5, -0.02]} rotation={[Math.PI / 2, 0, 0]} geometry={PARTS.collar} material={toon(isCeo ? '#f8f9fa' : shade(agent.color, -0.15))} />
+            <mesh position={[0, 0.5, -0.02]} rotation={[Math.PI / 2, 0, 0]} geometry={PARTS.collar} material={toon(isCeo ? '#2a0c0e' : shade(dyed, -0.15))} />
           )}
-          {outfit.main && <mesh geometry={outfit.main} material={toon(shade(agent.color, -0.08))} castShadow />}
+          {outfit.main && <mesh geometry={outfit.main} material={toon(shade(dyed, -0.08))} castShadow />}
           {outfit.trim && (
-            <mesh geometry={outfit.trim} material={toon(look.outfit === 'stripe' ? accent : look.outfit === 'hoodie' ? '#f8f9fa' : shade(agent.color, -0.14))} />
+            <mesh geometry={outfit.trim} material={toon(look.outfit === 'stripe' || look.outfit === 'hoodie' ? LEATHER : shade(dyed, -0.14))} />
           )}
           {isCeo && (
             <>
-              {/* white shirt front, tie and knot */}
-              <mesh position={[0, 0.36, -0.192]} geometry={PARTS.shirtFront} material={toon('#f8f9fa')} />
-              <mesh position={[0, 0.33, -0.206]} geometry={PARTS.tie} material={toon(agent.color)} />
-              <mesh position={[0, 0.445, -0.206]} geometry={PARTS.tieKnot} material={toon(shade(agent.color, -0.2))} />
+              {/* the robe's dark breast, the gold chain of office and its pendant in their own colour */}
+              <mesh position={[0, 0.36, -0.192]} geometry={PARTS.shirtFront} material={toon('#2a0c0e')} />
+              <mesh position={[0, 0.33, -0.206]} geometry={PARTS.tie} material={toon('#b08d3c')} />
+              <mesh position={[0, 0.445, -0.206]} geometry={PARTS.tieKnot} material={toon(agent.color)} />
             </>
           )}
           {isQa && (
             <>
-              {/* lab coat front opening + badge */}
-              <mesh position={[0, 0.27, -0.196]} geometry={PARTS.coatOpening} material={toon(agent.color)} />
-              <mesh position={[0.1, 0.38, -0.19]} rotation={[0.1, 0, 0]} geometry={PARTS.badge} material={toon('#ffd166')} />
+              {/* the apron's front in their colour, and a wax seal */}
+              <mesh position={[0, 0.27, -0.196]} geometry={PARTS.coatOpening} material={toon(dyed)} />
+              <mesh position={[0.1, 0.38, -0.19]} rotation={[0.1, 0, 0]} geometry={PARTS.badge} material={toon('#7a1616')} />
             </>
           )}
           {!busy && phones && (
@@ -214,7 +215,7 @@ export function Character({ agent }: { agent: Agent }) {
           {isQa && <mesh geometry={PARTS.inspectorGlasses} material={dark} />}
           {glassesGeo && <mesh geometry={glassesGeo} material={toon(FRAMES[look.accent])} />}
           {hatGeo && (
-            <mesh geometry={hatGeo} material={toon(look.accent === 0 ? shade(agent.color, -0.2) : accent)} castShadow>
+            <mesh geometry={hatGeo} material={toon(look.headwear === 'coif' ? '#b8ab8e' : shade(dyed, -0.2))} castShadow>
               <Outlines thickness={0.012} color={INK} angle={0} />
             </mesh>
           )}

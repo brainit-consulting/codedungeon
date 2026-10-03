@@ -189,19 +189,28 @@ const FLOOR_COLORS = ['#ff8a5b', '#4fb3e8', '#8fd14f', '#c77dff', '#ffc93c', '#f
 const SHIRTS = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#9b5de5', '#f15bb5', '#00bbf9', '#06d6a0', '#ffbe0b', '#8338ec', '#fb5607', '#3a86ff'];
 const HAIR = ['#2b2118', '#6b4226', '#c68642', '#f2d16b', '#d94f30', '#1c1c1c', '#8e8e8e', '#5b3cc4', '#e76f51'];
 const SKIN = ['#ffdbac', '#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#ffe0bd'];
+// Code Dungeon's coders and testers: a name and a trade. The trade fits the craft (testers are assayers, wardens and
+// the like), and nothing here is longer than an agent's 24-character name.
 const DEV_NAMES = [
-  'Ada', 'Linus', 'Grace', 'Alan', 'Margaret', 'Dennis', 'Barbara', 'Ken', 'Radia', 'Guido', 'Hedy', 'Tim', 'Katherine',
-  'Bjarne', 'Frances', 'Edsger', 'Anita', 'Donald', 'Sophie', 'Yukihiro', 'Jean', 'Niklaus', 'Karen', 'Brendan',
+  'Aldric the Smith', 'Maud the Scribe', 'Osric the Tinker', 'Edith the Mason', 'Godric the Wright', 'Agnes the Weaver',
+  'Wulfric the Joiner', 'Hilda the Glazier', 'Bertram the Cooper', 'Isolde the Limner', 'Cuthbert the Fletcher',
+  'Eleanor the Chandler', 'Leofric the Carter', 'Rowena the Dyer', 'Baldwin the Thatcher', 'Matilda the Brewer',
+  'Edmund the Turner', 'Gisela the Tanner', 'Anselm the Wainwright', 'Juliana the Spinner', 'Oswin the Ironmonger',
+  'Beatrix the Binder', 'Hamon the Locksmith', 'Alys the Gilder',
 ];
-const QA_NAMES = ['Sherlock', 'Marple', 'Poirot', 'Nancy', 'Columbo', 'Fletcher', 'Watson', 'Morse', 'Holmes', 'Maigret'];
+const QA_NAMES = [
+  'Gerard the Assayer', 'Hawise the Reeve', 'Ranulf the Warden', 'Sybil the Taster', 'Hugh the Watchman',
+  'Petronilla the Prover', 'Walter the Sheriff', 'Avice the Inquirer', 'Simon the Bailiff', 'Emma the Steward',
+];
 
 // Names that get the feminine character look: everyone in the name pools above, plus common first names
 // for agents the manager names themselves. The manager can always change an agent's look in the console.
 const FEMININE_NAMES = new Set(
   (
+    'maud edith agnes hilda isolde eleanor rowena matilda gisela juliana beatrix alys hawise sybil petronilla avice emma ' +
     'ada grace margaret barbara radia hedy katherine frances anita sophie jean karen marple nancy fletcher ' +
     'alice amanda amelia amy ana anna anne aisha astrid ava bella beth carla caroline charlotte chloe claire clara ' +
-    'diana elena elizabeth ella ellie emily emma eva fatima fiona freya georgia hannah harper helen holly ingrid iris ' +
+    'diana elena elizabeth ella ellie emily eva fatima fiona freya georgia hannah harper helen holly ingrid iris ' +
     'isabella ivy jane jasmine jessica julia kate laura leah leila lena lily linda lisa lucy maria marie mary maya mei ' +
     'mia mila monica naomi natalie nina nora olivia paula priya rachel rose ruby sandra sara sarah scarlett sofia ' +
     'stella susan tess tessa tina vera victoria yuki zara zoe'
@@ -217,7 +226,7 @@ const EFFORTS: EffortLevel[] = ['low', 'medium', 'high', 'xhigh', 'max'];
 // The CEO thinks harder than the staff: Opus 5.5 at xhigh effort unless the manager changes it.
 const CEO_MODEL = 'claude-opus-5-5';
 const CEO_EFFORT: EffortLevel = 'xhigh';
-const CEO_NAME = 'Morgan';
+const CEO_NAME = 'Mortimer';
 // The CEO's own folder: its notes about the company live here. Repos are read through their clones.
 const CEO_DIR = path.join(HOME_DIR, 'ceo');
 const DEFAULT_PROJECTS_DIR = defaultProjectsDir(path.resolve(import.meta.dirname, '..'));
@@ -1320,7 +1329,7 @@ export class Swarm {
   private freeName(role: 'dev' | 'qa') {
     const taken = new Set([...this.state.agents.map((a) => a.name), ...this.state.requests.filter((r) => r.status === 'pending').map((r) => r.name)]);
     const pool = role === 'qa' ? QA_NAMES : DEV_NAMES;
-    return pool.find((n) => !taken.has(n)) || `${role === 'qa' ? 'Tester' : 'Agent'} ${this.state.agents.length + 1}`;
+    return pool.find((n) => !taken.has(n)) || `${role === 'qa' ? 'Warden' : 'Journeyman'} ${this.state.agents.length + 1}`;
   }
 
   updateAgent(

@@ -31,10 +31,11 @@ describe('appearanceFor', () => {
     expect(seen('hair', m).size).toBe(10);
     expect([...seen('hair', f)].sort()).toEqual(['afro', 'bun', 'buzz', 'curls', 'long', 'ponytail', 'sidePart']);
     expect(seen('facialHair', m)).toEqual(new Set(['none', 'stubble', 'beard', 'moustache']));
-    expect(seen('glasses', m)).toEqual(new Set(['none', 'round', 'square']));
-    expect(seen('headwear', m)).toEqual(new Set(['none', 'beanie', 'cap']));
+    // the dungeon: rivet spectacles only, hoods and linen coifs, and nobody has headphones
+    expect(seen('glasses', m)).toEqual(new Set(['none', 'round']));
+    expect(seen('headwear', m)).toEqual(new Set(['none', 'hood', 'coif']));
     expect(seen('outfit', f)).toEqual(new Set(['tee', 'hoodie', 'stripe', 'sweater']));
-    expect(seen('headphones', f)).toEqual(new Set(['true', 'false']));
+    expect(seen('headphones', f)).toEqual(new Set(['false']));
   });
 
   it('makes neighbours look different', () => {
