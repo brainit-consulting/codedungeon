@@ -1,8 +1,8 @@
 # Good morning, Overlord
 
 Written overnight, 2026-10-03. Everything is committed and pushed to the private repo
-(github.com/brainit-consulting/codedungeon, branch `main`). CI is green on every step; the last run's result is at
-the end of this note.
+(github.com/brainit-consulting/codedungeon, branch `main`). CI is green on every step; the last full run
+(commit 020aeb9: unit tests, typecheck, package smoke test on Linux and Windows, browser end-to-end) passed.
 
 ## Try it first
 
