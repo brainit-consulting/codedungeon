@@ -104,6 +104,12 @@ export function LightPool() {
   );
 }
 
+// Every flame shares these, so a room full of candles costs no extra materials or geometry.
+const FLAME_CORE = new THREE.MeshBasicMaterial({ color: '#ffd27a', toneMapped: false });
+const FLAME_GLOW = new THREE.MeshBasicMaterial({ color: '#ff8a2a', transparent: true, opacity: 0.75, toneMapped: false, depthWrite: false });
+const FLAME_CORE_GEO = new THREE.SphereGeometry(0.035, 8, 8);
+const FLAME_GLOW_GEO = new THREE.SphereGeometry(0.05, 8, 8);
+
 /** A flame: a small glowing teardrop that sways. Its light comes from the pool, not from itself. */
 export function Flame({ size = 1 }: { size?: number }) {
   const g = useRef<THREE.Group>(null);
@@ -117,14 +123,8 @@ export function Flame({ size = 1 }: { size?: number }) {
   });
   return (
     <group ref={g}>
-      <mesh position={[0, 0.05, 0]}>
-        <sphereGeometry args={[0.035, 8, 8]} />
-        <meshBasicMaterial color="#ffd27a" toneMapped={false} />
-      </mesh>
-      <mesh position={[0, 0.1, 0]} scale={[1, 1.9, 1]}>
-        <sphereGeometry args={[0.05, 8, 8]} />
-        <meshBasicMaterial color="#ff8a2a" transparent opacity={0.75} toneMapped={false} depthWrite={false} />
-      </mesh>
+      <mesh position={[0, 0.05, 0]} geometry={FLAME_CORE_GEO} material={FLAME_CORE} />
+      <mesh position={[0, 0.1, 0]} scale={[1, 1.9, 1]} geometry={FLAME_GLOW_GEO} material={FLAME_GLOW} />
     </group>
   );
 }

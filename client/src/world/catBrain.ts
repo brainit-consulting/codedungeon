@@ -46,6 +46,12 @@ export interface Cat {
   /** The cat clock, in seconds. */
   clock: number;
   rng: number;
+  /** Spots she couldn't find a way to, and until when (cat clock) she leaves them alone. */
+  unreachable: Record<string, number>;
+  /** When following and no way to the player was found: don't try again before this. */
+  retryAt: number;
+  /** Called while in the air: she answers (by ignoring you) once she lands. */
+  called: boolean;
 }
 
 export interface CatEnv {
@@ -55,6 +61,9 @@ export interface CatEnv {
   /** Random points she may wander to; Cat.tsx samples open cells. */
   corners: Pt[];
 }
+
+/** How long (s) she leaves alone a spot she found no way to. */
+const UNREACHABLE_FOR = 60;
 
 export const CAT = {
   walk: 0.75, // m/s
@@ -92,12 +101,34 @@ function next(c: Cat): number {
 const between = (c: Cat, [a, b]: [number, number]) => a + (b - a) * next(c);
 
 export function createCat(seed: number, at: Pt): Cat {
-  return { x: at.x, z: at.z, y: 0, heading: 0, action: 'sit', left: 2, path: [], goal: null, jump: null, last: null, followUntil: 0, nudges: 0, clock: 0, rng: seed | 0 };
+  return {
+    x: at.x,
+    z: at.z,
+    y: 0,
+    heading: 0,
+    action: 'sit',
+    left: 2,
+    path: [],
+    goal: null,
+    jump: null,
+    last: null,
+    followUntil: 0,
+    nudges: 0,
+    clock: 0,
+    rng: seed | 0,
+    unreachable: {},
+    retryAt: 0,
+    called: false,
+  };
 }
 
 /** The Overlord calls her: she ignores them for a few seconds, then follows a while. */
 export function callCat(c: Cat) {
   if (c.action === 'ignore' || c.action === 'follow') return;
+  if (c.action === 'jumpUp' || c.action === 'jumpDown') {
+    c.called = true; // she'll land first
+    return;
+  }
   if (c.y > 0) {
     // ignoring you from up on the bar; she'll come down when she's ready
     c.action = 'ignore';
@@ -115,7 +146,7 @@ export function callCat(c: Cat) {
 // ---------- choosing where to go ----------
 
 function pickSpot(c: Cat, env: CatEnv): CatSpot | null {
-  const options = env.spots.filter((s) => s.id !== c.last && s.weight > 0);
+  const options = env.spots.filter((s) => s.id !== c.last && s.weight > 0 && !((c.unreachable[s.id] ?? 0) > c.clock));
   const wander = env.corners.length ? 1.5 : 0;
   const total = options.reduce((t, s) => t + s.weight, 0) + wander;
   if (total <= 0) return null;
@@ -131,7 +162,10 @@ function pickSpot(c: Cat, env: CatEnv): CatSpot | null {
 function goTo(c: Cat, env: CatEnv, spot: CatSpot): boolean {
   const target = spot.y ? (spot.approach ?? spot) : spot;
   const path = planPath(env.nav, c, target);
-  if (!path) return false;
+  if (!path) {
+    c.unreachable[spot.id] = c.clock + UNREACHABLE_FOR;
+    return false;
+  }
   c.goal = spot;
   c.path = path;
   c.action = 'walk';
@@ -236,7 +270,19 @@ export function stepCat(c: Cat, dt: number, env: CatEnv) {
       if (j.t < 1) return;
       c.y = j.to.y;
       c.jump = null;
-      if (c.action === 'jumpUp' && c.goal) return settle(c, c.goal);
+      const called = c.called;
+      c.called = false;
+      if (c.action === 'jumpUp' && c.goal) {
+        settle(c, c.goal);
+        if (called) callCat(c);
+        return;
+      }
+      if (called) {
+        c.goal = null;
+        c.action = 'sit';
+        callCat(c);
+        return;
+      }
       // down: follow if she was called while up, else on with her day
       c.goal = null;
       if (c.followUntil === -1) {
@@ -259,9 +305,12 @@ export function stepCat(c: Cat, dt: number, env: CatEnv) {
         return;
       }
       // re-plan about once a second, or when the path ran out
-      if (!c.path.length || Math.floor(c.clock) !== Math.floor(c.clock - dt)) {
+      if ((!c.path.length || Math.floor(c.clock) !== Math.floor(c.clock - dt)) && c.clock >= c.retryAt) {
         const back = { x: p.x + ((c.x - p.x) / d) * CAT.followGap, z: p.z + ((c.z - p.z) / d) * CAT.followGap };
-        c.path = planPath(env.nav, c, back) ?? [];
+        const path = planPath(env.nav, c, back);
+        c.path = path ?? [];
+        // no way to you: sit tight and look again in a second, rather than searching the whole dungeon every frame
+        if (!path) c.retryAt = c.clock + 1;
       }
       walkPath(c, dt, CAT.follow);
       return;

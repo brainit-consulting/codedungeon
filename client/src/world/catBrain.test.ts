@@ -123,3 +123,54 @@ describe('the cat', () => {
     expect(cat.action).not.toBe('ignore');
   });
 });
+
+describe('the cat, when things are out of reach', () => {
+  // a spot walled in on all sides
+  const BOX: Rect[] = [
+    { minX: 8, maxX: 12, minZ: 8, maxZ: 8.2 },
+    { minX: 8, maxX: 12, minZ: 11.8, maxZ: 12 },
+    { minX: 8, maxX: 8.2, minZ: 8, maxZ: 12 },
+    { minX: 11.8, maxX: 12, minZ: 8, maxZ: 12 },
+  ];
+  const walled = makeNav([...RECTS, ...BOX]);
+  const shut: CatSpot = { id: 'shut', kind: 'throne', x: 10, z: 10, facing: 0, weight: 50 };
+
+  it("stops trying a spot she can't reach for a while, instead of planning to it again and again", () => {
+    const cat = createCat(4, { x: 0, z: 6 });
+    const e: CatEnv = { nav: walled, spots: [shut, SPOTS[0]], player: null, corners: [] };
+    let reached = 0;
+    run(cat, 120, e, (k) => {
+      if (k.goal?.id === 'hearth' && k.action !== 'walk') reached++;
+    });
+    expect(reached).toBeGreaterThan(0); // she gave up on the shut spot and went to the hearth
+    expect(cat.unreachable.shut).toBeGreaterThan(cat.clock - 60);
+  });
+
+  it("waits a second between tries when she can't find a way to the person she follows", () => {
+    const cat = createCat(9, { x: 0, z: 6 });
+    callCat(cat);
+    const inside = { x: 10, z: 10 };
+    const e: CatEnv = { nav: walled, spots: SPOTS, player: inside, corners: [] };
+    while (cat.action === 'ignore') stepCat(cat, DT, e);
+    let tries = 0;
+    let prev = cat.retryAt;
+    for (let t = 0; t < 3; t += DT) {
+      stepCat(cat, DT, e);
+      if (cat.retryAt !== prev) tries++; // each failed search sets a new retry time
+      prev = cat.retryAt;
+    }
+    expect(tries).toBeGreaterThan(0);
+    expect(tries).toBeLessThanOrEqual(4); // about once a second over three seconds, not every frame
+  });
+
+  it('called mid-leap, lands first and then ignores you', () => {
+    const cat = createCat(11, { x: 2.2, z: -1.5 });
+    const onlyBar: CatEnv = { ...env(), spots: [SPOTS[1]], corners: [] };
+    while (cat.action !== 'jumpUp') stepCat(cat, DT, onlyBar);
+    callCat(cat);
+    expect(cat.action).toBe('jumpUp');
+    while (cat.action === 'jumpUp') stepCat(cat, DT, onlyBar);
+    expect(cat.y).toBe(SPOTS[1].y);
+    expect(cat.action).toBe('ignore');
+  });
+});

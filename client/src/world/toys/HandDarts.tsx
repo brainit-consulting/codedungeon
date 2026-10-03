@@ -211,6 +211,14 @@ export function HandDarts({ groups }: { groups: number }) {
     for (const d of list) {
       const b = d.body;
       if (!b) continue;
+      if (d.where === 'flying' && escaped(b.translation())) {
+        // thrown out through the archway, past anything to hit: a miss, and back on the ledge
+        removeBody(d);
+        d.where = 'ledge';
+        setLedge(count('ledge'));
+        score(MISS);
+        continue;
+      }
       if (d.where === 'flying') {
         const lv = b.linvel();
         const speed = Math.hypot(lv.x, lv.y, lv.z);

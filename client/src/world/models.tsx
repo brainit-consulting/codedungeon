@@ -14,8 +14,17 @@ const shared = new Map<string, THREE.Material>();
 // Grim and moody: the painted textures are bright, so every model's base colour is pulled down and warmed.
 const GRIME = new THREE.Color('#7d6f62');
 
+/**
+ * Which materials may be shared: same name, and the same shader variant. The loader makes a vertex-colour copy of a
+ * material (same name) for parts that carry vertex colours; mixing the two would turn parts black or untinted.
+ */
+export function materialKey(m: THREE.Material): string {
+  const s = m as THREE.MeshStandardMaterial;
+  return `${m.name || m.uuid}|vc:${s.vertexColors ? 1 : 0}|flat:${s.flatShading ? 1 : 0}|${m.transparent ? 't' : 'o'}`;
+}
+
 function share(m: THREE.Material): THREE.Material {
-  const key = m.name || m.uuid;
+  const key = materialKey(m);
   const have = shared.get(key);
   if (have) {
     if (have !== m) m.dispose();
@@ -24,8 +33,6 @@ function share(m: THREE.Material): THREE.Material {
   if (m instanceof THREE.MeshStandardMaterial) {
     m.color.multiply(GRIME);
     m.envMapIntensity = 0;
-    // glass and the like keep their blending; everything else is opaque, which is cheaper
-    if (!m.transparent) m.alphaTest = m.alphaTest || 0;
   }
   shared.set(key, m);
   return m;

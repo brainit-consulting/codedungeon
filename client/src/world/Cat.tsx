@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useStore } from '../store';
 import { CAT, callCat, createCat, stepCat, type Cat as CatState, type CatAction, type CatEnv, type CatSpot } from './catBrain';
-import { GALLERY, chamber, dungeonColliders, galleryEnd, toWorld } from './dungeon';
+import { GALLERY, chamber, dungeonColliders, galleryEnd, inDungeon, toWorld } from './dungeon';
 import { CEO_DESK, DESK_ROWS, HALF_D, HALF_W, HEARTH, RECEPTION, deskPosition } from './layout';
 import { makeNav, type Pt } from './nav';
 
@@ -12,6 +12,7 @@ import { makeNav, type Pt } from './nav';
 // her with C (Player.tsx).
 
 let calls = 0;
+const HOME = { x: -HALF_W + HEARTH.d + 0.6, z: HEARTH.z + 0.8 };
 let living: CatState | null = null;
 /** The cat as she is right now (for her purr), or null before she's in the dungeon. */
 export const theCat = () => living;
@@ -22,7 +23,7 @@ export function callTheCat() {
 
 // ---------- where she likes to be ----------
 
-function hallSpots(ceoBusy: boolean): CatSpot[] {
+export function hallSpots(ceoBusy: boolean): CatSpot[] {
   return [
     { id: 'hearth', kind: 'hearth', x: -HALF_W + HEARTH.d + 0.55, z: HEARTH.z, facing: Math.PI / 2, weight: 3 },
     {
@@ -54,7 +55,7 @@ interface ChamberInfo {
   busyDesks: number[];
 }
 
-function chamberSpots(ch: ChamberInfo): CatSpot[] {
+export function chamberSpots(ch: ChamberInfo): CatSpot[] {
   const c = chamber(ch.slot);
   const out: CatSpot[] = [];
   for (const d of ch.busyDesks) {
@@ -87,6 +88,14 @@ function corners(slots: number[]): Pt[] {
       out.push(toWorld(c, x, z));
   }
   return out;
+}
+
+/** The grid she walks: the whole dungeon, at 0.3 m (measured: a long trip across ten chambers plans in under 30 ms). */
+export function catNav(slots: number[]) {
+  const end = galleryEnd(slots);
+  const wide = slots.length ? GALLERY.half + GALLERY.wall + HALF_D * 2 + 0.4 : HALF_W;
+  const bounds = { minX: -Math.max(HALF_W, wide) - 0.4, maxX: Math.max(HALF_W, wide) + 0.4, minZ: -HALF_D - 0.4, maxZ: end + 0.4 };
+  return makeNav(dungeonColliders(slots), bounds, 0.3);
 }
 
 // ---------- her body ----------
@@ -304,12 +313,7 @@ export function Cat({ slots }: { slots: number[] }) {
   const camera = useThree((s) => s.camera);
   const brain = useRef<CatState | null>(null);
 
-  const nav = useMemo(() => {
-    const end = galleryEnd(slots);
-    const wide = slots.length ? GALLERY.half + GALLERY.wall + HALF_D * 2 + 0.4 : HALF_W;
-    const bounds = { minX: -Math.max(HALF_W, wide) - 0.4, maxX: Math.max(HALF_W, wide) + 0.4, minZ: -HALF_D - 0.4, maxZ: end + 0.4 };
-    return makeNav(dungeonColliders(slots), bounds);
-  }, [slots]);
+  const nav = useMemo(() => catNav(slots), [slots]);
 
   const busyKey = Object.values(agents)
     .filter((a) => a.repoId && (a.status === 'working' || a.status === 'preparing') && a.role === 'dev')
@@ -329,18 +333,20 @@ export function Cat({ slots }: { slots: number[] }) {
   }, [nav, repos, slots, busyKey, ceoBusy]);
 
   useEffect(() => {
-    if (!brain.current) brain.current = createCat(Math.floor(Math.random() * 1e9), { x: -HALF_W + HEARTH.d + 0.6, z: HEARTH.z + 0.8 });
+    if (!brain.current) brain.current = createCat(Math.floor(Math.random() * 1e9), { ...HOME });
     living = brain.current;
     // window.__dungeonCat: a read-only peek for QA (what she's doing, where, and where she's heading)
     const peek = () => {
       const c = brain.current;
       return c && { action: c.action, x: c.x, y: c.y, z: c.z, goal: c.goal?.id ?? null, nudges: c.nudges, left: c.left };
     };
+    if (!import.meta.env.DEV) return;
     Object.defineProperty(window, '__dungeonCat', { get: peek, configurable: true });
     return () => void delete (window as unknown as Record<string, unknown>).__dungeonCat;
   }, []);
 
   const seenCalls = useRef(calls);
+  const checks = useRef(0);
   useFrame((_, rawDt) => {
     const c = brain.current;
     if (!c) return;
@@ -350,6 +356,10 @@ export function Cat({ slots }: { slots: number[] }) {
       if (Math.hypot(camera.position.x - c.x, camera.position.z - c.z) < 12) callCat(c);
     }
     env.player = { x: camera.position.x, z: camera.position.z };
+    // a project removed while she was in its chamber leaves her outside the walls: home to the hearth
+    if (++checks.current % 120 === 0 && c.y === 0 && !inDungeon(c.x, c.z, slots)) {
+      Object.assign(c, HOME, { y: 0, action: 'sit', left: 3, path: [], goal: null, jump: null });
+    }
     stepCat(c, dt, env);
   });
 

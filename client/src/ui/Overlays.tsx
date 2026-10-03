@@ -110,6 +110,10 @@ function Help() {
           <kbd>D</kbd> walk · <kbd>Shift</kbd> run · mouse to look · <kbd>E</kbd> or left click interacts with whatever the crosshair is on (the first click only grabs the mouse) · <kbd>Esc</kbd> frees the mouse. Closing a panel grabs it again.
         </p>
         <MouseSettings />
+        <h3>The cat</h3>
+        <p>
+          A black cat lives in the dungeon and thinks she runs it. She sleeps by the hearth, sits on the bar, keeps the coders company and takes the DungeonMaster's desk when he isn't looking. Press <kbd>C</kbd> to call her: she'll ignore you for a moment, then follow you about. She never gets in your way.
+        </p>
         <h3>Darts</h3>
         <p>
           The dart board hangs on the great hall's south wall, at the west end. Aim at it and press <kbd>E</kbd> to take the three darts. Click or press <kbd>F</kbd> to throw one: a tap lobs it, holding throws harder.

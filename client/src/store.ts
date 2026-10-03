@@ -219,7 +219,10 @@ export const useStore = create<State>((set, get) => ({
       }
       case 'repoRemoved': {
         const repos = get().repos.filter((r) => r.id !== ev.repoId);
-        set({ repos, floor: repos.some((r) => r.floor === get().floor) ? get().floor : 0 });
+        const still = get().floor === 0 || repos.some((r) => r.floor === get().floor);
+        set({ repos, floor: still ? get().floor : 0 });
+        // standing in the chamber that just went: back to the hall, or you'd be left outside the walls
+        if (!still) get().goToFloor(0);
         break;
       }
       case 'agent': {

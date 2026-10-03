@@ -101,7 +101,12 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
   const lookFilter = useMemo(createLookFilter, []);
 
   // After a page reload, return to the remembered spot if it is still somewhere you can stand; otherwise the hall.
+  // Wait for the server's first list of projects: until then no chamber exists, and a spot in one would look invalid.
+  const loaded = useStore((s) => s.loaded);
+  const restored = useRef(false);
   useEffect(() => {
+    if (!loaded || restored.current) return;
+    restored.current = true;
     const saved = loadView();
     const p = saved && collide(saved.x, saved.z, colliders);
     if (saved && p && Math.hypot(p.x - saved.x, p.z - saved.z) < 0.01 && inDungeon(saved.x, saved.z, slots)) {
@@ -111,9 +116,9 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
     }
     camera.position.set(SPAWN.x, EYE_HEIGHT, SPAWN.z);
     look.current = { yaw: SPAWN.yaw, pitch: -0.05 };
-    // only on mount: later the player walks, or is sent by a visit
+    // only once: later the player walks, or is sent by a visit
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camera]);
+  }, [camera, loaded]);
 
   // A walk-in (the directory, a "Visit" button): straight to just inside that chamber's door, or back to the hall.
   const visit = useStore((s) => s.visit);
@@ -253,7 +258,7 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
 
     const now = performance.now();
     if (++frame.current % 10 === 0) s.setFloor(roomAt(camera.position.x, camera.position.z, slots));
-    if (s.started && now - lastSave.current > 1000) {
+    if (s.started && restored.current && now - lastSave.current > 1000) {
       lastSave.current = now;
       saveView({ x: camera.position.x, z: camera.position.z, yaw, pitch });
     }

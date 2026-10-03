@@ -55,7 +55,7 @@ export function unlockAudio() {
   audio();
 }
 
-for (const type of ['pointerdown', 'keydown'] as const) window.addEventListener(type, unlockAudio, { once: true, capture: true });
+if (typeof window !== 'undefined') for (const type of ['pointerdown', 'keydown'] as const) window.addEventListener(type, unlockAudio, { once: true, capture: true });
 
 // ---------- volume & mute ----------
 

@@ -20,8 +20,13 @@ const HALL_SEEN = 18;
 function useVisibleRooms(slots: number[]) {
   const [seen, setSeen] = useState<{ hall: boolean; chambers: number[] }>({ hall: true, chambers: [] });
   const frame = useRef(0);
+  const last = useRef({ x: 0, z: 0 });
   useFrame(({ camera }) => {
-    if (++frame.current % 15) return;
+    // re-check at once after a walk-in (the directory, a Visit button: a jump of metres in one frame), so you never
+    // arrive in empty space
+    const jumped = Math.hypot(camera.position.x - last.current.x, camera.position.z - last.current.z) > 3;
+    last.current = { x: camera.position.x, z: camera.position.z };
+    if (++frame.current % 15 && !jumped) return;
     const { x, z } = camera.position;
     const chambers = chambersToDraw(x, z, slots);
     const hall = roomAt(x, z, slots) === 0 && z < HALF_D + HALL_SEEN;
@@ -36,7 +41,10 @@ function Dungeon({ slots }: { slots: number[] }) {
   const seen = useVisibleRooms(slots);
   return (
     <>
-      {seen.hall && <Lobby />}
+      {/* hidden rather than unmounted when you're away: rebuilding it (models, signs, the darts' physics) stutters */}
+      <group visible={seen.hall}>
+        <Lobby />
+      </group>
       <Gallery slots={slots} />
       <Cat slots={slots} />
       <Ambience />

@@ -26,6 +26,8 @@ const CELL = 0.2;
 export interface Nav {
   rects: Rect[];
   bounds: Bounds;
+  /** Cell size in metres. */
+  cell: number;
   cols: number;
   rows: number;
   /** 1 where a path may not go (too close to something). */
@@ -44,12 +46,12 @@ export function clear(rects: Rect[], x: number, z: number, r = NAV_R, b: Bounds 
  * grown by the radius, as a box, so marking the cells inside each grown rect is the same test, and much faster on a
  * big plan) or the bounds.
  */
-export function makeNav(rects: Rect[], bounds: Bounds = ROOM): Nav {
-  const cols = Math.round((bounds.maxX - bounds.minX) / CELL);
-  const rows = Math.round((bounds.maxZ - bounds.minZ) / CELL);
+export function makeNav(rects: Rect[], bounds: Bounds = ROOM, cell = CELL): Nav {
+  const cols = Math.round((bounds.maxX - bounds.minX) / cell);
+  const rows = Math.round((bounds.maxZ - bounds.minZ) / cell);
   const blocked = new Uint8Array(cols * rows);
-  const nav: Nav = { rects, bounds, cols, rows, blocked };
-  const edge = Math.ceil(PLAN_R / CELL);
+  const nav: Nav = { rects, bounds, cell, cols, rows, blocked };
+  const edge = Math.ceil(PLAN_R / cell);
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
       if (i < edge || j < edge || i >= cols - edge || j >= rows - edge) {
@@ -60,8 +62,8 @@ export function makeNav(rects: Rect[], bounds: Bounds = ROOM): Nav {
     }
   }
   // Strictly inside the grown rect, as collide() has it: a centre exactly on its edge only touches, and stays clear.
-  const first = (edge: number, origin: number) => Math.max(0, Math.floor((edge - origin) / CELL - 0.5 + 1e-9) + 1);
-  const last = (edge: number, origin: number, n: number) => Math.min(n - 1, Math.ceil((edge - origin) / CELL - 0.5 - 1e-9) - 1);
+  const first = (edge: number, origin: number) => Math.max(0, Math.floor((edge - origin) / cell - 0.5 + 1e-9) + 1);
+  const last = (edge: number, origin: number, n: number) => Math.min(n - 1, Math.ceil((edge - origin) / cell - 0.5 - 1e-9) - 1);
   for (const r of rects) {
     const i0 = first(r.minX - PLAN_R, bounds.minX);
     const i1 = last(r.maxX + PLAN_R, bounds.minX, cols);
@@ -72,10 +74,36 @@ export function makeNav(rects: Rect[], bounds: Bounds = ROOM): Nav {
   return nav;
 }
 
-const cellX = (nav: Nav, i: number) => nav.bounds.minX + (i + 0.5) * CELL;
-const cellZ = (nav: Nav, j: number) => nav.bounds.minZ + (j + 0.5) * CELL;
-const toCol = (nav: Nav, x: number) => Math.min(nav.cols - 1, Math.max(0, Math.floor((x - nav.bounds.minX) / CELL)));
-const toRow = (nav: Nav, z: number) => Math.min(nav.rows - 1, Math.max(0, Math.floor((z - nav.bounds.minZ) / CELL)));
+const cellX = (nav: Nav, i: number) => nav.bounds.minX + (i + 0.5) * nav.cell;
+const cellZ = (nav: Nav, j: number) => nav.bounds.minZ + (j + 0.5) * nav.cell;
+const toCol = (nav: Nav, x: number) => Math.min(nav.cols - 1, Math.max(0, Math.floor((x - nav.bounds.minX) / nav.cell)));
+const toRow = (nav: Nav, z: number) => Math.min(nav.rows - 1, Math.max(0, Math.floor((z - nav.bounds.minZ) / nav.cell)));
+
+/**
+ * Line of sight on the grid: every cell the segment a → b passes through, and each of its eight neighbours, is open.
+ * The neighbours make it stricter than the per-rect test (a point anywhere in such a cell is further than PLAN_R from
+ * everything), and it costs a few array reads per cell instead of a pass over every rect.
+ */
+function gridClear(nav: Nav, a: Pt, b: Pt): boolean {
+  const { cols, rows, blocked, cell } = nav;
+  const len = Math.hypot(b.x - a.x, b.z - a.z);
+  const n = Math.max(1, Math.ceil(len / (cell * 0.5)));
+  const startC = toCol(nav, a.x) + toRow(nav, a.z) * cols;
+  const endC = toCol(nav, b.x) + toRow(nav, b.z) * cols;
+  for (let k = 1; k < n; k++) {
+    const i = toCol(nav, a.x + ((b.x - a.x) * k) / n);
+    const j = toRow(nav, a.z + ((b.z - a.z) * k) / n);
+    if (j * cols + i === startC || j * cols + i === endC) continue;
+    for (let dj = -1; dj <= 1; dj++) {
+      for (let di = -1; di <= 1; di++) {
+        const ii = i + di;
+        const jj = j + dj;
+        if (ii < 0 || jj < 0 || ii >= cols || jj >= rows || blocked[jj * cols + ii]) return false;
+      }
+    }
+  }
+  return true;
+}
 
 /** Whether something can travel the straight line a → b without touching anything. */
 export function segmentClear(rects: Rect[], a: Pt, b: Pt, r = NAV_R + 0.04, bounds: Bounds = ROOM) {
@@ -201,18 +229,14 @@ export function planPath(nav: Nav, from: Pt, to: Pt, avoid: (Pt & { r: number })
   cells.reverse();
   cells.push({ x: to.x, z: to.z });
 
-  // String-pulling: from each corner, jump to the furthest point still in a straight line of sight.
+  // String-pulling: from each corner, walk forward along the cells while they stay in a straight line of sight on
+  // the grid, and cut the corner to the last one that does. One forward scan, so long paths stay cheap.
   const out: Pt[] = [];
   let at: Pt = from;
   let k = 0;
   while (k < cells.length) {
     let far = k;
-    for (let m = cells.length - 1; m > k; m--) {
-      if (segmentClear(nav.rects, at, cells[m], NAV_R + 0.04, nav.bounds)) {
-        far = m;
-        break;
-      }
-    }
+    while (far + 1 < cells.length && gridClear(nav, at, cells[far + 1])) far++;
     at = cells[far];
     out.push(at);
     k = far + 1;
