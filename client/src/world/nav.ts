@@ -1,12 +1,22 @@
-import { FLOOR_D, FLOOR_W, HALF_D, HALF_W, collide, type Rect } from './layout';
+import { HALF_D, HALF_W, collide, type Rect } from './layout';
 
-// Grid pathfinding over the layout's 2D rects: A* on a 0.2 m grid, string-pulled into a few straight legs. Pure, so
-// it can be tested. Kept from cubefarm's roomba for the dungeon's cat.
+// Grid pathfinding over the layout's 2D rects: A* on a grid, string-pulled into a few straight legs. Pure, so it can be
+// tested. Kept from cubefarm's roomba; the dungeon's cat walks it across the whole plan (hall, gallery, chambers).
 
 export interface Pt {
   x: number;
   z: number;
 }
+
+/** The area a grid covers. A single room by default; the dungeon passes its whole plan's bounding box. */
+export interface Bounds {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}
+
+export const ROOM: Bounds = { minX: -HALF_W, maxX: HALF_W, minZ: -HALF_D, maxZ: HALF_D };
 
 /** Keep a hair off everything (the roomba's radius plus a little; about a cat's half-width too). */
 export const NAV_R = 0.2;
@@ -15,36 +25,62 @@ const CELL = 0.2;
 
 export interface Nav {
   rects: Rect[];
+  bounds: Bounds;
   cols: number;
   rows: number;
   /** 1 where a path may not go (too close to something). */
   blocked: Uint8Array;
 }
 
-/** Whether a circle of radius r at (x, z) is clear of every rect. */
-export function clear(rects: Rect[], x: number, z: number, r = NAV_R) {
-  if (Math.abs(x) > HALF_W - r || Math.abs(z) > HALF_D - r) return false;
+/** Whether a circle of radius r at (x, z) is clear of every rect and inside the bounds. */
+export function clear(rects: Rect[], x: number, z: number, r = NAV_R, b: Bounds = ROOM) {
+  if (x < b.minX + r || x > b.maxX - r || z < b.minZ + r || z > b.maxZ - r) return false;
   const p = collide(x, z, rects, r);
   return p.x === x && p.z === z;
 }
 
-export function makeNav(rects: Rect[]): Nav {
-  const cols = Math.round(FLOOR_W / CELL);
-  const rows = Math.round(FLOOR_D / CELL);
+/**
+ * The grid: a cell is blocked when a circle of PLAN_R at its centre would touch a rect (collide() treats each rect,
+ * grown by the radius, as a box, so marking the cells inside each grown rect is the same test, and much faster on a
+ * big plan) or the bounds.
+ */
+export function makeNav(rects: Rect[], bounds: Bounds = ROOM): Nav {
+  const cols = Math.round((bounds.maxX - bounds.minX) / CELL);
+  const rows = Math.round((bounds.maxZ - bounds.minZ) / CELL);
   const blocked = new Uint8Array(cols * rows);
-  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) blocked[j * cols + i] = clear(rects, cellX(i), cellZ(j), PLAN_R) ? 0 : 1;
-  return { rects, cols, rows, blocked };
+  const nav: Nav = { rects, bounds, cols, rows, blocked };
+  const edge = Math.ceil(PLAN_R / CELL);
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      if (i < edge || j < edge || i >= cols - edge || j >= rows - edge) {
+        const x = cellX(nav, i);
+        const z = cellZ(nav, j);
+        if (x < bounds.minX + PLAN_R || x > bounds.maxX - PLAN_R || z < bounds.minZ + PLAN_R || z > bounds.maxZ - PLAN_R) blocked[j * cols + i] = 1;
+      }
+    }
+  }
+  // Strictly inside the grown rect, as collide() has it: a centre exactly on its edge only touches, and stays clear.
+  const first = (edge: number, origin: number) => Math.max(0, Math.floor((edge - origin) / CELL - 0.5 + 1e-9) + 1);
+  const last = (edge: number, origin: number, n: number) => Math.min(n - 1, Math.ceil((edge - origin) / CELL - 0.5 - 1e-9) - 1);
+  for (const r of rects) {
+    const i0 = first(r.minX - PLAN_R, bounds.minX);
+    const i1 = last(r.maxX + PLAN_R, bounds.minX, cols);
+    const j0 = first(r.minZ - PLAN_R, bounds.minZ);
+    const j1 = last(r.maxZ + PLAN_R, bounds.minZ, rows);
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) blocked[j * cols + i] = 1;
+  }
+  return nav;
 }
 
-const cellX = (i: number) => -HALF_W + (i + 0.5) * CELL;
-const cellZ = (j: number) => -HALF_D + (j + 0.5) * CELL;
-const toCol = (x: number, cols: number) => Math.min(cols - 1, Math.max(0, Math.floor((x + HALF_W) / CELL)));
-const toRow = (z: number, rows: number) => Math.min(rows - 1, Math.max(0, Math.floor((z + HALF_D) / CELL)));
+const cellX = (nav: Nav, i: number) => nav.bounds.minX + (i + 0.5) * CELL;
+const cellZ = (nav: Nav, j: number) => nav.bounds.minZ + (j + 0.5) * CELL;
+const toCol = (nav: Nav, x: number) => Math.min(nav.cols - 1, Math.max(0, Math.floor((x - nav.bounds.minX) / CELL)));
+const toRow = (nav: Nav, z: number) => Math.min(nav.rows - 1, Math.max(0, Math.floor((z - nav.bounds.minZ) / CELL)));
 
 /** Whether something can travel the straight line a → b without touching anything. */
-export function segmentClear(rects: Rect[], a: Pt, b: Pt, r = NAV_R + 0.04) {
+export function segmentClear(rects: Rect[], a: Pt, b: Pt, r = NAV_R + 0.04, bounds: Bounds = ROOM) {
   const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.08));
-  for (let k = 1; k <= n; k++) if (!clear(rects, a.x + ((b.x - a.x) * k) / n, a.z + ((b.z - a.z) * k) / n, r)) return false;
+  for (let k = 1; k <= n; k++) if (!clear(rects, a.x + ((b.x - a.x) * k) / n, a.z + ((b.z - a.z) * k) / n, r, bounds)) return false;
   return true;
 }
 
@@ -81,9 +117,9 @@ function nearestOpen(nav: Nav, i: number, j: number, avoid: (c: number) => boole
 export function planPath(nav: Nav, from: Pt, to: Pt, avoid: (Pt & { r: number }) | null = null): Pt[] | null {
   const { cols, rows, blocked } = nav;
   const avoidR = avoid ? avoid.r + PLAN_R : 0;
-  const avoided = (c: number) => !!avoid && Math.hypot(cellX(c % cols) - avoid.x, cellZ(Math.floor(c / cols)) - avoid.z) < avoidR;
-  const start = nearestOpen(nav, toCol(from.x, cols), toRow(from.z, rows), avoided);
-  const goal = nearestOpen(nav, toCol(to.x, cols), toRow(to.z, rows), () => false);
+  const avoided = (c: number) => !!avoid && Math.hypot(cellX(nav, c % cols) - avoid.x, cellZ(nav, Math.floor(c / cols)) - avoid.z) < avoidR;
+  const start = nearestOpen(nav, toCol(nav, from.x), toRow(nav, from.z), avoided);
+  const goal = nearestOpen(nav, toCol(nav, to.x), toRow(nav, to.z), () => false);
   if (start < 0 || goal < 0) return null;
 
   const n = cols * rows;
@@ -161,7 +197,7 @@ export function planPath(nav: Nav, from: Pt, to: Pt, avoid: (Pt & { r: number })
   if (!found) return null;
 
   const cells: Pt[] = [];
-  for (let c = goal; c >= 0; c = came[c]) cells.push({ x: cellX(c % cols), z: cellZ(Math.floor(c / cols)) });
+  for (let c = goal; c >= 0; c = came[c]) cells.push({ x: cellX(nav, c % cols), z: cellZ(nav, Math.floor(c / cols)) });
   cells.reverse();
   cells.push({ x: to.x, z: to.z });
 
@@ -172,7 +208,7 @@ export function planPath(nav: Nav, from: Pt, to: Pt, avoid: (Pt & { r: number })
   while (k < cells.length) {
     let far = k;
     for (let m = cells.length - 1; m > k; m--) {
-      if (segmentClear(nav.rects, at, cells[m])) {
+      if (segmentClear(nav.rects, at, cells[m], NAV_R + 0.04, nav.bounds)) {
         far = m;
         break;
       }

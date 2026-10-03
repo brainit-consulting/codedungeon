@@ -9,6 +9,7 @@ import { interactables } from './interact';
 import { LOOK_RADIANS_PER_PX, createLookFilter, filterLookDelta, resetLookFilter, useLookPrefs } from './look';
 import { confirmDialog, isConfirmOpen } from '../ui/Confirm';
 import { footstepsFollow, getAudioPrefs, toggleMute } from '../ui/sfx';
+import { callTheCat } from './Cat';
 import { collectDarts, dropHeld, startCharge, throwHeld } from './toys/hands';
 import { watchLookLock } from './lookLock';
 import { pokeToy } from './toys/poke';
@@ -185,6 +186,7 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
       if (e.code === 'KeyE' && !e.repeat && s.focus) runFocusAction(s.focus);
       if (e.code === 'KeyF' && !e.repeat) startCharge();
       if (e.code === 'KeyG' && !e.repeat) dropHeld();
+      if (e.code === 'KeyC' && !e.repeat) callTheCat();
       if (e.code === 'KeyH') s.openOverlay({ kind: 'help' });
       if (e.code === 'KeyP') {
         e.preventDefault(); // don't type the "p" into the phone's message box

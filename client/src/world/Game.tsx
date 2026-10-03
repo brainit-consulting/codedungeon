@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { AdaptiveResolution, FrameWhilePaused, MAX_DPR, StatsProbe, statsEnabled, useRenderPaused } from '../perf';
 import { repoOnFloor, useStore } from '../store';
+import { Cat } from './Cat';
 import { chamber, chambersToDraw, dungeonColliders, roomAt } from './dungeon';
 import { Gallery } from './Gallery';
 import { HALF_D } from './layout';
@@ -36,6 +37,7 @@ function Dungeon({ slots }: { slots: number[] }) {
     <>
       {seen.hall && <Lobby />}
       <Gallery slots={slots} />
+      <Cat slots={slots} />
       {seen.chambers.map((slot) => {
         const repo = repoOnFloor(repos, slot);
         if (!repo) return null;
