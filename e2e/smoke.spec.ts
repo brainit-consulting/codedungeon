@@ -139,7 +139,8 @@ test('the scroll opens and closes with P, its button and Esc', async ({ page }) 
   await expect(phoneButton(page)).toBeVisible();
 });
 
-test("the Overlord's ledger opens with E at its table and closes with Esc", async ({ page }) => {
+/** Walks in at the Overlord's table and opens the ledger with E. */
+async function openLedger(page: Page) {
   // Start in the manager's office, just in front of the desk, looking down at the computer (-Z is north).
   const spot: SavedView = { x: MANAGER_DESK.x, z: MANAGER_DESK.z + MANAGER_DESK.d / 2 + 0.8, yaw: 0, pitch: -0.6 };
   await page.addInitScript(([key, view]) => localStorage.setItem(key, view), [VIEW_KEY, JSON.stringify(spot)] as const);
@@ -148,9 +149,24 @@ test("the Overlord's ledger opens with E at its table and closes with Esc", asyn
   await page.keyboard.press('e');
   const panel = page.getByText(/Overlord's Ledger/); // the panel's title; the hint and help text say "ledger"
   await expect(panel).toBeVisible();
+  return panel;
+}
+
+test("the Overlord's ledger opens with E at its table and closes with Esc", async ({ page }) => {
+  const panel = await openLedger(page);
   await page.keyboard.press('Escape');
   await expect(panel).toBeHidden();
   await expect(phoneButton(page)).toBeVisible();
+});
+
+test('SHIP IT opens from the ledger and sets a chamber up in demo mode', async ({ page }) => {
+  await openLedger(page);
+  await page.getByRole('button', { name: /Ship/ }).first().click();
+  await expect(page.getByText(/How should this chamber ship\?/)).toBeVisible();
+  await page.getByText('Every merge goes live').click();
+  await page.getByRole('button', { name: 'Set up' }).click();
+  await expect(page.getByText('Live now')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/demo\.vercel\.app/).first()).toBeVisible();
 });
 
 test('holding W walks forward', async ({ page }) => {

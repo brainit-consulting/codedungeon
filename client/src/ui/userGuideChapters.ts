@@ -218,7 +218,7 @@ export const CHAPTERS: GuideChapter[] = [
       list(
         '**Default coding agent, model and effort** for everyone (each person can override them in the Guild tab).',
         '**Session limit**: how many agents may work at once. Empty means no limit.',
-        '**Sessions while pacing**: how many may run when Claude warns that usage is high (chapter 8).',
+        '**Sessions while pacing**: how many may run when Claude warns that usage is high (chapter 9).',
         '**Recruiting**: approve every recruit, or auto-approve up to the **guild cap per chamber**.',
         '**Dungeon review every** so many minutes: how often the DungeonMaster looks over everything (0 turns it off).',
         '**How coders run**: real terminals (recommended) or the Agent SDK.',
@@ -250,6 +250,35 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       p(
         'Rats get in now and then, never more than three at a time. When she spots one she creeps up on it, pounces, and carries the kill to her pile beside the hearth. Twelve is all there are: once the pile is full, no more come until the dungeon is reloaded.',
+      ),
+    ],
+  },
+  {
+    id: 'shipping',
+    title: 'Shipping your app',
+    blocks: [
+      p(
+        'Shipping is putting a chamber\'s app on the internet, on Vercel. The SHIP IT sign on a chamber\'s far wall shows where it stands; press [[E]] on it (or **🚢 Ship** on the chamber\'s row in the ledger) to open the panel. Only you ship: coders and testers never deploy.',
+      ),
+      h('Setting a chamber up'),
+      p('The first time, the panel asks how this chamber ships and which Vercel project it uses (it can create one named after the repo). It uses the Vercel command line on this machine, logged in as you; if it isn\'t, run `vercel login` in a terminal and press **Check**.'),
+      list(
+        '**Every merge goes live**: Vercel builds from GitHub and each merge to `main` goes live by itself. The way to start: the app lives on its free vercel.app address while it\'s being built.',
+        '**GitHub builds, you ship**: every merge is built but held back. **Ship it** puts the newest build of `main` live in seconds.',
+        '**Deploy from the dungeon**: the dungeon deploys `main` itself when you press **Ship it**, and **Preview** gives you a link to a test copy.',
+      ),
+      h('Launching'),
+      p('When the app is ready, **Launch** gives it its own address, such as `myapp.brainit.site`, and from then on merges wait for **Ship it** instead of going live by themselves. The first ship of any chamber asks you first, because it makes the app public.'),
+      h('What the panel shows'),
+      list(
+        '**Live now**: the address, the commit, and since when.',
+        '**Waiting to ship**: the pull requests merged since then.',
+        '**Ship it** stays greyed out, with the reason, while `main`\'s checks fail, while Vercel is still building, or when nothing is waiting.',
+        '**Ship log**: who shipped what, and when.',
+      ),
+      h('Undo'),
+      p(
+        '**Undo last ship** puts the previous version back live in seconds (**Go back to…** reaches older ones). `main` still has the change that broke it, so **Ship it** stays locked until `main` moves on, and a chamber where every merge goes live pauses until you press **Resume**. Two buttons follow up: **Revert those changes** files an issue for a coder to undo them, and **Fix it forward** files one to fix what broke. Either way the fix goes through QA like any other work.',
       ),
     ],
   },
@@ -289,7 +318,7 @@ export const CHAPTERS: GuideChapter[] = [
       h('The view or the mouse misbehaves'),
       list(
         'Can\'t look around: click the view once. If the mouse still won\'t lock, drag with the left button held.',
-        'In a narrow window (a browser pane beside a chat, say) the line of keys along the bottom steps aside to leave room; the help ([[H]]) and chapter 9 list them all.',
+        'In a narrow window (a browser pane beside a chat, say) the line of keys along the bottom steps aside to leave room; the help ([[H]]) and chapter 10 list them all.',
         'The status pill says **reconnecting**: the dungeon\'s server is restarting or has stopped. Agents\' terminals keep working through a restart.',
         'No sound: press [[M]], and check the volume in the help ([[H]]). No music: press [[N]], and check its own volume there too.',
       ),
