@@ -13,16 +13,20 @@ const hz = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
 /** The music's gain for a 0-100 setting. Measured offline: at 100 the band peaks at 0.73 (RMS 0.09), under clipping. */
 export const musicLevel = (pct: number) => 3 * (pct / 100) ** 1.5;
 
-/** A stone room's echo: three seconds of decaying noise, a little different in each ear. */
+let echoIr: AudioBuffer | null = null;
+
+/** A stone room's echo: three seconds of decaying noise, a little different in each ear. Built once. */
 function stoneEcho(ctx: BaseAudioContext) {
-  const len = Math.floor(ctx.sampleRate * 3.2);
-  const ir = ctx.createBuffer(2, len, ctx.sampleRate);
-  for (let ch = 0; ch < 2; ch++) {
-    const d = ir.getChannelData(ch);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len) ** 3.2;
+  if (!echoIr || echoIr.sampleRate !== ctx.sampleRate) {
+    const len = Math.floor(ctx.sampleRate * 3.2);
+    echoIr = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = echoIr.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len) ** 3.2;
+    }
   }
   const conv = ctx.createConvolver();
-  conv.buffer = ir;
+  conv.buffer = echoIr;
   return conv;
 }
 
@@ -30,6 +34,10 @@ export interface Band {
   bus: GainNode;
   /** Queue one phrase to start at time `t0` (context seconds). */
   play(notes: Note[], t0: number): void;
+  /** Stop every note queued or sounding, at context time `at`. */
+  silence(at: number): void;
+  /** How many notes are queued or sounding. */
+  readonly sounding: number;
 }
 
 /** The instruments, wired to `out`: pad, bass, lute and bell, dry and through the echo, into one bus. */
@@ -56,6 +64,7 @@ export function createBand(ctx: BaseAudioContext, out: AudioNode, level: number)
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + Math.max(attack, hold) + release);
     return { g, end: t0 + Math.max(attack, hold) + release + 0.05 };
   };
+  const live = new Set<OscillatorNode>();
   const osc = (type: OscillatorType, freq: number, detune: number, into: AudioNode, t0: number, end: number) => {
     const o = ctx.createOscillator();
     o.type = type;
@@ -64,6 +73,8 @@ export function createBand(ctx: BaseAudioContext, out: AudioNode, level: number)
     o.connect(into);
     o.start(t0);
     o.stop(end);
+    live.add(o);
+    o.onended = () => live.delete(o);
   };
 
   const voices: Record<Note['voice'], (n: Note, t0: number) => void> = {
@@ -114,6 +125,18 @@ export function createBand(ctx: BaseAudioContext, out: AudioNode, level: number)
     play(notes, t0) {
       for (const n of notes) voices[n.voice](n, t0 + n.beat * SPB);
     },
+    silence(at) {
+      for (const o of live) {
+        try {
+          o.stop(at); // a note not yet started never starts
+        } catch {
+          // already stopped
+        }
+      }
+    },
+    get sounding() {
+      return live.size;
+    },
   };
 }
 
@@ -130,8 +153,11 @@ function stop() {
   const old = band;
   band = null;
   if (!old) return;
-  if (a) old.bus.gain.setTargetAtTime(0, a.ctx.currentTime, 0.3);
-  setTimeout(() => old.bus.disconnect(), 2000); // notes already queued play on into nothing
+  if (a) {
+    old.bus.gain.setTargetAtTime(0, a.ctx.currentTime, 0.3);
+    old.silence(a.ctx.currentTime + 1.5); // after the fade; queued notes are dropped
+  }
+  setTimeout(() => old.bus.disconnect(), 2000);
 }
 
 function tick() {
@@ -146,6 +172,7 @@ function tick() {
     band.bus.gain.setTargetAtTime(musicLevel(p.music), a.ctx.currentTime, 1.5); // fade in
     nextAt = a.ctx.currentTime + 0.5;
   }
+  nextAt = Math.max(nextAt, a.ctx.currentTime + 0.05); // a stalled page skips what it missed instead of playing it all at once
   while (nextAt < a.ctx.currentTime + LOOKAHEAD) {
     band.play(composePhrase(SEED, phrase++), nextAt);
     nextAt += PHRASE_SECONDS;
@@ -156,6 +183,7 @@ function tick() {
 export function startMusic() {
   if (started || typeof window === 'undefined') return;
   started = true;
+  if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__music = () => ({ playing: !!band, sounding: band?.sounding ?? 0 });
   setInterval(tick, 250);
   subscribeAudio(() => {
     const a = audio();
