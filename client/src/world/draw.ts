@@ -51,7 +51,7 @@ const TERM = {
 };
 
 const SPINNER = ['·', '✢', '✳', '✶', '✻', '✽', '✻', '✶', '✳', '✢'];
-const VERBS = ['Crafting', 'Pondering', 'Tinkering', 'Brewing', 'Noodling', 'Scheming', 'Assembling', 'Percolating'];
+const VERBS = ['Forging', 'Pondering', 'Tinkering', 'Brewing', 'Scribing', 'Scheming', 'Hammering', 'Distilling'];
 
 export function toolVerb(tool: string | null): string {
   if (!tool) return '';
@@ -94,7 +94,7 @@ export function drawTerminal(
     agent.status === 'idle'
       ? 'idle'
       : agent.role === 'ceo'
-        ? (agent.issueTitle ?? 'running the company').toLowerCase()
+        ? (agent.issueTitle ?? 'running the dungeon').toLowerCase()
         : agent.task === 'qa'
           ? `QA of PR #${agent.prNumber}`
           : agent.task === 'fix'
@@ -102,7 +102,7 @@ export function drawTerminal(
             : agent.issueNumber
               ? `issue #${agent.issueNumber}`
               : 'idle';
-  const host = agent.role === 'qa' ? 'qa-lab' : agent.role === 'ceo' ? 'hq' : 'swarm';
+  const host = agent.role === 'qa' ? 'assay' : agent.role === 'ceo' ? 'keep' : 'dungeon';
   const title = `${agent.name.toLowerCase()}@${host} — ${job} — ${program}`;
   ctx.fillText(title, 84, barH / 2 + 1);
 
@@ -355,8 +355,9 @@ export function drawTag(ctx: CanvasRenderingContext2D, w: number, h: number, age
                 : agent.role === 'ceo'
                   ? '🏛️'
                   : '☕';
-  roundRect(ctx, 4, 4, w - 8, h - 8, (h - 8) / 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.94)';
+  // a parchment label edged in the coder's own colour
+  roundRect(ctx, 4, 4, w - 8, h - 8, 6);
+  ctx.fillStyle = 'rgba(216, 199, 160, 0.95)';
   ctx.fill();
   ctx.lineWidth = 6;
   ctx.strokeStyle = agent.color;
@@ -364,12 +365,12 @@ export function drawTag(ctx: CanvasRenderingContext2D, w: number, h: number, age
   ctx.textBaseline = 'middle';
   ctx.font = `38px ${SANS}`;
   ctx.fillText(icon, 22, h / 2 + 2);
-  ctx.fillStyle = '#23263a';
+  ctx.fillStyle = '#2a1d14';
   ctx.font = `700 40px ${SANS}`;
   const busy = agent.status !== 'idle';
   let label =
     agent.role === 'ceo'
-      ? `${agent.name} · CEO`
+      ? `${agent.name} · DungeonMaster`
       : agent.role === 'qa'
         ? busy && agent.prNumber
           ? `${agent.name} · QA PR #${agent.prNumber}`
@@ -406,12 +407,12 @@ export function drawCandidateTag(ctx: CanvasRenderingContext2D, w: number, h: nu
     while (t.length > 4 && ctx.measureText(t).width > max) t = `${t.slice(0, -2)}…`;
     return t;
   };
-  ctx.fillStyle = '#23263a';
+  ctx.fillStyle = '#2a1d14';
   ctx.font = `700 40px ${SANS}`;
   ctx.fillText(fit(`${name} · candidate`, w - 100), 80, h * 0.36);
   ctx.fillStyle = '#5c6078';
   ctx.font = `600 28px ${SANS}`;
-  ctx.fillText(fit(`${title}${floor ? ` · floor ${floor}` : ''}`, w - 100), 80, h * 0.72);
+  ctx.fillText(fit(`${title}${floor ? ` · chamber ${floor}` : ''}`, w - 100), 80, h * 0.72);
 }
 
 /**
@@ -534,7 +535,7 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
   ctx.fillStyle = info.color;
   ctx.fillRect(0, headH - 6, w, 6);
   ctx.font = `700 34px ${SANS}`;
-  const chip = `FLOOR ${info.floor}`;
+  const chip = `CHAMBER ${info.floor}`;
   const chipW = ctx.measureText(chip).width + 44;
   roundRect(ctx, 40, 30, chipW, 54, 27);
   ctx.fillStyle = info.color;
