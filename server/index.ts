@@ -189,7 +189,7 @@ server.on('upgrade', (req, socket, head) => {
 
 server.listen(PORT, '127.0.0.1', () => {
   setOfficeUrl(`http://127.0.0.1:${(server.address() as AddressInfo).port}`);
-  console.log(`\n  🏢 cubefarm on http://localhost:${PORT}${DEMO ? '  (DEMO MODE: fake GitHub + fake agents)' : ''}`);
+  console.log(`\n  🏰 Code Dungeon on http://localhost:${PORT}${DEMO ? '  (DEMO MODE: fake GitHub + fake agents)' : ''}`);
   console.log(`     state: ${STATE_FILE}`);
   console.log(`     workspaces: ${WORKSPACE_ROOT}\n`);
 });
@@ -200,7 +200,7 @@ let closing = false;
 const shutdown = (signal: string) => {
   if (closing) return;
   closing = true;
-  console.log(`\n  ${signal}: stopping floor previews…`);
+  console.log(`\n  ${signal}: stopping chamber previews…`);
   const force = setTimeout(() => process.exit(0), 15_000);
   void swarm
     .shutdown(signal === 'restart')

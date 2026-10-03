@@ -283,7 +283,7 @@ function fakeSession(opts: SessionOptions, cb: SessionCallbacks, fullName: strin
     stop() {
       stopped = true;
       timers.forEach(clearTimeout);
-      cb.finished({ ok: false, text: '', costUsd: 0.1, turns: i, errors: ['Stopped by manager'] });
+      cb.finished({ ok: false, text: '', costUsd: 0.1, turns: i, errors: ['Stopped by the Overlord'] });
     },
   };
 }
@@ -559,7 +559,7 @@ function placeholderPage(title: string, hue: number) {
 </style></head>
 <body><main>
   <h1>${safe}</h1>
-  <p>A placeholder app served by the demo office.</p>
+  <p>A placeholder app served by the demo dungeon.</p>
   <button id="btn" type="button">Click me</button>
   <span id="count">Clicked 0 times</span>
 </main>
@@ -602,7 +602,7 @@ const demoPreviews: PreviewBackend = {
       cb.log([`HEAD is now at ${sha} (${job.pr ? `PR #${job.pr}` : job.defaultBranch})`]);
       if (!job.command && bareRepos.has(job.fullName)) {
         stopped = true;
-        cb.failed('Nothing to run: this floor has no preview command and no package.json.', true);
+        cb.failed('Nothing to run: this chamber has no preview command and no package.json.', true);
         return;
       }
       cb.status('installing');
@@ -739,7 +739,7 @@ function ceoSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle {
   let done = false;
   const wait = (ms: number) => new Promise<void>((resolve) => timers.push(setTimeout(resolve, ms)));
   const step = async (entries: LogEntry[], ms = 900 + Math.random() * 1500) => {
-    if (stopped) throw new Error('Stopped by manager');
+    if (stopped) throw new Error('Stopped by the Overlord');
     cb.tool(entries.find((e) => e.tool)?.tool ?? null);
     cb.log(entries);
     await wait(ms);
@@ -749,7 +749,7 @@ function ceoSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle {
     const s = JSON.parse(await office.call('company_status', {})) as { floors: DemoFloor[]; pendingProposals: unknown[] };
     const people = s.floors.reduce((n, f) => n + f.team.length, 0);
     const issues = s.floors.reduce((n, f) => n + f.backlog.length, 0);
-    cb.log([{ kind: 'result', text: `  ⎿ ${s.floors.length} floors · ${people} people · ${issues} open issues · ${s.pendingProposals.length} proposals pending` }]);
+    cb.log([{ kind: 'result', text: `  ⎿ ${s.floors.length} chambers · ${people} people · ${issues} open issues · ${s.pendingProposals.length} proposals pending` }]);
     return s;
   };
   const use = async (name: string, args: Record<string, unknown>) => {
@@ -783,7 +783,7 @@ function ceoSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle {
       specialty: 'frontend',
     });
     if (!team.some((a) => a.specialty === 'frontend')) {
-      await use('propose_hire', { floor, role: 'dev', ...GENERIC.hires[0], reason: 'All three issues are UI work and nobody on the floor owns the frontend yet.' });
+      await use('propose_hire', { floor, role: 'dev', ...GENERIC.hires[0], reason: 'All three issues are UI work and nobody in the chamber owns the frontend yet.' });
     }
     return n;
   };
@@ -792,7 +792,7 @@ function ceoSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle {
     async onboard(floor: number, fullName: string) {
       const s = await status();
       const f = s.floors.find((x) => x.floor === floor);
-      if (!f) return 'That floor has gone, so there was nothing to onboard.';
+      if (!f) return 'That chamber has gone, so there was nothing to onboard.';
       const p = PROFILES[fullName.split('/')[1] ?? ''] ?? GENERIC;
       await read(`${f.repo}/README.md`, 48);
       await step([{ kind: 'tool', tool: 'Glob', text: '⏺ Glob src/**/*' }, { kind: 'result', text: '  ⎿ Found 23 files' }]);
@@ -816,9 +816,9 @@ function ceoSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle {
         planned = ` I also turned your brief into three issues; #${n} sets up the skeleton and the other two wait for it.`;
       }
       return [
-        `Floor ${floor}: ${p.summary}.`,
+        `Chamber ${floor}: ${p.summary}.`,
         `I wrote a QA brief for it${qa ? `, made ${qa.name} our ${p.qaTitle}` : ''}${dev ? ` and ${dev.name} our ${p.devTitle}` : ''}.`,
-        proposed.length ? `I've proposed hiring: ${proposed.join(', ')}. The resume${proposed.length === 1 ? ' is' : 's are'} waiting on your phone.` : '',
+        proposed.length ? `I've proposed recruiting: ${proposed.join(', ')}. The proposal${proposed.length === 1 ? ' is' : 's are'} waiting on your scroll.` : '',
         planned,
       ]
         .filter(Boolean)
@@ -827,21 +827,21 @@ function ceoSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle {
     async plan(floor: number, mission: string) {
       const s = await status();
       const f = s.floors.find((x) => x.floor === floor);
-      if (!f) return 'That floor has gone, so there was nothing to plan.';
+      if (!f) return 'That chamber has gone, so there was nothing to plan.';
       await read(`${f.repo}/README.md`, 12);
       await think("Foundation first, so the parallel work doesn't collide.");
       const n = await planIssues(floor, mission, f.team);
-      return `I turned the brief into three issues on floor ${floor}. #${n} sets up the skeleton; the other two say "Depends on #${n}", so nobody starts them early.`;
+      return `I turned the brief into three issues in chamber ${floor}. #${n} sets up the skeleton; the other two say "Depends on #${n}", so nobody starts them early.`;
     },
     async review() {
       const s = await status();
-      await think('Checking each floor for idle people and stuck work.');
+      await think('Checking each chamber for idle people and stuck work.');
       for (const f of s.floors) {
         const idle = f.team.filter((a) => a.role === 'dev' && !a.specialty && (a.status === 'idle' || a.status === 'done'));
         const devs = f.team.filter((a) => a.role === 'dev').length;
         if (devs >= 6 && idle.length >= 2 && f.backlog.length < devs) {
-          await use('propose_let_go', { agent_id: idle[idle.length - 1].id, reason: `Floor ${f.floor} has ${devs} developers for ${f.backlog.length} open issues; ${idle.length} of them are idle.` });
-          return `Floor ${f.floor} is overstaffed: ${devs} developers for ${f.backlog.length} open issues. I suggest letting ${idle[idle.length - 1].name} go; it's on your phone.`;
+          await use('propose_let_go', { agent_id: idle[idle.length - 1].id, reason: `Chamber ${f.floor} has ${devs} coders for ${f.backlog.length} open issues; ${idle.length} of them are idle.` });
+          return `Chamber ${f.floor} is overstaffed: ${devs} coders for ${f.backlog.length} open issues. I suggest letting ${idle[idle.length - 1].name} go; it's on your scroll.`;
         }
       }
       // An issue nobody routed while the floor has a specialist: re-route it rather than file a duplicate.
@@ -850,11 +850,11 @@ function ceoSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle {
         const unrouted = (f.backlog as { number: number; specialty: string | null; inProgress: boolean }[]).find((i) => !i.specialty && !i.inProgress);
         if (!specialist || !unrouted) continue;
         const out = await use('route_issue', { floor: f.floor, number: unrouted.number, specialty: specialist.specialty });
-        if (!out.startsWith('Refused')) return `Floor ${f.floor}: #${unrouted.number} had no specialty, so I routed it to ${specialist.specialty}, ${specialist.name}'s lane.`;
+        if (!out.startsWith('Refused')) return `Chamber ${f.floor}: #${unrouted.number} had no specialty, so I routed it to ${specialist.specialty}, ${specialist.name}'s lane.`;
       }
       const issues = s.floors.reduce((n, f) => n + f.backlog.length, 0);
       const prs = s.floors.reduce((n, f) => n + f.pullRequests.length, 0);
-      return `All ${s.floors.length} floors look healthy: ${issues} open issues and ${prs} pull requests in flight. No changes needed.`;
+      return `All ${s.floors.length} chambers look healthy: ${issues} open issues and ${prs} pull requests in flight. No changes needed.`;
     },
     async chat(text: string) {
       const s = await status();
@@ -865,36 +865,36 @@ function ceoSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle {
       // Real CEOs answer in Markdown, so the demo one does too: every element the phone renders.
       const rows = s.floors.map((f) => `| ${f.floor} | \`${f.repo.split('/').pop()}\` | ${f.team.length} | ${f.backlog.length} | ${f.pullRequests.length} |`);
       return [
-        `**Quick status:** ${s.floors.length} floor${s.floors.length === 1 ? '' : 's'}, ${people} people and ${issues} open issues.`,
+        `**Quick status:** ${s.floors.length} chamber${s.floors.length === 1 ? '' : 's'}, ${people} people and ${issues} open issues.`,
         '',
         '- The team is *heads down* on the backlog',
-        `- ${pending ? `**${pending}** proposal${pending === 1 ? ' is' : 's are'} waiting for you in Hires` : 'No hiring decisions waiting on you'}`,
+        `- ${pending ? `**${pending}** proposal${pending === 1 ? ' is' : 's are'} waiting for you in Recruits` : 'No recruiting decisions waiting on you'}`,
         '  - QA re-tests every PR after a fix',
         '',
-        '| Floor | Repo | People | Issues | PRs |',
+        '| Chamber | Repo | People | Issues | PRs |',
         '| ---: | --- | ---: | ---: | ---: |',
         ...(rows.length ? rows : ['| – | no projects yet | 0 | 0 | 0 |']),
         '',
         'What I would do next:',
         '',
         '1. Merge anything that passed QA',
-        '2. Run `npm run build` on each floor before the next milestone',
-        '3. Hire only where the backlog is piling up',
+        '2. Run `npm run build` in each chamber before the next milestone',
+        '3. Recruit only where the backlog is piling up',
         '',
         '```bash',
         'SWARM_HOME=/tmp/cubefarm-demo SWARM_PORT=5260 node --import tsx server/index.ts --demo',
         '```',
         '',
-        `> I'm the demo CEO, so I can't act on "${short(text)}", but the real one would. See the [Claude Code docs](https://docs.claude.com/en/docs/claude-code/overview).`,
+        `> I'm the demo DungeonMaster, so I can't act on "${short(text)}", but the real one would. See the [Claude Code docs](https://docs.claude.com/en/docs/claude-code/overview).`,
       ].join('\n');
     },
   };
 
   const prompt = opts.prompt;
-  const where = prompt.match(/[Ff]loor (\d+) \(([^,)]+)/);
-  const run = /just joined the company/.test(prompt)
+  const where = prompt.match(/[Cc]hamber (\d+) \(([^,)]+)/);
+  const run = /just joined the dungeon/.test(prompt)
     ? () => scripts.onboard(Number(where?.[1]), where?.[2] ?? '')
-    : /has a brief for floor/.test(prompt)
+    : /has a brief for chamber/.test(prompt)
       ? () => scripts.plan(Number(where?.[1]), prompt.match(/"""([\s\S]*?)"""/)?.[1]?.trim() ?? '')
       : /Periodic review/.test(prompt)
         ? () => scripts.review()
@@ -910,13 +910,13 @@ function ceoSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle {
   timers.push(
     setTimeout(async () => {
       try {
-        cb.log([{ kind: 'system', text: `✻ Claude Code (demo) · ${opts.model} · ${opts.effort} effort · CEO` }]);
+        cb.log([{ kind: 'system', text: `✻ Claude Code (demo) · ${opts.model} · ${opts.effort} effort · DungeonMaster` }]);
         const reply = await run();
         cb.log([{ kind: 'text', text: `● ${reply}` }]);
         cb.turn?.(reply);
         finish(true, reply);
       } catch (err) {
-        finish(false, '', stopped ? 'Stopped by manager' : (err as Error).message);
+        finish(false, '', stopped ? 'Stopped by the Overlord' : (err as Error).message);
       }
     }, 500),
   );
@@ -935,7 +935,7 @@ function ceoSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle {
     stop() {
       stopped = true;
       timers.forEach(clearTimeout);
-      finish(false, '', 'Stopped by manager');
+      finish(false, '', 'Stopped by the Overlord');
     },
   };
 }

@@ -194,7 +194,7 @@ export async function startKeeper(home: string, onHook: (token: string, body: un
     }
   }
   if (!hello) {
-    console.warn("  terminal keeper unavailable: agents' terminals run in the office and stop when it restarts");
+    console.warn("  terminal keeper unavailable: agents' terminals run in the dungeon and stop when it restarts");
     return [];
   }
   conn = hello.sock;

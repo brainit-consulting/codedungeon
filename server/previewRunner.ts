@@ -167,8 +167,8 @@ class RealPreview implements PreviewHandle {
       this.stopped = true;
       cb.failed(
         pkg
-          ? 'package.json has no dev, start or preview script. Set a preview command for this floor.'
-          : 'Nothing to run: this floor has no preview command and no package.json.',
+          ? 'package.json has no dev, start or preview script. Set a preview command for this chamber.'
+          : 'Nothing to run: this chamber has no preview command and no package.json.',
         true,
       );
       return;

@@ -113,11 +113,11 @@ export async function takeLastUpdate(home: string): Promise<LastUpdate | null> {
   return parseLastUpdate(raw);
 }
 
-/** The phone message for an update: "Updated the office from abc1234 to def5678 (3 commits)" or why it failed. */
+/** The scroll message for an update: "Updated the dungeon from abc1234 to def5678 (3 commits)" or why it failed. */
 export function lastUpdateMessage(u: LastUpdate, commits: number | null): string {
   if (!u.ok) return `⚠️ Update failed and was rolled back: ${u.error || 'unknown error'}`;
   const n = commits === null ? '' : ` (${commits} commit${commits === 1 ? '' : 's'})`;
-  return `⬆️ Updated the office from ${u.from.slice(0, 7)} to ${u.to.slice(0, 7)}${n}`;
+  return `⬆️ Updated the dungeon from ${u.from.slice(0, 7)} to ${u.to.slice(0, 7)}${n}`;
 }
 
 // ---------- the running office ----------
@@ -150,7 +150,7 @@ export const realOffice: OfficeHost = {
       .catch(() => null),
   takeLastUpdate: () => takeLastUpdate(HOME_DIR),
   async update(from) {
-    if (!underLauncher()) throw new Error('The office was not started by the launcher');
+    if (!underLauncher()) throw new Error('The dungeon was not started by the launcher');
     await new Promise<void>((resolve, reject) => process.send!({ type: 'office:update', from }, undefined, {}, (err) => (err ? reject(err) : resolve())));
     return null;
   },

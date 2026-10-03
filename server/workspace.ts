@@ -218,7 +218,7 @@ export async function publishFolder(dir: string, opts: { name: string; visibilit
     await commitReadme(full, opts.name, opts.description ?? '');
   }
   const origin = await git(['remote', 'get-url', 'origin'], { cwd: full }).catch(() => '');
-  if (origin) throw new Error(`${info.name}'s origin (${origin}) isn't on GitHub. cubefarm needs GitHub for issues and pull requests.`);
+  if (origin) throw new Error(`${info.name}'s origin (${origin}) isn't on GitHub. Code Dungeon needs GitHub for issues and pull requests.`);
   const target = opts.owner ? `${opts.owner}/${opts.name}` : opts.name;
   const args = ['repo', 'create', target, `--${opts.visibility}`, '--source', full, '--remote', 'origin', '--push'];
   if (opts.description) args.push('--description', opts.description);
@@ -294,7 +294,7 @@ export function prepareDesk(fullName: string, base: DeskBase, agentSlug: string,
         await removeDir(wt);
       } catch (err) {
         throw new Error(
-          `Could not clear the desk folder ${wt}: ${(err as Error).message}. A program started by the previous task is probably still running there. Close it and try again.`,
+          `Could not clear the bench folder ${wt}: ${(err as Error).message}. A program started by the previous task is probably still running there. Close it and try again.`,
         );
       }
     }

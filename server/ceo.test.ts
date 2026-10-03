@@ -45,22 +45,22 @@ describe('jobLabel', () => {
   const floor = { floor: 3, fullName: 'leonvanzyl/office-swarm' };
 
   it('names the floor and repo for floor jobs', () => {
-    expect(jobLabel(job('onboard'), floor)).toBe('Onboarding floor 3 · office-swarm');
-    expect(jobLabel(job('plan'), floor)).toBe('Planning floor 3 · office-swarm');
+    expect(jobLabel(job('onboard'), floor)).toBe('Onboarding chamber 3 · office-swarm');
+    expect(jobLabel(job('plan'), floor)).toBe('Planning chamber 3 · office-swarm');
   });
 
   it('falls back to the full name when it has no owner', () => {
-    expect(jobLabel(job('plan'), { floor: 1, fullName: 'solo' })).toBe('Planning floor 1 · solo');
+    expect(jobLabel(job('plan'), { floor: 1, fullName: 'solo' })).toBe('Planning chamber 1 · solo');
   });
 
   it('says so when the floor is gone', () => {
-    expect(jobLabel(job('onboard'), null)).toBe('Onboarding a removed floor');
-    expect(jobLabel(job('plan'), null)).toBe('Planning a removed floor');
+    expect(jobLabel(job('onboard'), null)).toBe('Onboarding a removed chamber');
+    expect(jobLabel(job('plan'), null)).toBe('Planning a removed chamber');
   });
 
   it('labels company-wide jobs without a floor', () => {
-    expect(jobLabel(job('review'), floor)).toBe('Reviewing the company');
-    expect(jobLabel(job('review'), null)).toBe('Reviewing the company');
+    expect(jobLabel(job('review'), floor)).toBe('Reviewing the dungeon');
+    expect(jobLabel(job('review'), null)).toBe('Reviewing the dungeon');
     expect(jobLabel({ kind: 'chat', text: 'hi', at: 0 }, null)).toBe('Replying to you');
   });
 });
@@ -120,30 +120,30 @@ describe('planRoute (route_issue)', () => {
   const route = (over: Partial<RouteRequest>) => planRoute({ ...base, ...over });
 
   it('re-routes to a specialty on the floor, dropping the old swarm label only', () => {
-    expect(route({ specialty: 'Frontend' })).toEqual({ addLabels: ['swarm:frontend'], removeLabels: ['swarm:backend'], body: null, summary: '#4 on floor 1: routed to frontend.' });
-    expect(route({ specialty: '' })).toMatchObject({ addLabels: [], removeLabels: ['swarm:backend'], summary: '#4 on floor 1: no specialty.' });
+    expect(route({ specialty: 'Frontend' })).toEqual({ addLabels: ['swarm:frontend'], removeLabels: ['swarm:backend'], body: null, summary: '#4 in chamber 1: routed to frontend.' });
+    expect(route({ specialty: '' })).toMatchObject({ addLabels: [], removeLabels: ['swarm:backend'], summary: '#4 in chamber 1: no specialty.' });
   });
 
   it('refuses a specialty nobody on the floor or in a pending proposal has', () => {
-    expect(() => route({ specialty: 'wizardry' })).toThrow('Nobody on floor 1 has the specialty "wizardry", and no pending proposal does. Specialties there: frontend, backend.');
+    expect(() => route({ specialty: 'wizardry' })).toThrow('Nobody in chamber 1 has the specialty "wizardry", and no pending proposal does. Specialties there: frontend, backend.');
     expect(() => route({ specialty: '!!!' })).toThrow(/is not a specialty/);
   });
 
   it('rewrites the Depends on line and leaves the rest of the body alone', () => {
     expect(route({ number: 5, dependsOn: [6] }).body).toBe('Depends on #6\n\nIntro\n\nMore');
     expect(route({ number: 5, dependsOn: [] }).body).toBe('Intro\n\nMore');
-    expect(route({ number: 6, dependsOn: [1, 4] })).toMatchObject({ body: 'Depends on #1, #4\n\nFree', summary: '#6 on floor 1: depends on #1, #4.' });
+    expect(route({ number: 6, dependsOn: [1, 4] })).toMatchObject({ body: 'Depends on #1, #4\n\nFree', summary: '#6 in chamber 1: depends on #1, #4.' });
   });
 
   it('refuses a closed or unknown issue', () => {
     expect(() => route({ number: 9, specialty: 'frontend' })).toThrow('#9 is closed.');
-    expect(() => route({ number: 42, specialty: 'frontend' })).toThrow('There is no open issue #42 on floor 1.');
+    expect(() => route({ number: 42, specialty: 'frontend' })).toThrow('There is no open issue #42 in chamber 1.');
   });
 
   it('refuses dependencies on itself, on closed and on unknown issues', () => {
     expect(() => route({ dependsOn: [4] })).toThrow("#4 can't depend on itself.");
     expect(() => route({ dependsOn: [9] })).toThrow("#9 is closed, so there's nothing to wait for.");
-    expect(() => route({ dependsOn: [42] })).toThrow('There is no open issue #42 on floor 1.');
+    expect(() => route({ dependsOn: [42] })).toThrow('There is no open issue #42 in chamber 1.');
   });
 
   it('refuses a cycle', () => {
@@ -174,7 +174,7 @@ describe('IssueCap', () => {
       cap.check();
       cap.record('a/b');
     }
-    expect(() => cap.check()).toThrow("You already filed 12 issues in this job. That's plenty for one milestone. The manager's next message allows more.");
+    expect(() => cap.check()).toThrow("You already filed 12 issues in this job. That's plenty for one milestone. The Overlord's next message allows more.");
   });
 
   it('resets when a manager message arrives, and still counts the whole job', () => {

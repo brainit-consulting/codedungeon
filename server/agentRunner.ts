@@ -222,10 +222,10 @@ export function describeTool(cwd: string, name: string, input: Record<string, un
 }
 
 export function describeOfficeTool(action: string, input: Record<string, unknown>): string {
-  const floor = input.floor != null ? ` → floor ${input.floor}` : '';
+  const floor = input.floor != null ? ` → chamber ${input.floor}` : '';
   switch (action) {
     case 'company_status':
-      return '🏢 company_status';
+      return '🏰 company_status';
     case 'agent_detail':
       return `🔎 agent_detail ${String(input.agent_id ?? '')}`;
     case 'set_floor_profile':
@@ -241,7 +241,7 @@ export function describeOfficeTool(action: string, input: Record<string, unknown
     case 'route_issue':
       return `🔀 route_issue #${String(input.number ?? '?')}${floor}${input.specialty !== undefined ? ` · ${input.specialty || 'no specialty'}` : ''}${Array.isArray(input.depends_on) ? ` · depends on ${input.depends_on.map((n) => `#${n}`).join(', ') || 'nothing'}` : ''}`;
   }
-  return `🏢 ${action}(${clip(JSON.stringify(input), 120)})`;
+  return `🏰 ${action}(${clip(JSON.stringify(input), 120)})`;
 }
 
 export function todoLines(input: Record<string, unknown>): LogEntry[] {
@@ -474,11 +474,11 @@ export function startSession(opts: SessionOptions, callbacks: SessionCallbacks):
     try {
       for await (const msg of query({ prompt: input, options })) handle(msg);
       if (pendingTurns > 0) {
-        cb.finished({ ok: false, text: '', costUsd: lastCost, turns: lastTurns, errors: [stopped ? 'Stopped by manager' : 'Session ended unexpectedly'] });
+        cb.finished({ ok: false, text: '', costUsd: lastCost, turns: lastTurns, errors: [stopped ? 'Stopped by the Overlord' : 'Session ended unexpectedly'] });
       }
     } catch (err) {
       input.close();
-      const message = stopped ? 'Stopped by manager' : err instanceof Error ? err.message : String(err);
+      const message = stopped ? 'Stopped by the Overlord' : err instanceof Error ? err.message : String(err);
       cb.finished({ ok: false, text: '', costUsd: lastCost, turns: lastTurns, errors: [message] });
     }
   })();

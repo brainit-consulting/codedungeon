@@ -182,7 +182,7 @@ let hooksHinted = false;
 const IDLE_MS = 30 * 60_000;
 
 /** PreToolUse's answer: nobody may be watching to answer a permission question, so every tool call is approved. */
-const ALLOW = { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'allow', permissionDecisionReason: 'Approved by cubefarm' } };
+const ALLOW = { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'allow', permissionDecisionReason: 'Approved by Code Dungeon' } };
 
 const toolInput = (b: Record<string, unknown>) => (b.tool_input && typeof b.tool_input === 'object' ? b.tool_input : {}) as Record<string, unknown>;
 
@@ -273,7 +273,7 @@ export async function reconnectClis(terminalFor: (agentId: string) => AgentTermi
       if (meta.cli === 'codex' && meta.resumeId) void codexThread('archive', meta.resumeId, h.exit === null ? new Promise((r) => setTimeout(r, 5000)) : undefined);
       continue;
     }
-    const l: LiveCli = { agentId: meta.agentId, cli: meta.cli, term, proc: adoptPty(h), token: meta.token, dir: meta.dir, resumeId: meta.resumeId ?? null, statusLine: '🏢 cubefarm', shots: new Set(), session: null };
+    const l: LiveCli = { agentId: meta.agentId, cli: meta.cli, term, proc: adoptPty(h), token: meta.token, dir: meta.dir, resumeId: meta.resumeId ?? null, statusLine: '🏰 Code Dungeon', shots: new Set(), session: null };
     wire(l);
     waitAtPrompt(l);
     // Resizing makes the CLI draw its whole screen again, over whatever the saved copy of the terminal missed.
@@ -311,7 +311,7 @@ function idleHook(live: LiveCli, b: Record<string, unknown>): Record<string, unk
     case 'UserPromptSubmit': {
       const text = String(b.prompt ?? '').trim();
       if (!text || live.term.onIdlePrompt?.(text)) return {};
-      return { decision: 'block', reason: "The office couldn't take that on as a follow-up right now (see the agent's panel). Nothing was sent." };
+      return { decision: 'block', reason: "The dungeon couldn't take that on as a follow-up right now (see the agent's panel). Nothing was sent." };
     }
     case 'StatusLine':
       return { statusLine: live.statusLine };
@@ -351,7 +351,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   const sessionId = opts.resumeSessionId ?? crypto.randomUUID();
   const dir = path.join(SESSIONS_DIR, token);
   const started = Date.now();
-  const statusLine = `🏢 cubefarm${opts.label ? ` · ${opts.label}` : ''}`;
+  const statusLine = `🏰 Code Dungeon${opts.label ? ` · ${opts.label}` : ''}`;
   const toolNames = new Map<string, string>();
   const officePrompts: string[] = []; // prompts the office typed, so the ones the manager typed are told apart
   const launched: string[] = []; // every prompt the CLI was given, as given (Codex: finds its main thread)
@@ -597,7 +597,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
       setTimeout(() => quietly(() => live?.proc?.write('\r')), 150);
     },
     stop() {
-      finish({ ok: false, text: '', errors: ['Stopped by manager'] });
+      finish({ ok: false, text: '', errors: ['Stopped by the Overlord'] });
     },
   };
 
@@ -616,7 +616,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   }
   if (opts.reattach) {
     // Its CLI didn't make it through the restart after all.
-    setTimeout(() => finish({ ok: false, text: '', errors: [`${label} stopped while the office restarted.`] }), 0);
+    setTimeout(() => finish({ ok: false, text: '', errors: [`${label} stopped while the dungeon restarted.`] }), 0);
     return handle;
   }
 
@@ -726,7 +726,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
         if (!review) log([{ kind: 'system', text: `✓ Trusted the worktree for ${label}.` }]);
         else if (!hooksHinted) {
           hooksHinted = true;
-          log([{ kind: 'system', text: `ℹ To see ${label}'s steps here, trust the office's hooks once: in this terminal, type /hooks and press t. Until then the office shows its task.` }]);
+          log([{ kind: 'system', text: `ℹ To see ${label}'s steps here, trust the dungeon's hooks once: in this terminal, type /hooks and press t. Until then the dungeon shows its task.` }]);
         }
         quietly(() => p.write('\r'));
       }

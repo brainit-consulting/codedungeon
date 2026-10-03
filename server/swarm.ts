@@ -318,7 +318,7 @@ const QA_SCHEMA: Record<string, unknown> = {
       description: 'One short caption per screenshot you took with browser_take_screenshot, in the order you took them.',
       items: { type: 'string' },
     },
-    fixInstructions: { type: 'string', description: 'When the verdict is fail: precise, actionable instructions for the developer.' },
+    fixInstructions: { type: 'string', description: 'When the verdict is fail: precise, actionable instructions for the coder.' },
   },
 };
 
@@ -590,7 +590,7 @@ export class Swarm {
   private recover(agents: PersistedAgent[]) {
     for (const a of agents) {
       if (a.task === 'qa' || this.backend.demo || !a.sessionId || !a.branch) {
-        this.appendLog(a, [{ kind: 'system', text: '↺ The office server restarted. Starting over from the queue.' }]);
+        this.appendLog(a, [{ kind: 'system', text: '↺ The dungeon server restarted. Starting over from the queue.' }]);
         const rec = a.task === 'qa' ? this.state.qa.find((q) => q.qaAgentId === a.id && q.status === 'testing') : undefined;
         if (rec) this.setQa(rec, { status: 'queued' });
         const fix = a.task === 'fix' ? this.state.qa.find((q) => q.devAgentId === a.id && q.status === 'fixing') : undefined;
@@ -599,7 +599,7 @@ export class Swarm {
         continue;
       }
       if (this.slotsFull()) continue; // stays 'stopped'; the manager can resume it later
-      void this.message(a.id, 'The office server restarted while you were working. Check the state of your worktree and continue where you left off.').catch((err) =>
+      void this.message(a.id, 'The dungeon server restarted while you were working. Check the state of your worktree and continue where you left off.').catch((err) =>
         console.warn(`could not resume ${a.name}`, err),
       );
     }
@@ -844,7 +844,7 @@ export class Swarm {
    */
   async connectRepo(fullName: string, opts: FloorOptions & { localPath?: string } = {}): Promise<RepoView> {
     const existing = this.state.repos.find((r) => r.id.toLowerCase() === fullName.toLowerCase());
-    if (existing) throw new HttpError(409, `${fullName} is already floor ${existing.floor}`);
+    if (existing) throw new HttpError(409, `${fullName} is already chamber ${existing.floor}`);
     const meta = await this.backend.repoMeta(fullName);
     const folder = opts.localPath ?? (await this.projectFolderFor(meta.nameWithOwner));
     const floor = nextChamber(this.state.repos.map((r) => r.floor));
@@ -939,7 +939,7 @@ export class Swarm {
     const repo = this.repo(id);
     this.state.ceo.queue = this.state.ceo.queue.filter((j) => j.repoId !== id);
     for (const r of this.state.requests.filter((x) => x.repoId === id && x.status === 'pending')) {
-      this.decide(r, { status: 'rejected', note: 'The floor was disconnected.', decidedBy: null });
+      this.decide(r, { status: 'rejected', note: 'The chamber was disconnected.', decidedBy: null });
     }
     for (const a of this.state.agents.filter((x) => x.repoId === id)) this.fireAgent(a.id, true);
     void this.previews.remove({ ...repo });
@@ -1063,7 +1063,7 @@ export class Swarm {
       rec.mergeRetryAt = Date.now() + MERGE_RETRY_MS;
       if (!rec.alerted) {
         rec.alerted = true;
-        this.postMessage('office', `⚠️ PR #${pr.number} on ${repo.fullName} passed QA and its checks, but GitHub won't merge it: ${error}. The office retries every ${MERGE_RETRY_MS / 60_000} minutes; merge it yourself, or change the repo's merge rules, if it keeps failing.`);
+        this.postMessage('office', `⚠️ PR #${pr.number} on ${repo.fullName} passed QA and its checks, but GitHub won't merge it: ${error}. The dungeon retries every ${MERGE_RETRY_MS / 60_000} minutes; merge it yourself, or change the repo's merge rules, if it keeps failing.`);
       }
       return this.mergeNote(rec, `merge blocked: ${error}`);
     }
@@ -1271,7 +1271,7 @@ export class Swarm {
     let desk = 0;
     while (used.has(desk)) desk++;
     if (desk >= MAX_DESKS[role]) {
-      throw new HttpError(400, role === 'qa' ? `The QA lab on floor ${repo.floor} is full (${MAX_DESKS.qa} stations)` : `Floor ${repo.floor} is full (${MAX_DESKS.dev} desks)`);
+      throw new HttpError(400, role === 'qa' ? `The QA lab in chamber ${repo.floor} is full (${MAX_DESKS.qa} stations)` : `Chamber ${repo.floor} is full (${MAX_DESKS.dev} benches)`);
     }
     const name = opts.name?.trim() || this.freeName(role);
     const agent: PersistedAgent = {
@@ -1310,7 +1310,7 @@ export class Swarm {
     this.state.agents.push(agent);
     this.agentRt.set(agent.id, { log: [], pending: [], session: null, currentTool: null, browserUrl: null, screenshot: null, shots: [], terminal: null });
     this.appendLog(agent, [
-      { kind: 'system', text: role === 'qa' ? `🔍 ${name} joined the QA lab on floor ${repo.floor} (${repo.fullName}).` : `👋 ${name} joined floor ${repo.floor} (${repo.fullName}).` },
+      { kind: 'system', text: role === 'qa' ? `🔍 ${name} joined the QA lab in chamber ${repo.floor} (${repo.fullName}).` : `👋 ${name} joined chamber ${repo.floor} (${repo.fullName}).` },
       ...(agent.title ? [{ kind: 'system' as const, text: `🪪 ${agent.title}${agent.specialty ? ` · takes swarm:${agent.specialty} issues first` : ''}` }] : []),
     ]);
     this.save();
@@ -1358,9 +1358,9 @@ export class Swarm {
 
   fireAgent(id: string, force = false) {
     const a = this.agent(id);
-    if (a.role === 'ceo') throw new HttpError(409, `${a.name} runs the company and can't be let go.`);
+    if (a.role === 'ceo') throw new HttpError(409, `${a.name} runs the dungeon and can't be let go.`);
     if (!force && a.role === 'qa' && this.state.agents.filter((x) => x.repoId === a.repoId && x.role === 'qa').length <= 1) {
-      throw new HttpError(409, `${a.name} is the only QA tester on this floor, and every floor needs at least one.`);
+      throw new HttpError(409, `${a.name} is the only QA tester in this chamber, and every chamber needs at least one.`);
     }
     for (const r of this.state.requests.filter((x) => x.kind === 'let-go' && x.agentId === id && x.status === 'pending')) {
       this.decide(r, { status: 'approved', note: 'They were let go directly.', decidedBy: 'manager' });
@@ -1394,8 +1394,8 @@ export class Swarm {
     const a = this.agent(id);
     if (!BUSY.includes(a.status)) return;
     a.status = 'stopped';
-    a.lastError = 'Stopped by manager';
-    this.appendLog(a, [{ kind: 'manager', text: '■ Manager stopped this session.' }]);
+    a.lastError = 'Stopped by the Overlord';
+    this.appendLog(a, [{ kind: 'manager', text: '■ The Overlord stopped this session.' }]);
     this.agentRt.get(id)?.session?.stop();
     this.emitAgent(a);
     this.save();
@@ -1405,7 +1405,7 @@ export class Swarm {
   private reattachSession(a: PersistedAgent) {
     const repo = this.state.repos.find((r) => r.id === a.repoId);
     if (!repo) return;
-    this.appendLog(a, [{ kind: 'system', text: '↻ The office restarted; their CLI kept working and the office is following it again.' }]);
+    this.appendLog(a, [{ kind: 'system', text: '↻ The dungeon restarted; their CLI kept working and the dungeon is following it again.' }]);
     this.startAgentSession(a, repo, this.backend.deskDir(repo.fullName, this.agentSlug(a)), '', '', a.sessionId ?? undefined, undefined, 'reattach');
   }
 
@@ -1426,7 +1426,7 @@ export class Swarm {
     }
     this.agentRt.get(id)?.terminal?.releaseIdle?.();
     this.clearTask(a);
-    this.appendLog(a, [{ kind: 'system', text: '↺ Cleared desk. Ready for new work.' }]);
+    this.appendLog(a, [{ kind: 'system', text: '↺ Cleared bench. Ready for new work.' }]);
     this.save();
   }
 
@@ -1438,7 +1438,7 @@ export class Swarm {
 
   private ensureSlot() {
     if (this.slotsFull()) {
-      throw new HttpError(429, `All ${this.state.settings.sessionLimit} session slots are busy. Raise or clear the session limit in the manager's console, or wait.`);
+      throw new HttpError(429, `All ${this.state.settings.sessionLimit} session slots are busy. Raise or clear the session limit in the Overlord's ledger, or wait.`);
     }
   }
 
@@ -1446,7 +1446,7 @@ export class Swarm {
     const a = this.agent(agentId);
     const repo = this.repo(a.repoId);
     if (a.role === 'qa') throw new HttpError(400, `${a.name} is a QA tester; they test pull requests rather than issues.`);
-    if (a.role === 'ceo') throw new HttpError(400, `${a.name} runs the company; give issues to the developers.`);
+    if (a.role === 'ceo') throw new HttpError(400, `${a.name} runs the dungeon; give issues to the coders.`);
     if (BUSY.includes(a.status)) throw new HttpError(409, `${a.name} is already working on #${a.issueNumber}`);
     this.ensureSlot();
     const issue = this.repoRt.get(repo.id)?.issues.find((i) => i.number === issueNumber);
@@ -1529,13 +1529,13 @@ export class Swarm {
     const linked = this.linkedRepos(repo).map((r) => `- ${r.fullName}: read-only reference clone at ${this.backend.mainDir(r.fullName)}`);
     const push = fixing ? `git push origin HEAD:${fixing.headRef}` : `git push -u origin ${branch}`;
     return [
-      `You are ${a.name}, ${a.title ? `the team's ${a.title},` : 'a software engineer'} on an autonomous agent team ("cubefarm"). Several teammates work in parallel on other issues of the same repository, each in their own git worktree. Nobody is watching live to answer questions, so make sensible decisions yourself and record assumptions in the PR description. The manager may occasionally send you messages; follow their instructions.`,
-      `Every pull request is reviewed and tested by a QA teammate. ${repo.autoMerge ? "Once they sign off and GitHub's checks pass, the office merges it by itself" : 'Once they sign off, the manager merges it'}. If they find problems, or checks fail, or it conflicts with the default branch, you will get the details; fix them on the same branch.`,
+      `You are ${a.name}, ${a.title ? `the team's ${a.title},` : 'a software engineer'} on an autonomous agent team ("Code Dungeon"). Several teammates work in parallel on other issues of the same repository, each in their own git worktree. Nobody is watching live to answer questions, so make sensible decisions yourself and record assumptions in the PR description. The Overlord (the human in charge) may occasionally send you messages; follow their instructions.`,
+      `Every pull request is reviewed and tested by a QA teammate. ${repo.autoMerge ? "Once they sign off and GitHub's checks pass, the dungeon merges it by itself" : 'Once they sign off, the Overlord merges it'}. If they find problems, or checks fail, or it conflicts with the default branch, you will get the details; fix them on the same branch.`,
       a.brief ? `\nYour job description:\n${a.brief}` : '',
       '',
       `Repository: ${repo.fullName} (default branch: ${repo.defaultBranch})`,
       repo.summary ? `Project: ${repo.summary}` : '',
-      repo.mission ? `What the team is building (the manager's brief): ${repo.mission}` : '',
+      repo.mission ? `What the team is building (the Overlord's brief): ${repo.mission}` : '',
       `Your worktree: ${cwd}`,
       fixing
         ? `You are fixing pull request #${fixing.pr}. Its code is checked out on local branch ${branch}; push fixes with: ${push}. Do not open a new pull request.`
@@ -1555,7 +1555,7 @@ export class Swarm {
         : `6. Open a pull request with the GitHub CLI: gh pr create --base ${repo.defaultBranch} --head ${branch} --title "<concise title>" --body "<what changed, how you verified it, assumptions>". The body must contain "Closes #<issue number>".`,
       fixing ? '' : '7. End your final message with the pull request URL on its own line.',
       '',
-      'Rules: never push to the default branch, never force-push, never merge pull requests yourself (the office merges them once QA and the checks pass), and never edit files outside your worktree. If you cannot finish, open a draft PR (gh pr create --draft) explaining what is left and why.',
+      'Rules: never push to the default branch, never force-push, never merge pull requests yourself (the dungeon merges them once QA and the checks pass), and never edit files outside your worktree. If you cannot finish, open a draft PR (gh pr create --draft) explaining what is left and why.',
     ]
       .filter((l) => l !== '')
       .join('\n');
@@ -1620,7 +1620,7 @@ export class Swarm {
       issue.labels.length ? `Labels: ${issue.labels.join(', ')}` : '',
       '',
       issue.body?.trim() || '(The issue has no description.)',
-      note ? `\nNote from the manager: ${note}` : '',
+      note ? `\nNote from the Overlord: ${note}` : '',
     ]
       .filter(Boolean)
       .join('\n');
@@ -1777,7 +1777,7 @@ export class Swarm {
   private releaseIssue(a: PersistedAgent, repo: PersistedRepo) {
     const n = a.issueNumber;
     this.clearTask(a);
-    this.postMessage('office', `⚠️ ${a.name} finished #${n} on ${repo.fullName} without opening a pull request, so it's back on the board for anyone.`);
+    this.postMessage('office', `⚠️ ${a.name} finished #${n} on ${repo.fullName} without opening a pull request, so it's back on the notice board for anyone.`);
   }
 
   // ---------- QA ----------
@@ -1838,14 +1838,14 @@ export class Swarm {
 
   private buildQaSystemAppend(a: PersistedAgent, repo: PersistedRepo, cwd: string, branch: string, pr: PrDetails) {
     return [
-      `You are ${a.name}, ${a.title ? `the team's ${a.title},` : 'a QA engineer'} on an autonomous agent team ("cubefarm"). Developers open pull requests; you review and independently verify each one before it is merged. Your sign-off is the review: ${repo.autoMerge ? "on this floor a PR you pass merges by itself as soon as GitHub's checks are green, so nobody else reads the code after you. " : ''}Be thorough and skeptical, but fair: fail a PR only for real problems (broken behaviour, failing tests or build, the issue's requirements not met, obvious regressions), not for style preferences.`,
+      `You are ${a.name}, ${a.title ? `the team's ${a.title},` : 'a QA engineer'} on an autonomous agent team ("Code Dungeon"). Coders open pull requests; you review and independently verify each one before it is merged. Your sign-off is the review: ${repo.autoMerge ? "in this chamber a PR you pass merges by itself as soon as GitHub's checks are green, so nobody else reads the code after you. " : ''}Be thorough and skeptical, but fair: fail a PR only for real problems (broken behaviour, failing tests or build, the issue's requirements not met, obvious regressions), not for style preferences.`,
       ...(a.brief ? ['', `Your job description:\n${a.brief}`] : []),
-      ...(a.role === 'dev' ? ['', "You're a developer covering for the QA lab while its testers are busy. You didn't write this pull request: test it as an independent QA engineer would."] : []),
+      ...(a.role === 'dev' ? ['', "You're a coder covering for the QA lab while its testers are busy. You didn't write this pull request: test it as an independent QA engineer would."] : []),
       '',
       `Repository: ${repo.fullName} (default branch: ${repo.defaultBranch})`,
       ...(repo.summary ? [`Project: ${repo.summary}`] : []),
-      ...(repo.mission ? [`What the team is building (the manager's brief): ${repo.mission}`] : []),
-      ...(repo.qaBrief ? [`What to check on this project (from the CEO):\n${repo.qaBrief}`] : []),
+      ...(repo.mission ? [`What the team is building (the Overlord's brief): ${repo.mission}`] : []),
+      ...(repo.qaBrief ? [`What to check on this project (from the DungeonMaster):\n${repo.qaBrief}`] : []),
       `Pull request #${pr.number} "${pr.title}" from branch ${pr.headRefName}: ${pr.url}`,
       `Your worktree: ${cwd}. It has the pull request's code checked out on local branch ${branch}.`,
       '',
@@ -1858,7 +1858,7 @@ export class Swarm {
         : '4. Exercise the changed behaviour directly (run the program, call the API, write a quick script).',
       '5. You may write throwaway scripts to probe behaviour, but do not commit them.',
       '',
-      'Rules: do not modify the code under test, do not commit, push, comment on, review or merge anything on GitHub. The office posts your report on the pull request. Finish with the structured QA report: verdict, summary, the checks you performed, the commands you ran and one caption per screenshot.',
+      'Rules: do not modify the code under test, do not commit, push, comment on, review or merge anything on GitHub. The dungeon posts your report on the pull request. Finish with the structured QA report: verdict, summary, the checks you performed, the commands you ran and one caption per screenshot.',
     ].join('\n');
   }
 
@@ -1908,11 +1908,11 @@ export class Swarm {
     const prompt = [
       `Please QA pull request #${pr.number}: ${pr.title}`,
       `URL: ${pr.url}`,
-      `Author: ${dev ? `${dev.name} (developer agent)` : 'a teammate'} · QA round ${rec.round}`,
+      `Author: ${dev ? `${dev.name} (coder agent)` : 'a teammate'} · QA round ${rec.round}`,
       rec.fixReason === 'conflict'
         ? `\nQA passed it before, but since then the branch was updated with ${repo.defaultBranch} to resolve merge conflicts. Re-check everything, especially where this change meets the newly merged work.`
         : rec.fixReason === 'checks'
-          ? '\nQA passed it before, but since then the developer changed the code to fix failing GitHub checks. Re-check everything.'
+          ? '\nQA passed it before, but since then the coder changed the code to fix failing GitHub checks. Re-check everything.'
           : rec.round > 1 && rec.summary
             ? `\nThis is a re-test after fixes. Last round's findings:\n${rec.summary}\n${rec.fixInstructions ?? ''}\nCheck those first, then re-check everything else.`
             : '',
@@ -1940,7 +1940,7 @@ export class Swarm {
           status: a.status === 'stopped' || failures >= 2 ? 'needs-human' : 'queued',
           qaAgentId: null,
           sessionFailures: failures,
-          summary: a.status === 'stopped' ? 'QA was stopped by the manager.' : rec.summary,
+          summary: a.status === 'stopped' ? 'QA was stopped by the Overlord.' : rec.summary,
         });
       }
       return;
@@ -2009,7 +2009,7 @@ export class Swarm {
     const dev = rec.devAgentId ? this.state.agents.find((x) => x.id === rec.devAgentId) : null;
     const lines = [
       `## 🔍 QA report: ${pass ? '✅ Passed' : '❌ Failed'}`,
-      `**Tester:** ${a.name} (cubefarm QA agent) · **Round:** ${rec.round}${dev ? ` · **Author:** ${dev.name}` : ''}`,
+      `**Tester:** ${a.name} (Code Dungeon QA agent) · **Round:** ${rec.round}${dev ? ` · **Author:** ${dev.name}` : ''}`,
       '',
       report.summary,
       '',
@@ -2023,8 +2023,8 @@ export class Swarm {
     if (!pass && report.fixInstructions) lines.push('', '### 🔧 What needs fixing', '', report.fixInstructions);
     if (images.length) lines.push('', '### 📸 Evidence', '', ...images.flatMap((img) => [img, '']));
     else lines.push('', '_No browser screenshots were taken in this round._');
-    const merge = repo.autoMerge ? "merges automatically once GitHub's checks pass" : 'ready for the manager to merge';
-    lines.push('', `<sub>Posted by cubefarm · ${pass ? merge : rec.round - rec.retests >= MAX_QA_ROUNDS ? 'needs a human decision' : 'sent back to the developer for fixes'}</sub>`);
+    const merge = repo.autoMerge ? "merges automatically once GitHub's checks pass" : 'ready for the Overlord to merge';
+    lines.push('', `<sub>Posted by Code Dungeon · ${pass ? merge : rec.round - rec.retests >= MAX_QA_ROUNDS ? 'needs a human decision' : 'sent back to the coder for fixes'}</sub>`);
     return lines.join('\n');
   }
 
@@ -2079,7 +2079,7 @@ export class Swarm {
       `Fix these problems, re-run the relevant checks, and push to the same branch: git push origin HEAD:${headRef}`,
       'Then reply with a short summary of what you changed. Do not open a new pull request; QA will re-test automatically.',
     ];
-    const mergeEnd = 'Then reply with a short summary of what you did. Do not open a new pull request; the office merges it once the checks pass, after another QA round if the code changed.';
+    const mergeEnd = 'Then reply with a short summary of what you did. Do not open a new pull request; the dungeon merges it once the checks pass, after another QA round if the code changed.';
     const prompt = (mergeFix ? [...mergeFix, '', mergeEnd] : qaFix).filter((l) => l !== '').join('\n');
     const resume = original && rec.devSessionId ? rec.devSessionId : undefined;
     this.startAgentSession(dev, repo, cwd, prompt, this.buildSystemAppend(dev, repo, cwd, headRef, { pr: rec.prNumber, headRef }), resume);
@@ -2121,15 +2121,15 @@ export class Swarm {
     if (!text.trim()) throw new HttpError(400, 'Empty message');
     const rt = this.agentRt.get(id)!;
     if (rt.session) {
-      this.appendLog(a, [{ kind: 'manager', text: `▶ Manager: ${text}` }]);
+      this.appendLog(a, [{ kind: 'manager', text: `▶ Overlord: ${text}` }]);
       if (!typed) rt.session.send(text);
       return;
     }
-    if (a.role === 'qa') throw new HttpError(409, `${a.name} isn't testing anything right now. Send a PR to QA from the Kanban board.`);
+    if (a.role === 'qa') throw new HttpError(409, `${a.name} isn't testing anything right now. Send a PR to QA from the notice board.`);
     if (a.status === 'preparing') throw new HttpError(409, `${a.name} is still setting up; try again in a moment`);
     if (!a.sessionId || !a.branch || a.task === 'qa') throw new HttpError(409, `${a.name} has no session to continue. Assign an issue instead.`);
     this.ensureSlot();
-    this.appendLog(a, [{ kind: 'manager', text: `▶ Manager: ${text}` }]);
+    this.appendLog(a, [{ kind: 'manager', text: `▶ Overlord: ${text}` }]);
     const cwd = this.backend.deskDir(repo.fullName, this.agentSlug(a));
     a.lastError = null;
     a.startedAt = Date.now();
@@ -2295,7 +2295,7 @@ export class Swarm {
     if (until <= this.pausedUntil) return;
     const fresh = Date.now() >= this.pausedUntil;
     this.pausedUntil = until;
-    if (fresh) this.postMessage('office', `⏸ Claude's usage limit was reached. The office starts no new work until ${new Date(until).toLocaleTimeString()}; sessions already running carry on.`);
+    if (fresh) this.postMessage('office', `⏸ Claude's usage limit was reached. The dungeon starts no new work until ${new Date(until).toLocaleTimeString()}; sessions already running carry on.`);
     this.emitUsage();
   }
 
@@ -2437,7 +2437,7 @@ export class Swarm {
       const running = this.running();
       this.postMessage(
         'office',
-        `⬆️ Updating the office (${u.behind} new commit${u.behind === 1 ? '' : 's'}). Nothing new starts${running ? ` while ${running} running session${running === 1 ? '' : 's'} finish` : ''}; then it installs and restarts.`,
+        `⬆️ Updating the dungeon (${u.behind} new commit${u.behind === 1 ? '' : 's'}). Nothing new starts${running ? ` while ${running} running session${running === 1 ? '' : 's'} finish` : ''}; then it installs and restarts.`,
       );
     }
     u.drainingSince = d.drainingSince;
@@ -2471,7 +2471,7 @@ export class Swarm {
     Object.assign(u, { sent: false, handedOver: false, requested: false, drainingSince: null });
     const interrupted = this.state.agents.filter((a) => BUSY.includes(a.status));
     for (const a of interrupted) {
-      Object.assign(a, { status: 'stopped', lastError: 'The office updated itself while this agent was working.' });
+      Object.assign(a, { status: 'stopped', lastError: 'The dungeon updated itself while this agent was working.' });
       const rt = this.agentRt.get(a.id);
       if (rt) Object.assign(rt, { session: null, currentTool: null });
     }
@@ -2498,9 +2498,9 @@ export class Swarm {
   updateOffice(action: unknown): OfficeUpdateView {
     if (action !== 'now' && action !== 'later') throw new HttpError(400, 'action must be "now" or "later"');
     const u = this.officeUpdate;
-    if (!this.officeHead || !this.backend.office.launcher) throw new HttpError(409, 'The office can only update itself when its launcher started it (npm run dev or npm start).');
+    if (!this.officeHead || !this.backend.office.launcher) throw new HttpError(409, 'The dungeon can only update itself when its launcher started it (npm run dev or npm start).');
     if (u.sent) throw new HttpError(409, 'The update is already under way.');
-    if (u.behind <= 0) throw new HttpError(409, 'The office is up to date: there is nothing to update.');
+    if (u.behind <= 0) throw new HttpError(409, 'The dungeon is up to date: there is nothing to update.');
     if (action === 'now') Object.assign(u, { requested: true, postponedUntil: null });
     else Object.assign(u, { requested: false, postponedUntil: Date.now() + POSTPONE_MS, postponedBehind: u.behind });
     this.officeUpdateTick();
@@ -2523,7 +2523,7 @@ export class Swarm {
         name: CEO_NAME,
         repoId: '',
         role: 'ceo',
-        title: 'Chief Executive Officer',
+        title: 'DungeonMaster',
         specialty: '',
         brief: '',
         hiredBy: 'manager',
@@ -2553,14 +2553,14 @@ export class Swarm {
       };
       this.state.agents.push(a);
       this.agentRt.set(a.id, { log: [], pending: [], session: null, currentTool: null, browserUrl: null, screenshot: null, shots: [], terminal: null });
-      this.appendLog(a, [{ kind: 'system', text: `🏛️ ${a.name} moved into the corner office. The CEO studies every floor, shapes its team and plans its work.` }]);
+      this.appendLog(a, [{ kind: 'system', text: `🏛️ ${a.name} took the DungeonMaster's seat in the great hall. The DungeonMaster studies every chamber, shapes its team and plans its work.` }]);
     }
     const i = interrupted.indexOf(a);
     if (i >= 0) {
       interrupted.splice(i, 1);
       a.status = 'idle';
       a.lastError = null;
-      this.appendLog(a, [{ kind: 'system', text: '↺ The office server restarted. Picking the job back up.' }]);
+      this.appendLog(a, [{ kind: 'system', text: '↺ The dungeon server restarted. Picking the job back up.' }]);
     }
     if (this.state.ceo.job) {
       this.state.ceo.queue.unshift(this.state.ceo.job);
@@ -2621,7 +2621,7 @@ export class Swarm {
     const rt = job.repoId ? this.repoRt.get(job.repoId) : undefined;
     if (job.repoId && (!rt || rt.cloneStatus === 'error')) {
       const repo = this.state.repos.find((r) => r.id === job.repoId);
-      if (repo) this.postMessage('office', `⚠️ ${a.name} couldn't study floor ${repo.floor}: the repository clone failed (${rt?.cloneError ?? 'unknown error'}).`);
+      if (repo) this.postMessage('office', `⚠️ ${a.name} couldn't study chamber ${repo.floor}: the repository clone failed (${rt?.cloneError ?? 'unknown error'}).`);
       this.emitCeo();
       this.save();
       return this.startCeoWork();
@@ -2639,7 +2639,7 @@ export class Swarm {
       { kind: 'system', text: '' },
       { kind: 'system', text: `━━━ ${label} ━━━` },
     ]);
-    if (job.kind === 'chat') this.appendLog(a, [{ kind: 'manager', text: `▶ Manager: ${job.text}` }]);
+    if (job.kind === 'chat') this.appendLog(a, [{ kind: 'manager', text: `▶ Overlord: ${job.text}` }]);
     if (job.kind === 'review') {
       this.state.ceo.lastReviewAt = Date.now();
       this.state.ceo.lastFingerprint = this.fingerprint();
@@ -2739,16 +2739,16 @@ export class Swarm {
     this.postMessage('manager', t);
     const rt = this.agentRt.get(a.id)!;
     if (rt.session) {
-      this.appendLog(a, [{ kind: 'manager', text: `▶ Manager: ${t}` }]);
+      this.appendLog(a, [{ kind: 'manager', text: `▶ Overlord: ${t}` }]);
       this.ceoIssues.managerMessage(); // a new request: the issue cap counts from here
-      rt.session.send(`Message from the manager (they read your reply on their phone, so keep it short):\n${t}`);
+      rt.session.send(`Message from the Overlord (they read your reply on their scroll, so keep it short):\n${t}`);
       return;
     }
     this.enqueueCeo({ kind: 'chat', text: t, at: Date.now() });
   }
 
   requestReview() {
-    if (this.state.repos.length === 0) throw new HttpError(400, 'Connect a repo first: the CEO needs a floor to review.');
+    if (this.state.repos.length === 0) throw new HttpError(400, 'Connect a repo first: the DungeonMaster needs a chamber to review.');
     this.enqueueCeo({ kind: 'review', at: Date.now() });
   }
 
@@ -2764,7 +2764,7 @@ export class Swarm {
       repo.mission = mission.trim().slice(0, 4000);
       this.emitRepo(repo);
     }
-    if (!repo.mission) throw new HttpError(400, 'Write a brief first: what should this floor build?');
+    if (!repo.mission) throw new HttpError(400, 'Write a brief first: what should this chamber build?');
     this.enqueueCeo({ kind: 'plan', repoId: repo.id, at: Date.now() });
   }
 
@@ -2858,7 +2858,7 @@ export class Swarm {
       this.decide(req, { status: 'approved', note: '', decidedBy: by });
       this.postMessage(
         'office',
-        by === 'auto' ? `🤖 Auto-approved: ${agent.name} joined floor ${repo.floor} as ${req.title}.` : `✅ You hired ${agent.name} as ${req.title} on floor ${repo.floor}.`,
+        by === 'auto' ? `🤖 Auto-approved: ${agent.name} joined chamber ${repo.floor} as ${req.title}.` : `✅ You recruited ${agent.name} as ${req.title} in chamber ${repo.floor}.`,
         req.id,
       );
       this.toast('success', `${agent.name} (${req.title}) joined chamber ${repo.floor}`);
@@ -2874,7 +2874,7 @@ export class Swarm {
         throw err;
       }
     }
-    this.postMessage('office', `👋 ${req.name} left floor ${repo.floor}${by === 'auto' ? ' (auto-approved)' : ''}.`, req.id);
+    this.postMessage('office', `👋 ${req.name} left chamber ${repo.floor}${by === 'auto' ? ' (auto-approved)' : ''}.`, req.id);
   }
 
   rejectRequest(id: string, note = '') {
@@ -2890,7 +2890,7 @@ export class Swarm {
 
   private floorRepo(floor: number) {
     const r = this.state.repos.find((x) => x.floor === Number(floor));
-    if (!r) throw new Error(`There is no floor ${floor}. Floors: ${this.state.repos.map((x) => `${x.floor} (${x.fullName})`).join(', ') || 'none'}.`);
+    if (!r) throw new Error(`There is no chamber ${floor}. Chambers: ${this.state.repos.map((x) => `${x.floor} (${x.fullName})`).join(', ') || 'none'}.`);
     return r;
   }
 
@@ -2944,7 +2944,7 @@ export class Swarm {
               id: a.id,
               name: a.name,
               role: a.role,
-              title: a.title || (a.role === 'qa' ? 'QA tester' : 'Developer'),
+              title: a.title || (a.role === 'qa' ? 'QA tester' : 'Coder'),
               specialty: a.specialty || null,
               status: a.status,
               doing: doing(a),
@@ -2983,7 +2983,7 @@ export class Swarm {
       {
         company: {
           ceo: this.ceo().name,
-          hiring: s.hiring === 'auto' ? `auto-approved while a floor has fewer than ${s.teamCap} people` : 'the manager approves every proposal',
+          hiring: s.hiring === 'auto' ? `auto-approved while a chamber has fewer than ${s.teamCap} people` : 'the Overlord approves every proposal',
           teamCap: s.teamCap,
           sessionLimit: s.sessionLimit || 'none',
           sessionsRunning: this.running(),
@@ -3009,7 +3009,7 @@ export class Swarm {
         name: a.name,
         floor: repo?.floor ?? null,
         role: a.role,
-        title: a.title || (a.role === 'qa' ? 'QA tester' : a.role === 'dev' ? 'Developer' : 'CEO'),
+        title: a.title || (a.role === 'qa' ? 'QA tester' : a.role === 'dev' ? 'Coder' : 'DungeonMaster'),
         specialty: a.specialty || null,
         status: a.status,
         doing: this.agentDoing(a),
@@ -3035,14 +3035,14 @@ export class Swarm {
     if (preview.command === null) void this.previews.refreshDefault(r);
     this.emitRepo(r);
     this.save();
-    return `Saved floor ${r.floor}'s profile.`;
+    return `Saved chamber ${r.floor}'s profile.`;
   }
 
   private updateJob(x: { agent_id: string; title?: string; specialty?: string; job_description?: string }) {
     const a = this.agentByRef(x.agent_id);
     if (a.role === 'ceo') throw new Error("That's you.");
     this.updateAgent(a.id, { title: x.title, specialty: x.specialty, brief: x.job_description });
-    const title = a.title || (a.role === 'qa' ? 'QA tester' : 'Developer');
+    const title = a.title || (a.role === 'qa' ? 'QA tester' : 'Coder');
     this.appendLog(a, [{ kind: 'system', text: `🪪 ${this.ceo().name} updated ${a.name}'s job: ${title}${a.specialty ? ` · swarm:${a.specialty}` : ''}` }]);
     return `Updated ${a.name}: ${title}${a.specialty ? ` (specialty ${a.specialty})` : ''}.`;
   }
@@ -3051,15 +3051,15 @@ export class Swarm {
     const repo = this.floorRepo(x.floor);
     const role = x.role === 'qa' ? 'qa' : 'dev';
     const title = String(x.title ?? '').trim().slice(0, 60);
-    if (!title) throw new Error('A hire needs a job title.');
+    if (!title) throw new Error('A recruit needs a job title.');
     const specialty = specialtySlug(x.specialty);
     const pending = this.state.requests.filter((r) => r.status === 'pending');
-    if (pending.length >= MAX_PENDING_REQUESTS) throw new Error(`${pending.length} proposals are already waiting for the manager. Wait for their decisions first.`);
+    if (pending.length >= MAX_PENDING_REQUESTS) throw new Error(`${pending.length} proposals are already waiting for the Overlord. Wait for their decisions first.`);
     const dup = pending.find((r) => r.kind === 'hire' && r.repoId === repo.id && r.role === role && r.specialty === specialty);
-    if (dup) throw new Error(`${dup.name} (${dup.title}) is already proposed for floor ${repo.floor} with that specialty.`);
+    if (dup) throw new Error(`${dup.name} (${dup.title}) is already proposed for chamber ${repo.floor} with that specialty.`);
     const seated = this.state.agents.filter((a) => a.repoId === repo.id && a.role === role).length;
     const waiting = pending.filter((r) => r.kind === 'hire' && r.repoId === repo.id && r.role === role).length;
-    if (seated + waiting >= MAX_DESKS[role]) throw new Error(role === 'qa' ? `The QA lab on floor ${repo.floor} is full.` : `Floor ${repo.floor} has no free desks.`);
+    if (seated + waiting >= MAX_DESKS[role]) throw new Error(role === 'qa' ? `The QA lab in chamber ${repo.floor} is full.` : `Chamber ${repo.floor} has no free benches.`);
     const name = this.freeName(role);
     const req: HireRequestView = {
       id: crypto.randomUUID(),
@@ -3088,10 +3088,10 @@ export class Swarm {
     const s = this.state.settings;
     if (s.hiring === 'auto' && this.state.agents.filter((a) => a.repoId === repo.id).length < s.teamCap) {
       this.approveRequest(req.id, {}, 'auto');
-      return `Hired ${req.name} as ${title} on floor ${repo.floor} (auto-approved; agent id ${req.agentId}).`;
+      return `Recruited ${req.name} as ${title} in chamber ${repo.floor} (auto-approved; agent id ${req.agentId}).`;
     }
-    this.postMessage('ceo', `📄 New candidate for floor ${repo.floor}: ${name}, ${title}. ${req.reason}`, req.id);
-    return `Proposed ${name} as ${title} on floor ${repo.floor}. The manager will approve or decline (request ${req.id}).`;
+    this.postMessage('ceo', `📄 New recruit for chamber ${repo.floor}: ${name}, ${title}. ${req.reason}`, req.id);
+    return `Proposed ${name} as ${title} in chamber ${repo.floor}. The Overlord will approve or decline (request ${req.id}).`;
   }
 
   private proposeLetGo(x: { agent_id: string; reason: string }) {
@@ -3099,11 +3099,11 @@ export class Swarm {
     if (a.role === 'ceo') throw new Error("You can't let yourself go.");
     const repo = this.repo(a.repoId);
     if (a.role === 'qa' && this.state.agents.filter((y) => y.repoId === repo.id && y.role === 'qa').length <= 1) {
-      throw new Error(`${a.name} is floor ${repo.floor}'s only QA tester, and every floor keeps one.`);
+      throw new Error(`${a.name} is chamber ${repo.floor}'s only QA tester, and every chamber keeps one.`);
     }
     const pending = this.state.requests.filter((r) => r.status === 'pending');
     if (pending.some((r) => r.kind === 'let-go' && r.agentId === a.id)) throw new Error(`Letting ${a.name} go is already proposed.`);
-    if (pending.length >= MAX_PENDING_REQUESTS) throw new Error(`${pending.length} proposals are already waiting for the manager. Wait for their decisions first.`);
+    if (pending.length >= MAX_PENDING_REQUESTS) throw new Error(`${pending.length} proposals are already waiting for the Overlord. Wait for their decisions first.`);
     const req: HireRequestView = {
       id: crypto.randomUUID(),
       kind: 'let-go',
@@ -3111,7 +3111,7 @@ export class Swarm {
       role: a.role,
       agentId: a.id,
       name: a.name,
-      title: a.title || (a.role === 'qa' ? 'QA tester' : 'Developer'),
+      title: a.title || (a.role === 'qa' ? 'QA tester' : 'Coder'),
       specialty: a.specialty,
       brief: a.brief,
       reason: String(x.reason ?? '').trim().slice(0, 600),
@@ -3132,8 +3132,8 @@ export class Swarm {
       this.approveRequest(req.id, {}, 'auto');
       return `Let ${a.name} go (auto-approved).`;
     }
-    this.postMessage('ceo', `👋 I suggest letting ${a.name} (${req.title}, floor ${repo.floor}) go. ${req.reason}`, req.id);
-    return `Proposed letting ${a.name} go. The manager will decide (request ${req.id}).`;
+    this.postMessage('ceo', `👋 I suggest letting ${a.name} (${req.title}, chamber ${repo.floor}) go. ${req.reason}`, req.id);
+    return `Proposed letting ${a.name} go. The Overlord will decide (request ${req.id}).`;
   }
 
   private async fileIssue(x: { floor: number; title: string; body: string; specialty?: string }) {
@@ -3142,10 +3142,10 @@ export class Swarm {
     const title = String(x.title ?? '').trim().slice(0, 120);
     if (!title) throw new Error('An issue needs a title.');
     const slug = specialtySlug(x.specialty);
-    const body = `${String(x.body ?? '').trim()}\n\n---\n_Filed by ${this.ceo().name}, the cubefarm CEO._`;
+    const body = `${String(x.body ?? '').trim()}\n\n---\n_Filed by ${this.ceo().name}, the Code Dungeon DungeonMaster._`;
     const n = await this.backend.createIssue(repo.fullName, title, body, slug ? [specialtyLabel(slug)] : []);
     this.ceoIssues.record(repo.id);
-    return `Filed #${n} on floor ${repo.floor}: ${title}${slug ? ` (routed to ${slug})` : ''}.`;
+    return `Filed #${n} in chamber ${repo.floor}: ${title}${slug ? ` (routed to ${slug})` : ''}.`;
   }
 
   /** Change an open issue's specialty and/or dependencies (see planRoute for what is refused). */

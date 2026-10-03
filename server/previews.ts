@@ -57,7 +57,7 @@ export function parsePreviewPatch(command: unknown, env: unknown): Partial<Previ
       for (const [k, v] of entries) {
         if (typeof v !== 'string') throw new HttpError(400, `previewEnv.${k} must be a string`);
         if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(k)) throw new HttpError(400, `"${k}" is not a valid environment variable name`);
-        if (/^(ANTHROPIC_|CLAUDE)/i.test(k)) throw new HttpError(400, `${k} can't be set on a preview: Claude credentials never reach the apps the office runs`);
+        if (/^(ANTHROPIC_|CLAUDE)/i.test(k)) throw new HttpError(400, `${k} can't be set on a preview: Claude credentials never reach the apps the dungeon runs`);
         if (v.length > 4000) throw new HttpError(400, `previewEnv.${k} is too long`);
       }
       out.env = Object.fromEntries(entries) as Record<string, string>;
@@ -135,7 +135,7 @@ export class Previews {
     Object.assign(r, { port, ref, pr: pr ?? null, commit: null, startedAt: Date.now(), error: null, log: [] });
     if (await portOpen(port)) {
       if (gen !== r.gen) return this.view(f);
-      Object.assign(r, { status: 'error', error: `Port ${port} is already in use by another program. The office won't stop it; free the port and try again.` });
+      Object.assign(r, { status: 'error', error: `Port ${port} is already in use by another program. The dungeon won't stop it; free the port and try again.` });
       this.hooks.emit(f.id);
       throw new HttpError(409, r.error!);
     }

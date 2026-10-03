@@ -324,7 +324,7 @@ process.stdin.on('end', async () => {
     const out = await res.json();
     process.stdout.write(String(out.statusLine ?? ''));
   } catch {
-    process.stdout.write('cubefarm');
+    process.stdout.write('Code Dungeon');
   }
 });
 `;
