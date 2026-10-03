@@ -126,5 +126,11 @@ export function visitSpot(slot: number) {
 export function inDungeon(x: number, z: number, slots: number[]): boolean {
   if (Math.abs(x) <= HALF_W && Math.abs(z) <= HALF_D) return true;
   if (Math.abs(x) <= GALLERY.half && z >= HALF_D && z <= galleryEnd(slots)) return true;
+  // the doorway through the gallery wall into a chamber belongs to both
+  const ax = Math.abs(x);
+  if (ax > GALLERY.half && ax < GALLERY.half + GALLERY.wall) {
+    const side = x < 0 ? 'west' : 'east';
+    if (slots.some((s) => chamber(s).side === side && Math.abs(chamber(s).z - z) <= ELEVATOR.doorHalf)) return true;
+  }
   return roomAt(x, z, slots) > 0;
 }

@@ -151,6 +151,20 @@ describe('inDungeon', () => {
     expect(inDungeon(0, galleryEnd([1]) + 1, [1])).toBe(false);
     expect(inDungeon(HALF_W + 5, 0, [1])).toBe(false);
   });
+
+  it('counts every step through a chamber doorway as inside, and the wall beside it as outside', () => {
+    const slots = [1, 2, 3, 4];
+    for (const s of slots) {
+      const c = chamber(s);
+      const out = c.side === 'west' ? -1 : 1;
+      for (let d = 0; d <= GALLERY.wall + 1; d += 0.05) {
+        const x = out * (GALLERY.half - 0.5 + d);
+        for (const dz of [-1, 0, 1]) expect(inDungeon(x, c.z + dz, slots), `chamber ${s} at x ${x.toFixed(2)}, dz ${dz}`).toBe(true);
+      }
+      // inside the wall itself, well clear of the doorway
+      expect(inDungeon(out * (GALLERY.half + GALLERY.wall / 2), c.z + 6, slots)).toBe(false);
+    }
+  });
 });
 
 describe('the great hall', () => {
