@@ -21,8 +21,8 @@ balls, the basketball hoop, the roomba, the foam blasters, the hit reactions on 
 - **Collecting:** the 3 darts start on the board's ledge. Aim at the board and press E to take every dart back
   into your hand (stuck in the board, on the floor or anywhere else). That also ends the round.
 - **Throwing:** the existing hand mechanics: hold the mouse (or F) to charge, release to throw, one dart per throw.
-  Speed 4 m/s (tap) to 12 m/s (full), full gravity, aimed along the crosshair. G does nothing with darts (you can't
-  drop them, so they can't get lost).
+  Speed 4 m/s (tap) to 12 m/s (full), full gravity, aimed along the crosshair. G (and Esc, or a panel opening) puts
+  the darts in hand back on the ledge, so they can't get lost.
 - **Pathfinding kept for the cat:** the roomba's grid A* (`makeNav`, `planPath`, `clear`, `segmentClear`) moves to
   `client/src/world/nav.ts` with its tests. The rest of the roomba goes.
 

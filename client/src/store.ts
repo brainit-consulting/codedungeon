@@ -5,7 +5,7 @@ import { chirp, cue } from './ui/sfx';
 
 export type Agent = Omit<AgentView, 'log'>;
 
-export type PhoneTab = 'chat' | 'hires' | 'company' | 'games';
+export type PhoneTab = 'chat' | 'hires' | 'company';
 
 export type Overlay =
   | { kind: 'terminal'; agentId: string }
@@ -24,11 +24,8 @@ export interface Focus {
   action: Overlay | { kind: 'hire'; repoId: string; role: 'dev' | 'qa' } | { kind: 'pickup'; toyId: string } | { kind: 'poke'; toyId: string };
 }
 
-/** What the player is carrying. Other items (a blaster, say) join the union with their own kind. */
-export type Held =
-  | { kind: 'ball'; id: string }
-  /** A foam blaster: darts left in the magazine, and performance.now() when a reload started (null when not reloading). */
-  | { kind: 'blaster'; id: string; ammo: number; reloadAt: number | null };
+/** What the player is carrying: the dungeon's darts, and how many are still in hand. */
+export type Held = { kind: 'darts'; count: number };
 
 export interface Toast {
   id: number;

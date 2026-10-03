@@ -110,15 +110,10 @@ function Help() {
           <kbd>D</kbd> walk · <kbd>Shift</kbd> run · mouse to look · <kbd>E</kbd> or left click interacts with whatever the crosshair is on (the first click only grabs the mouse) · <kbd>Esc</kbd> frees the mouse. Closing a panel or changing floor grabs it again.
         </p>
         <MouseSettings />
-        <h3>Balls</h3>
+        <h3>Darts</h3>
         <p>
-          Walk into a ball to push it, or aim at one and press <kbd>E</kbd> (or click) to pick it up. Click or press <kbd>F</kbd> to throw: a tap lobs it, holding charges a harder throw. <kbd>G</kbd> drops it at your feet.
-          With a ball in hand, <kbd>E</kbd> still works on desks, boards and the elevator (the ball drops when a panel opens), and <kbd>E</kbd> on another ball swaps them.
-        </p>
-        <h3>Foam blasters</h3>
-        <p>
-          Every floor has a rack of foam blasters by the south wall: aim at it and press <kbd>E</kbd> to take one. <b>Fire</b>: click or <kbd>F</kbd> (12 darts, up to four a second). <b>Reload</b>: <kbd>R</kbd>. <b>Drop</b>: <kbd>G</kbd>, then <kbd>E</kbd> picks it up again.
-          Darts stick to walls, boards and screens when they hit square on and bounce off everything else. They never open anything, and the blasters go back on the rack when you change floors.
+          The dart board hangs on the lobby's south wall, at the west end. Aim at it and press <kbd>E</kbd> to take the three darts. Click or press <kbd>F</kbd> to throw one: a tap lobs it, holding throws harder.
+          Darts stick only in the board; a round is three darts, scored like the real game (doubles, trebles, 25 and the bull), and the chalk tally beside it keeps the best round. Press <kbd>E</kbd> on the board again to collect them. <kbd>G</kbd> puts the darts back on the ledge.
         </p>
         <h3>Sound</h3>
         <p>

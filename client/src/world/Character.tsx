@@ -6,7 +6,6 @@ import type { Agent } from '../store';
 import { ACCENTS, appearanceFor } from './appearance';
 import { PARTS } from './characterParts';
 import { mix, shade, toon } from './materials';
-import { useHitReaction } from './useHitReaction';
 
 // A seated cartoon developer. Origin is the floor under the chair; they face -Z (toward the desk).
 
@@ -41,7 +40,6 @@ export function Character({ agent }: { agent: Agent }) {
   const lastTool = useRef({ name: null as string | null, at: 0 });
   const look = useMemo(() => appearanceFor(agent), [agent.id, agent.look, agent.role]);
   const root = useRef<THREE.Group>(null);
-  const hit = useHitReaction(agent.id, root);
   if (agent.currentTool) lastTool.current = { name: agent.currentTool, at: performance.now() };
 
   useFrame((_, dt) => {
@@ -89,16 +87,12 @@ export function Character({ agent }: { agent: Agent }) {
 
     // Longer arms on taller people: tip them down a touch so hands still land on the keyboard.
     const reach = -(look.height - 1) * 0.55;
-    // Hit by a toy: jolt back with hands up, then look at the player, laid over the pose above.
-    const h = hit.pose(now);
-    const jolt = h.flinch * 0.55;
     if (armL.current && armR.current) {
-      armL.current.rotation.set(c.l.pitch + reach + tapL + jolt, -(c.l.yaw + driftL) + wave, 0);
-      armR.current.rotation.set(c.r.pitch + reach + tapR - click + jolt, c.r.yaw + driftR * (1 - c.mouse) + glide - wave, 0);
+      armL.current.rotation.set(c.l.pitch + reach + tapL, -(c.l.yaw + driftL) + wave, 0);
+      armR.current.rotation.set(c.r.pitch + reach + tapR - click, c.r.yaw + driftR * (1 - c.mouse) + glide - wave, 0);
     }
     if (torso.current) {
-      torso.current.rotation.x = -c.lean + Math.sin(t * 1.6) * 0.015 + (busy ? Math.sin(t * 9) * 0.006 * burst : 0) + h.flinch * 0.2;
-      torso.current.rotation.y = h.twist * h.w;
+      torso.current.rotation.x = -c.lean + Math.sin(t * 1.6) * 0.015 + (busy ? Math.sin(t * 9) * 0.006 * burst : 0);
     }
     if (head.current) {
       // Every few seconds, glance down at the keyboard; while setting up, look around.
@@ -106,7 +100,7 @@ export function Character({ agent }: { agent: Agent }) {
       const gaze = agent.status === 'preparing' ? Math.sin(t * 1.3) * 0.5 : Math.sin(t * 0.4) * 0.08;
       const pitch = c.headPitch + glance + (busy ? Math.sin(t * 4.5) * 0.02 * burst : 0);
       const yaw = gaze + c.headYaw;
-      head.current.rotation.set(pitch + (h.headPitch - pitch) * h.w, yaw + (h.headYaw - yaw) * h.w, (name === 'thinking' ? 0.12 : 0) * (1 - h.w));
+      head.current.rotation.set(pitch, yaw, name === 'thinking' ? 0.12 : 0);
     }
   });
 
@@ -138,7 +132,6 @@ export function Character({ agent }: { agent: Agent }) {
 
   return (
     <group ref={root}>
-      {hit.bubble}
       {/* legs never move, so both are one mesh */}
       <mesh geometry={PARTS.legs} material={toon('#3d4a6b')} castShadow>
         <Outlines thickness={0.012} color={INK} angle={0} />

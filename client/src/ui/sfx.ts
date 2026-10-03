@@ -174,13 +174,6 @@ export function chirp() {
   [1046.5, 1568].forEach((freq, i) => tone({ freq, type: 'triangle', at: i * 0.11, dur: 0.18, peak: 0.12 }));
 }
 
-/** The roomba's happy chirp: a quick rising warble and a bright little "boop". */
-export function roombaChirp() {
-  tone({ freq: 660, to: 1320, type: 'square', dur: 0.12, peak: 0.035 });
-  tone({ freq: 1320, to: 990, type: 'triangle', at: 0.12, dur: 0.1, peak: 0.08 });
-  tone({ freq: 1760, type: 'triangle', at: 0.24, dur: 0.18, peak: 0.07 });
-}
-
 /** The elevator "ding": two soft sine tones. */
 export function ding() {
   [880, 1318.5].forEach((freq, i) => tone({ freq, at: i * 0.16, dur: 1.1, peak: 0.18, attack: 0.02 }));
@@ -190,25 +183,6 @@ export function ding() {
 export function whoosh(dur = 0.75) {
   noise({ dur, peak: 0.1, filter: 'bandpass', freq: 220, to: 900, q: 0.8, attack: dur * 0.45 });
   tone({ freq: 70, to: 55, dur, peak: 0.05, attack: dur * 0.4 });
-}
-
-/** A foam blaster's "thwip": a puff of air through the barrel with a springy little pop. */
-export function thwip() {
-  noise({ dur: 0.09, peak: 0.1, filter: 'bandpass', freq: 2600, to: 900, q: 1.4, attack: 0.003 });
-  tone({ freq: 520, to: 190, type: 'triangle', dur: 0.08, peak: 0.07, attack: 0.004 });
-}
-
-/** Someone hit by a toy: a soft, round "boop". */
-export function boop() {
-  tone({ freq: 520, to: 330, dur: 0.16, peak: 0.13, attack: 0.008 });
-  tone({ freq: 1040, to: 660, type: 'triangle', dur: 0.07, peak: 0.025, attack: 0.004 });
-}
-
-/** The roomba sucking up a dart: a rising slurp of air with a little pop at the end. */
-export function slurp() {
-  noise({ dur: 0.28, peak: 0.07, filter: 'bandpass', freq: 350, to: 2400, q: 2.2, attack: 0.05 });
-  tone({ freq: 220, to: 660, type: 'triangle', dur: 0.24, peak: 0.035, attack: 0.03 });
-  noise({ at: 0.24, dur: 0.05, peak: 0.05, filter: 'bandpass', freq: 1800, q: 1.5, attack: 0.002 });
 }
 
 /** One soft footstep: a muffled thud. */

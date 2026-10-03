@@ -8,11 +8,9 @@ import { interactables } from './interact';
 import { LOOK_RADIANS_PER_PX, createLookFilter, filterLookDelta, resetLookFilter, useLookPrefs } from './look';
 import { confirmDialog, isConfirmOpen } from '../ui/Confirm';
 import { footstepsFollow, getAudioPrefs, toggleMute } from '../ui/sfx';
-import { dropHeld, startCharge, throwHeld, walk } from './toys/hands';
+import { collectDarts, dropHeld, startCharge, throwHeld } from './toys/hands';
 import { watchLookLock } from './lookLock';
 import { pokeToy } from './toys/poke';
-import { isBlasterId } from './toys/darts';
-import { reloadHeld, takeBlaster } from './toys/gun';
 
 let canvasEl: HTMLCanvasElement | null = null;
 
@@ -52,12 +50,8 @@ const lookDiag = { dropped: 0, skipped: 0 };
 export function runFocusAction(focus: Focus, via: 'key' | 'click' = 'key') {
   const s = useStore.getState();
   quietUntil = performance.now() + QUIET_MS;
-  if (focus.action.kind === 'pickup' && isBlasterId(focus.action.toyId)) {
-    takeBlaster(focus.action.toyId);
-    return;
-  }
   if (focus.action.kind === 'pickup') {
-    s.setHeld({ kind: 'ball', id: focus.action.toyId }); // already holding one? the toy world swaps them
+    collectDarts(); // the dart board: every dart comes back into your hand
     return;
   }
   if (focus.action.kind === 'poke') {
@@ -152,7 +146,7 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
     const onLockChange = () => {
       resetLookFilter(lookFilter);
       const locked = document.pointerLockElement === gl.domElement;
-      if (!locked) dropHeld(); // Esc: you've stepped away, so let go rather than leave it hanging in the air
+      if (!locked) dropHeld(); // Esc: you've stepped away, so the darts go back on the ledge
       useStore.getState().setLocked(locked);
     };
     const onMove = (e: MouseEvent) => {
@@ -175,11 +169,10 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
       }
       if (s.overlay || !s.started || isConfirmOpen()) return;
       keys.current.add(e.code);
-      // E always acts on the crosshair's target, even with your hands full (a panel opening drops the ball).
+      // E always acts on the crosshair's target, even with darts in hand (a panel opening puts them back on the ledge).
       if (e.code === 'KeyE' && !e.repeat && s.focus) runFocusAction(s.focus);
       if (e.code === 'KeyF' && !e.repeat && !s.travel) startCharge();
       if (e.code === 'KeyG' && !e.repeat) dropHeld();
-      if (e.code === 'KeyR' && !e.repeat && !s.travel) reloadHeld();
       if (e.code === 'KeyH') s.openOverlay({ kind: 'help' });
       if (e.code === 'KeyP') {
         e.preventDefault(); // don't type the "p" into the phone's message box
@@ -228,8 +221,6 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
     const speed = k.has('ShiftLeft') || k.has('ShiftRight') ? 6.5 : 3.6;
     const { yaw, pitch } = look.current;
     let moving = false;
-    walk.x = 0;
-    walk.z = 0;
     if ((fwd || strafe) && !s.travel) {
       const len = Math.hypot(fwd, strafe);
       const sin = Math.sin(yaw);
@@ -237,10 +228,6 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
       const dx = ((-sin * fwd + cos * strafe) / len) * speed * dt;
       const dz = ((-cos * fwd - sin * strafe) / len) * speed * dt;
       const p = collide(camera.position.x + dx, camera.position.z + dz, colliders);
-      if (dt > 0) {
-        walk.x = (p.x - camera.position.x) / dt;
-        walk.z = (p.z - camera.position.z) / dt;
-      }
       camera.position.x = p.x;
       camera.position.z = p.z;
       moving = true;

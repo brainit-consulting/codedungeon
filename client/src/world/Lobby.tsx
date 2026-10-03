@@ -456,7 +456,7 @@ export function Lobby() {
       <CeoOffice />
       <WaitingRoom />
       <Elevator floorLabel="▲ G · Lobby" accent={ACCENT} />
-      <Toys floor="lobby" />
+      <Toys />
       <Directory />
       <TrophyCabinet />
       <WallClock position={[8.4, 2.8, -HALF_D + 0.05]} />

@@ -1,93 +1,59 @@
-// window.__swarmToys: a read-only peek at the toys, for QA and Playwright (pointer lock doesn't work headless).
-// Each read returns a fresh snapshot. Later toys (hoop score, darts, roomba) add fields here.
+// window.__swarmToys: a read-only peek at the darts, for QA and Playwright (pointer lock doesn't work headless).
+// Each read returns a fresh snapshot. In dev builds, window.__throwDart(power) throws the next dart in hand along
+// the current view, so a browser without pointer lock can play too.
 
 import { useStore, type Held } from '../../store';
-import { dartCount, stuckDartCount } from './darts';
-import { reactionCount } from './hits';
-import { vacuumedCount } from './vacuum';
+import { throwDart } from './hands';
 
-export interface ToyBallState {
-  id: string;
-  x: number;
-  y: number;
-  z: number;
-  sleeping: boolean;
+export interface DartsState {
+  /** Where the three darts are. */
+  hand: number;
+  ledge: number;
+  flying: number;
+  stuck: number;
+  loose: number;
+  /** The chalk tally: this round's throws ('T20', 'MISS', …), its total, and the best round kept in this browser. */
+  board: { throws: string[]; total: number; best: number };
 }
 
 export interface ToysSnapshot {
-  balls: ToyBallState[];
-  /** Rigid bodies in the current physics world (building + player pusher + toys). */
+  /** Rigid bodies in the current physics world (the building, the board and darts off the ledge). */
   bodies: number;
-  /** What the player is carrying, e.g. { kind: 'ball', id: 'beach-ball' }. */
+  /** What the player is carrying, e.g. { kind: 'darts', count: 2 }. */
   held: Held | null;
   /** Whether a throw is being charged right now. */
   charging: boolean;
-  /** This floor's basketball hoop: baskets scored here this session and the floor's best (kept across reloads). */
-  hoop: HoopScore | null;
-  /** The floor's roomba: where it is and what it's doing (state is 'charging', 'leaving', 'cleaning', 'returning' or 'docking'). */
-  roomba: ToyRoombaState | null;
-  /** Foam darts on this floor (flying, loose and stuck), and how many of them are stuck to something. */
-  darts: number;
-  dartsStuck: number;
-  /** Times a seated person reacted to being hit by a ball or dart, and darts the roomba vacuumed, this session. */
-  reactions: number;
-  vacuumed: number;
+  /** The darts, or null where there's no dart board (or the physics world isn't loaded). */
+  darts: DartsState | null;
 }
 
-export interface HoopScore {
-  score: number;
-  best: number;
-}
-
-export interface ToyRoombaState {
-  x: number;
-  z: number;
-  state: string;
-  /** 0-100 */
-  battery: number;
-  /** Doing its happy spin (E), and how many it has done since the floor loaded. */
-  spinning: boolean;
-  spins: number;
-}
-
-type Source = () => Omit<ToysSnapshot, 'held' | 'charging' | 'hoop' | 'roomba' | 'darts' | 'dartsStuck' | 'reactions' | 'vacuumed'>;
-
-let source: Source | null = null;
-let hoop: (() => HoopScore) | null = null;
-let roombaSource: (() => ToyRoombaState) | null = null;
+let bodies: (() => number) | null = null;
+let darts: (() => DartsState) | null = null;
 
 /** The mounted toy world registers itself here; null when there is none (loading, failed, or between floors). */
-export function setToySource(s: Source | null) {
-  source = s;
+export function setToySource(s: (() => number) | null) {
+  bodies = s;
 }
 
-/** The mounted hoop registers its scoreboard here. */
-export function setHoopSource(s: (() => HoopScore) | null) {
-  hoop = s;
-}
-
-/** The mounted roomba registers itself here; null when there is none. */
-export function setRoombaSource(s: (() => ToyRoombaState) | null) {
-  roombaSource = s;
+/** The mounted dart board registers its darts here. */
+export function setDartsSource(s: (() => DartsState) | null) {
+  darts = s;
 }
 
 function snapshot(): ToysSnapshot {
   const { held, chargeAt } = useStore.getState();
-  let roomba: ToyRoombaState | null = null;
+  let n = 0;
+  let d: DartsState | null = null;
   try {
-    roomba = roombaSource ? roombaSource() : null;
-  } catch {
-    // being torn down
-  }
-  const hands = { held, charging: chargeAt !== null, hoop: hoop ? hoop() : null, roomba, darts: dartCount(), dartsStuck: stuckDartCount(), reactions: reactionCount(), vacuumed: vacuumedCount() };
-  try {
-    if (source) return { ...source(), ...hands };
+    n = bodies ? bodies() : 0;
+    d = darts ? darts() : null;
   } catch {
     // the world is being torn down; report it as empty
   }
-  return { balls: [], bodies: 0, ...hands };
+  return { bodies: n, held, charging: chargeAt !== null, darts: d };
 }
 
 if (typeof window !== 'undefined' && !Object.getOwnPropertyDescriptor(window, '__swarmToys')) {
   Object.defineProperty(window, '__swarmToys', { get: snapshot, enumerable: false, configurable: false });
+  if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__throwDart = (power = 0.6) => throwDart(power);
 }

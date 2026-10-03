@@ -1,5 +1,4 @@
 import { Component, lazy, memo, Suspense, type ComponentType, type ReactNode } from 'react';
-import type { ToyFloor } from './balls';
 import './probe';
 
 // The physics engine is a WASM module, so the toys live in their own chunk behind their own Suspense:
@@ -10,12 +9,12 @@ let broken = false;
 function giveUp(err: unknown) {
   if (broken) return;
   broken = true;
-  console.warn('Office toys are switched off: the physics engine failed to load.', err);
+  console.warn('The darts are switched off: the physics engine failed to load.', err);
 }
 
-const Nothing: ComponentType<{ floor: ToyFloor }> = () => null;
+const Nothing: ComponentType = () => null;
 
-const ToyWorld = lazy(async (): Promise<{ default: ComponentType<{ floor: ToyFloor }> }> => {
+const ToyWorld = lazy(async (): Promise<{ default: ComponentType }> => {
   try {
     const [world, rapier] = await Promise.all([import('./ToyWorld'), import('@dimforge/rapier3d-compat')]);
     await rapier.init(); // idempotent; doing it here lets us catch a failure instead of it reaching React
@@ -39,13 +38,13 @@ class ToyGuard extends Component<{ children: ReactNode }, { failed: boolean }> {
   }
 }
 
-/** Physics toys for one floor. Remounting (a floor change) builds a fresh world with every toy back at its start. */
-export const Toys = memo(function Toys({ floor }: { floor: ToyFloor }) {
+/** The dart board and its darts (the lobby's only toy). Remounting builds a fresh world with the darts on the ledge. */
+export const Toys = memo(function Toys() {
   if (broken) return null;
   return (
     <ToyGuard>
       <Suspense fallback={null}>
-        <ToyWorld floor={floor} />
+        <ToyWorld />
       </Suspense>
     </ToyGuard>
   );
