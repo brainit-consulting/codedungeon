@@ -135,7 +135,7 @@ export function TerminalView({ agentId }: { agentId: string }) {
           </a>
         )}
         {agent.branch && <code>{agent.branch}</code>}
-        {settings.runtime === 'terminal' && <span className="chip" title="The coding agent in their terminal">⌨️ {cliName}</span>}
+        {settings.runtime === 'terminal' && <span className="chip" title="The coding agent in their terminal"><Icon name="quill" /> {cliName}</span>}
         <span className="muted">
           {(agent.role === 'ceo' ? agent.model : effectiveModel(agent.model, settings.runtime === 'terminal' ? cli : 'claude', settings, 'claude-opus-5-5')) || 'default model'} ·{' '}
           {agent.effort || settings.defaultEffort} effort
@@ -240,7 +240,7 @@ export function TerminalView({ agentId }: { agentId: string }) {
                 })
               }
             >
-              {isQa ? <><Icon name="lens" /> Send to QA</> : '▶ Start issue'}
+              {isQa ? <><Icon name="lens" /> Send to QA</> : 'Start issue'}
             </button>
             {agent.status !== 'idle' && (
               <button className="btn" disabled={busy} onClick={() => run(() => api.reset(agent.id))}>

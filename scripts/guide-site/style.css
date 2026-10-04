@@ -555,3 +555,11 @@ table.keys th {
     justify-self: center;
   }
 }
+
+/* the dungeon's woodcut icons, in a line of text */
+.ico {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.25em;
+}

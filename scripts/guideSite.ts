@@ -3,6 +3,7 @@
 // file paths to contents out. scripts/build-guide-site.ts writes them to a folder.
 
 import { type GuideBlock, type GuideChapter, parseInline, roman } from '../client/src/ui/guideBook.ts';
+import { iconSvg, splitIcons } from '../client/src/ui/icons.ts';
 
 export const SITE = {
   title: 'The Code Dungeon User Guide',
@@ -11,10 +12,20 @@ export const SITE = {
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+// the woodcut icons in the page's own ink, parchment and rust (style.css)
+const INKS = { ink: '#2a1d14', paper: '#ecdfc2', rust: '#a0441c' };
+
+/** Plain text, with every emoji the dungeon has a drawing for shown as that woodcut (as the app does). */
+function textHtml(text: string): string {
+  return splitIcons(text)
+    .map((r) => ('icon' in r ? iconSvg(r.icon, INKS).replace('<svg ', '<svg class="ico" aria-hidden="true" ') : esc(r.text)))
+    .join('');
+}
+
 /** A line of chapter text with its [[Key]], `code` and **bold** marks turned into HTML. */
 export function inlineHtml(line: string): string {
   return parseInline(line)
-    .map((p) => (p.kind === 'key' ? `<kbd>${esc(p.text)}</kbd>` : p.kind === 'code' ? `<code>${esc(p.text)}</code>` : p.kind === 'bold' ? `<strong>${esc(p.text)}</strong>` : esc(p.text)))
+    .map((p) => (p.kind === 'key' ? `<kbd>${esc(p.text)}</kbd>` : p.kind === 'code' ? `<code>${esc(p.text)}</code>` : p.kind === 'bold' ? `<strong>${textHtml(p.text)}</strong>` : textHtml(p.text)))
     .join('');
 }
 

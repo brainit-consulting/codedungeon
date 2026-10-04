@@ -67,5 +67,5 @@ export interface UsageWarning {
 export function pacingMessage(w: UsageWarning, until: number, sessions: number, now: number): string {
   const pct = w.utilization === null ? null : Math.round(w.utilization <= 1 ? w.utilization * 100 : w.utilization);
   const what = [w.rateLimitType ? (LIMIT_NAMES[w.rateLimitType] ?? w.rateLimitType.replace(/_/g, ' ')) : null, pct === null ? null : `${pct}%`].filter(Boolean).join(', ');
-  return `🐢 Claude's usage is getting high${what ? ` (${what})` : ''}. Until ${clock(until, now)} the dungeon finishes open work first and starts at most ${sessions} session${sessions === 1 ? '' : 's'} at a time.`;
+  return `⏳ Claude's usage is getting high${what ? ` (${what})` : ''}. Until ${clock(until, now)} the dungeon finishes open work first and starts at most ${sessions} session${sessions === 1 ? '' : 's'} at a time.`;
 }

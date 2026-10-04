@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { closeOverlay } from './Overlays';
 import { chapterIndex, parseInline, roman, stepChapter, type GuideBlock } from './guideBook';
+import { IconText } from './Icon';
 import { CHAPTERS } from './userGuideChapters';
 import './userGuide.css';
 
@@ -14,7 +15,7 @@ function Line({ text }: { text: string }) {
   return (
     <>
       {parseInline(text).map((r, i) =>
-        r.kind === 'key' ? <kbd key={i}>{r.text}</kbd> : r.kind === 'code' ? <code key={i}>{r.text}</code> : r.kind === 'bold' ? <b key={i}>{r.text}</b> : <span key={i}>{r.text}</span>,
+        r.kind === 'key' ? <kbd key={i}>{r.text}</kbd> : r.kind === 'code' ? <code key={i}>{r.text}</code> : r.kind === 'bold' ? <b key={i}><IconText text={r.text} /></b> : <span key={i}><IconText text={r.text} /></span>,
       )}
     </>
   );

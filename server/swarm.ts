@@ -2359,7 +2359,7 @@ export class Swarm {
     if (until <= this.pausedUntil) return;
     const fresh = Date.now() >= this.pausedUntil;
     this.pausedUntil = until;
-    if (fresh) this.postMessage('office', `⏸ Claude's usage limit was reached. The dungeon starts no new work until ${new Date(until).toLocaleTimeString()}; sessions already running carry on.`);
+    if (fresh) this.postMessage('office', `⏳ Claude's usage limit was reached. The dungeon starts no new work until ${new Date(until).toLocaleTimeString()}; sessions already running carry on.`);
     this.emitUsage();
   }
 
@@ -2501,7 +2501,7 @@ export class Swarm {
       const running = this.running();
       this.postMessage(
         'office',
-        `⬆️ Updating the dungeon (${u.behind} new commit${u.behind === 1 ? '' : 's'}). Nothing new starts${running ? ` while ${running} running session${running === 1 ? '' : 's'} finish` : ''}; then it installs and restarts.`,
+        `🔨 Updating the dungeon (${u.behind} new commit${u.behind === 1 ? '' : 's'}). Nothing new starts${running ? ` while ${running} running session${running === 1 ? '' : 's'} finish` : ''}; then it installs and restarts.`,
       );
     }
     u.drainingSince = d.drainingSince;

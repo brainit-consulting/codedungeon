@@ -1797,7 +1797,20 @@ input.inline:focus {
   padding: 0;
 }
 .swatch-on {
-  box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--ink);
+  box-shadow: 0 0 0 3px var(--vellum), 0 0 0 5px var(--ink);
+}
+/* the Ledger's chamber dyes: a tighter row of the same swatches */
+.dyes {
+  display: inline-grid;
+  grid-template-columns: repeat(4, 18px);
+  gap: 6px 7px;
+  padding: 0 4px;
+  flex: none;
+}
+.swatch-small {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
 }
 
 /* ---------- project picker ---------- */

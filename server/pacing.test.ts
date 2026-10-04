@@ -56,14 +56,14 @@ describe('usageView and usageLabel', () => {
 describe('pacingMessage', () => {
   it('says which limit, how full, until when and how many sessions', () => {
     expect(pacingMessage({ resetsAt: null, rateLimitType: 'five_hour', utilization: 0.82 }, NOW + 150 * 60_000, 3, NOW)).toBe(
-      "🐢 Claude's usage is getting high (5-hour limit, 82%). Until 14:30 the dungeon finishes open work first and starts at most 3 sessions at a time.",
+      "⏳ Claude's usage is getting high (5-hour limit, 82%). Until 14:30 the dungeon finishes open work first and starts at most 3 sessions at a time.",
     );
   });
 
   it('copes with a percentage and with missing details', () => {
     expect(pacingMessage({ resetsAt: null, rateLimitType: 'seven_day', utilization: 91 }, NOW + HOUR, 1, NOW)).toContain('(weekly limit, 91%)');
     expect(pacingMessage({ resetsAt: null, rateLimitType: 'seven_day', utilization: 91 }, NOW + HOUR, 1, NOW)).toContain('at most 1 session at a time');
-    expect(pacingMessage({ resetsAt: null, rateLimitType: null, utilization: null }, NOW + HOUR, 3, NOW)).toMatch(/^🐢 Claude's usage is getting high\. Until 13:00/);
+    expect(pacingMessage({ resetsAt: null, rateLimitType: null, utilization: null }, NOW + HOUR, 3, NOW)).toMatch(/^⏳ Claude's usage is getting high\. Until 13:00/);
   });
 });
 

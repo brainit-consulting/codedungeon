@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHAMBER_DYES, COAT_DYES, periodColor } from './palette';
+import { CHAMBER_DYE_NAMES, CHAMBER_DYES, COAT_DYES, periodColor } from './palette';
 
 const OLD_FLOORS = ['#ff8a5b', '#4fb3e8', '#8fd14f', '#c77dff', '#ffc93c', '#ff6fb5', '#2ec4b6', '#f25f5c'];
 const OLD_SHIRTS = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#9b5de5', '#f15bb5', '#00bbf9', '#06d6a0', '#ffbe0b', '#8338ec', '#fb5607', '#3a86ff'];
@@ -19,5 +19,12 @@ describe('period colours', () => {
   it('has a distinct dye for every old colour', () => {
     expect(new Set(CHAMBER_DYES).size).toBe(OLD_FLOORS.length);
     expect(new Set(COAT_DYES).size).toBe(OLD_SHIRTS.length);
+  });
+});
+
+describe('the chamber dyes by name', () => {
+  it('names every dye, in the same order', () => {
+    expect(CHAMBER_DYE_NAMES).toHaveLength(CHAMBER_DYES.length);
+    expect(CHAMBER_DYE_NAMES[1]).toBe('woad');
   });
 });

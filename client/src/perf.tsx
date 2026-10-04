@@ -118,7 +118,7 @@ export function StatsReadout() {
       >
         measuring…
       </span>
-      {paused && <span>⏸ 3D view paused</span>}
+      {paused && <span>3D view paused</span>}
     </div>
   );
 }

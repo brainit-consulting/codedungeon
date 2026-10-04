@@ -117,7 +117,7 @@ export async function takeLastUpdate(home: string): Promise<LastUpdate | null> {
 export function lastUpdateMessage(u: LastUpdate, commits: number | null): string {
   if (!u.ok) return `⚠️ Update failed and was rolled back: ${u.error || 'unknown error'}`;
   const n = commits === null ? '' : ` (${commits} commit${commits === 1 ? '' : 's'})`;
-  return `⬆️ Updated the dungeon from ${u.from.slice(0, 7)} to ${u.to.slice(0, 7)}${n}`;
+  return `🔨 Updated the dungeon from ${u.from.slice(0, 7)} to ${u.to.slice(0, 7)}${n}`;
 }
 
 // ---------- the running office ----------

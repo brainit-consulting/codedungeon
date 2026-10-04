@@ -119,9 +119,9 @@ describe('last-update.json', () => {
   const ok = { from: 'abc1234aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', to: 'def5678bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', ok: true, installed: true, built: true, at: 5 };
 
   it('words the phone message', () => {
-    expect(lastUpdateMessage(ok, 3)).toBe('⬆️ Updated the dungeon from abc1234 to def5678 (3 commits)');
-    expect(lastUpdateMessage(ok, 1)).toBe('⬆️ Updated the dungeon from abc1234 to def5678 (1 commit)');
-    expect(lastUpdateMessage(ok, null)).toBe('⬆️ Updated the dungeon from abc1234 to def5678');
+    expect(lastUpdateMessage(ok, 3)).toBe('🔨 Updated the dungeon from abc1234 to def5678 (3 commits)');
+    expect(lastUpdateMessage(ok, 1)).toBe('🔨 Updated the dungeon from abc1234 to def5678 (1 commit)');
+    expect(lastUpdateMessage(ok, null)).toBe('🔨 Updated the dungeon from abc1234 to def5678');
     expect(lastUpdateMessage({ ...ok, ok: false, error: 'npm ci failed' }, null)).toBe('⚠️ Update failed and was rolled back: npm ci failed');
   });
 

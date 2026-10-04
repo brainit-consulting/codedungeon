@@ -4,6 +4,8 @@
 
 /** One per chamber, in order: ochre, woad, moss, purpure, weld, rose madder, verdigris, madder. */
 export const CHAMBER_DYES = ['#b8682e', '#3f5f8a', '#5f7a3a', '#6b4470', '#b8962e', '#a8546a', '#3f7f74', '#9c3b2e'];
+/** What each chamber dye is called, for the Ledger's swatches. */
+export const CHAMBER_DYE_NAMES = ['ochre', 'woad', 'moss', 'purpure', 'weld', 'rose madder', 'verdigris', 'madder'];
 
 /** Coats and robes for the guild (the first is gules, the DungeonMaster's default). */
 export const COAT_DYES = ['#8e2a22', '#45607a', '#3f7066', '#b0703e', '#5e3a63', '#9a4f62', '#4a6f8f', '#4f6b35', '#a8862e', '#4f3a6b', '#a5512a', '#2f4d7a'];

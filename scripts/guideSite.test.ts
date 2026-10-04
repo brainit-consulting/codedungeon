@@ -89,3 +89,23 @@ describe('the quick start (website only)', () => {
     for (const need of ['Node.js', 'git', 'GitHub', 'Claude']) expect(html).toContain(need);
   });
 });
+
+describe('icons on the site', () => {
+  it('draws an emoji the dungeon has a woodcut for as that woodcut, in plain text and in bold', () => {
+    const html = inlineHtml('press **🚢 Ship** or 📜 your scroll');
+    expect(html).not.toContain('🚢');
+    expect(html).not.toContain('📜');
+    expect(html.match(/<svg class="ico"/g)).toHaveLength(2);
+    expect(html).toContain('<strong><svg class="ico"');
+    expect(html).toContain(' Ship</strong>');
+  });
+
+  it('leaves text without emoji exactly as before', () => {
+    expect(inlineHtml('a **bold** [[E]] `code` & <tag>')).toBe('a <strong>bold</strong> <kbd>E</kbd> <code>code</code> &amp; &lt;tag&gt;');
+  });
+
+  it('puts no raw emoji with a drawing anywhere on the site', () => {
+    const pages = Object.values(buildSite([...CHAPTERS, ...SITE_CHAPTERS])).join('\n');
+    expect(pages).not.toMatch(/🚢|📜|⚙|🔍|🏰/u);
+  });
+});

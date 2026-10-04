@@ -240,7 +240,7 @@ export function AppViewer({ repoId }: { repoId: string }) {
           </>
         ) : (
           <button className="btn btn-small btn-good" disabled={busy || preview.status === 'unconfigured'} onClick={() => void start()}>
-            ▶ Start
+            Start
           </button>
         )}
         <button className="btn btn-small" disabled={preview.status !== 'running'} onClick={() => setReloads((n) => n + 1)} title="Reload the app">
@@ -342,7 +342,7 @@ export function AppViewer({ repoId }: { repoId: string }) {
             Start it on <b>{refLabel(picked)}</b> to use it right here. It runs from the chamber's own preview worktree on port {preview.port}.
           </p>
           <button className="btn btn-good" disabled={busy} onClick={() => void start()}>
-            ▶ Start {refLabel(picked)}
+            Start {refLabel(picked)}
           </button>
           <button className="btn btn-ghost btn-small" aria-expanded={showSettings} onClick={() => setShowSettings((v) => !v)}>
             <Icon name="gear" /> Run settings

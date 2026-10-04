@@ -196,7 +196,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('Chambers & repos'),
       p(
-        'One row per chamber. **Visit** walks you there. Switches for **Auto-assign issues**, **Auto-merge** and **Browser testing** (testers use a real browser through Playwright). You can pick the chamber\'s colour, link it to other chambers so its coders can read those repos, and **Disconnect** it: everyone in it is let go, nothing is deleted on GitHub, and the folder stays on disk.',
+        'One row per chamber. **Visit** walks you there. Switches for **Auto-assign issues**, **Auto-merge** and **Browser testing** (testers use a real browser through Playwright). You can dye the chamber one of eight period colours (ochre, woad, moss and the rest), link it to other chambers so its coders can read those repos, and **Disconnect** it: everyone in it is let go, nothing is deleted on GitHub, and the folder stays on disk.',
       ),
       p(
         'Each row also shows whether your project folder is up to date with GitHub. After a merge it fast-forwards when that is safe; if it can\'t (local changes, another branch checked out), it says why, and **Sync now** tries again. Nothing is ever stashed or thrown away.',

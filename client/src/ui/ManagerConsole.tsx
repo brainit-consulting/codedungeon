@@ -2,6 +2,7 @@ import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import { api } from '../api';
 import { PreviewPill, PreviewSettings } from './AppViewer';
 import { agentsOnRepo, pendingRequests, useStore, type ManagerTab } from '../store';
+import { CHAMBER_DYE_NAMES, CHAMBER_DYES } from '../../../shared/palette';
 import { CEO_ID, type AgentCli, type CliView, type EffortLevel, type OfficeUpdateView, type RepoView } from '../../../shared/types';
 import { effectiveModel } from '../../../shared/models';
 import { canPostpone, canUpdateNow, drainDeadline, officeUpdateText } from '../officeUpdate';
@@ -132,7 +133,21 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
           {repo.cloneError && <div className="term-error small">clone failed: {repo.cloneError}</div>}
           {repo.syncError && <div className="term-error small">sync failed: {repo.syncError}</div>}
         </div>
-        <input type="color" value={repo.color} onChange={(e) => patch({ color: e.target.value })} title="Chamber colour" />
+        <span className="dyes" role="radiogroup" aria-label="Chamber dye">
+          {CHAMBER_DYES.map((c, i) => (
+            <button
+              key={c}
+              type="button"
+              role="radio"
+              aria-checked={c === repo.color}
+              aria-label={CHAMBER_DYE_NAMES[i]}
+              title={`Dye the chamber ${CHAMBER_DYE_NAMES[i]}`}
+              className={`swatch swatch-small ${c === repo.color ? 'swatch-on' : ''}`}
+              style={{ background: c }}
+              onClick={() => patch({ color: c })}
+            />
+          ))}
+        </span>
         <button className="btn btn-small" onClick={() => goToFloor(repo.floor)}>
           Visit
         </button>
