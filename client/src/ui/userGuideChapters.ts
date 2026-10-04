@@ -176,7 +176,7 @@ export const CHAPTERS: GuideChapter[] = [
       h('Your scroll'),
       p('Press [[P]] anywhere to take out your scroll. It has three parts:'),
       list(
-        '**Chat**: write to the DungeonMaster and read what he and the dungeon send you (merges, refused merges, usage warnings).',
+        '**The DungeonMaster\'s letters** (the first tab, under their name): write to the DungeonMaster and read what they and the dungeon send you (merges, refused merges, usage warnings).',
         '**Recruits**: the people waiting for your yes.',
         '**The Realm**: every project at a glance.',
       ),
@@ -240,6 +240,10 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       p(
         'Darts stick only in the board. A round is three darts, scored like the real game: doubles, trebles, 25 and the bull. The chalk tally beside the board keeps the best round. Press [[E]] on the board again to collect your darts. The coders are not targets.',
+      ),
+      h('The wolf by the hearth'),
+      p(
+        'A wolf sleeps on a hide rug by the great hall\'s fire. He stirs now and then, lifts his head when you come close, and sometimes yawns or gets up to stretch before lying down again. He makes no sound but his breathing, and you can\'t walk through him.',
       ),
       h('The black cat'),
       p(

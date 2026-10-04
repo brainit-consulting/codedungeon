@@ -128,6 +128,10 @@ function Help() {
           <kbd>D</kbd> walk · <kbd>Shift</kbd> run · mouse to look · <kbd>E</kbd> or left click interacts with whatever the crosshair is on (the first click only grabs the mouse) · <kbd>Esc</kbd> frees the mouse. Closing a panel grabs it again.
         </p>
         <MouseSettings />
+        <h3>The wolf</h3>
+        <p>
+          A wolf sleeps on a hide rug by the hearth. He stirs, lifts his head when you come close, and now and then gets up to stretch and yawn before lying down again. You can't walk through him.
+        </p>
         <h3>The cat</h3>
         <p>
           A black cat lives in the dungeon and thinks she runs it. She sleeps by the hearth, sits on the bar, keeps the coders company and takes the DungeonMaster's table when he isn't looking. Press <kbd>C</kbd> to call her: she'll ignore you for a moment, then follow you about. She never gets in your way.
