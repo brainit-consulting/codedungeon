@@ -153,7 +153,7 @@ function Help() {
         </p>
         <h3>Your scroll</h3>
         <p>
-          Press <kbd>P</kbd> anywhere to take out your scroll. Write to the DungeonMaster, approve or decline the recruits they put forward, and see every project at a glance. The red badge counts decisions and messages waiting for you. In the chat, and in a coder's
+          Press <kbd>P</kbd> anywhere to take out your scroll. Write to the DungeonMaster, approve or decline the recruits they put forward, and see every project at a glance. The red badge counts decisions and messages waiting for you. In the DungeonMaster's letters, and in a coder's
           terminal, <kbd>Enter</kbd> sends and <kbd>Shift</kbd>+<kbd>Enter</kbd> starts a new line.
         </p>
         <h3>Who's working</h3>

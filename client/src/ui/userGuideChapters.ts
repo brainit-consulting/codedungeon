@@ -183,7 +183,7 @@ export const CHAPTERS: GuideChapter[] = [
       p('The red badge on the scroll counts messages and decisions waiting for you.'),
       h('Sound'),
       p(
-        'A bell tolls when a pull request is ready to merge, fails QA or is merged, when someone hits an error and when a new recruit arrives. Quiet music plays under it all. [[M]] mutes or unmutes everything, anywhere; [[N]] turns just the music off or on. Both volumes are in the help ([[H]]).',
+        'A handbell rings when the DungeonMaster writes to you. Bells ring when a pull request is ready to merge, fails QA or is merged, and when a new recruit arrives; a low gong sounds when someone hits an error. Quiet music plays under it all. [[M]] mutes or unmutes everything, anywhere; [[N]] turns just the music off or on. Both volumes are in the help ([[H]]).',
       ),
     ],
   },
