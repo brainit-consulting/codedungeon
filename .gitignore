@@ -9,3 +9,9 @@ test-results
 
 # this machine's own rules (see shared/dungeon.mjs)
 dungeon.local.json
+
+# notes and plans that belong to one machine
+CLAUDE.local.md
+MORNING.md
+PLANNING-START.md
+docs/superpowers/

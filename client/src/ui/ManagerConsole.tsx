@@ -44,7 +44,7 @@ async function attempt<T>(fn: () => Promise<T>): Promise<T | undefined> {
 
 // ---------- floors ----------
 
-const NO_LAUNCHER = 'Code Dungeon is updated by hand: pull in H:\\codedungeon, then restart npm run dev.';
+const NO_LAUNCHER = 'Code Dungeon is updated by hand: run git pull and npm install in its folder, then start it again.';
 
 /** The office itself: the commit it runs and its own update. Hidden on servers that can't update themselves. */
 function OfficeRow({ update }: { update: OfficeUpdateView }) {

@@ -3,19 +3,20 @@
 A medieval first-person 3D dungeon (React Three Fiber) over a Node orchestrator that runs coding-agent CLI sessions
 for developers, QA testers and the DungeonMaster, each in its own git worktree, working through GitHub issues. It is
 a real software factory. It started as a fork of cubefarm (github.com/leonvanzyl/cubefarm, remote `upstream`); its
-own repo is the private github.com/brainit-consulting/codedungeon (`origin`). Most of the code and docs below still
-use cubefarm's names (office, floor, CEO) until the medieval rebuild renames them.
+own repo is github.com/brainit-consulting/codedungeon (`origin`). Much of the code still uses cubefarm's names
+(office, floor, CEO) for things the dungeon calls the dungeon, chambers and the DungeonMaster.
+
+If a `CLAUDE.local.md` sits next to this file (it's git-ignored), read it too: it holds the rules for the machine
+you're on, and where it's stricter, it wins.
 
 ## SAFETY (read first)
 
-- **Two offices run on this machine. Never touch the other one.** cubefarm's live office runs from `H:\cubefarm`
-  on ports 4317/5317 with its data in `C:\Users\snake\.cubefarm`: never edit or run anything there, never read or
-  write that folder, never use those ports. The code refuses them (`shared/dungeon.mjs`).
-- **Code Dungeon's own live office** runs from this folder with `npm run dev`: server 4417, Vite 5417, data in
-  `H:\codedungeon-home`. Agents working on this repo don't start, stop or use it either.
-- **Nothing on C:.** The launcher points temp files, the npm cache and Playwright browsers at `H:\codedungeon-home`.
-- Test only in demo mode (fake GitHub, fake agents, no Claude usage), with an isolated `SWARM_HOME` on H: and your
-  reserved `SWARM_PORT` (from your job instructions, never 4317/5317/4417/5417):
+- **Never touch a live dungeon.** Someone's real dungeon may be running from this folder with `npm run dev`: server
+  on 4417, page on 5417, data in `codedungeon-home` next to the repo. Agents working on this repo don't start, stop
+  or use it. If cubefarm also runs on the machine (ports 4317/5317, data in `~/.cubefarm`), never touch that either;
+  the code refuses those ports and that folder (`shared/dungeon.mjs`).
+- Test only in demo mode (fake GitHub, fake agents, no Claude usage), with your own `SWARM_HOME` and your reserved
+  `SWARM_PORT` (from your job instructions, never 4317/5317/4417/5417):
 
   ```powershell
   npm install; npm run build
@@ -23,9 +24,9 @@ use cubefarm's names (office, floor, CEO) until the medieval rebuild renames the
   ```
   Then open `http://localhost:<your port>`. The startup banner must say `DEMO MODE` and print a `state:` path inside
   your `SWARM_HOME`. Stop it when done; don't commit `.swarm-home`.
-- Never `npm run dev` / `npm start` / `node bin/cubefarm.js` from a job: they start a real office.
-- Agents are ordinary coding-agent CLI sessions on the manager's own setup, unsandboxed, by the manager's choice. The
-  office's workflow rules (no pushes to the default branch, no merging, QA leaves GitHub alone) live in their prompts
+- Never `npm run dev` / `npm start` / `node bin/codedungeon.js` from a job: they start a real dungeon.
+- Agents are ordinary coding-agent CLI sessions on the Overlord's own setup, unsandboxed, by the Overlord's choice. The
+  dungeon's workflow rules (no pushes to the default branch, no merging, QA leaves GitHub alone) live in their prompts
   and instructions, not in enforcement: don't add hooks, permission rules or sandboxes that refuse tool calls.
   `ANTHROPIC_*` / `CLAUDE_*` are stripped from agent and preview env.
 
@@ -49,7 +50,7 @@ before you open a PR.
 
 Server (`server/`, Node + Express 5 + ws, run by tsx in development; esbuild bundles it into `dist-server/` for npm):
 - `index.ts`: entry; picks the real or demo backend, REST routes under `/api`, the `/ws` and `/ws/term` websockets, serves `dist/`, shutdown.
-- `config.ts`: `SWARM_PORT` (default 4317), `SWARM_HOME` (default `~/.cubefarm`), `--demo`, state file, intervals,
+- `config.ts`: `SWARM_PORT` (default 4417), `SWARM_HOME` (default `codedungeon-home` beside the repo), `--demo`, state file, intervals,
   the default projects folder.
 - `swarm.ts`: the orchestrator. Floors, agents, scheduling/auto-assign, dev → QA → fix → merge loop, dev and QA
   prompts, CEO job queue, phone messages, persistence (`state.json` / `demo-state.json`), websocket fan-out.

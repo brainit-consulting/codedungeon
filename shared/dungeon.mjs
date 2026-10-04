@@ -9,7 +9,7 @@ export const SERVER_PORT = 4417;
 export const CLIENT_PORT = 5417;
 const LIVE_PORTS = [4317, 5317];
 
-/** The data folder beside the repo: H:\codedungeon → H:\codedungeon-home. */
+/** The data folder beside the repo: …/codedungeon → …/codedungeon-home. */
 export function defaultHome(repoRoot) {
   return path.resolve(repoRoot, '..', 'codedungeon-home');
 }
