@@ -46,7 +46,7 @@ const STEPS: Step[] = [
     title: 'Your scroll',
     body: (c) => (
       <>
-        <Icon name="speech" /> {c.ceo} writes to you here, and you can write back. <Icon name="letter" /> <b>Recruits</b> holds the people waiting for your yes. <Icon name="board" /> <b>The Realm</b> is every project at a glance. Put it away with <kbd>P</kbd>.
+        <Icon name="quill" /> {c.ceo} writes to you here, and you can write back. <Icon name="letter" /> <b>Recruits</b> holds the people waiting for your yes. <Icon name="map" /> <b>The Realm</b> is every project at a glance. Roll it up with <kbd>P</kbd>.
       </>
     ),
     done: (s) => s.overlay?.kind !== 'phone',

@@ -2064,108 +2064,209 @@ input.inline:focus {
   top: -8px;
   left: 26px;
 }
+/* The Overlord's scroll (ui/Phone.tsx): a parchment sheet between two turned wooden rods, ruled like a printed page,
+   with the hold's rust wax seal at its head. Flat colours and hard edges only. */
 .phone-overlay {
+  /* one column the width of the screen: long lines inside must not widen it past a narrow phone */
+  grid-template-columns: minmax(0, 1fr);
   place-items: end end;
   padding: 16px 24px;
-  background: rgba(21, 21, 31, 0.28);
+  background: rgba(10, 7, 5, 0.3);
 }
 .phone {
   width: min(400px, 100%);
   height: min(760px, calc(100vh - 32px));
   display: flex;
   flex-direction: column;
-  background: #23263a;
-  border: 4px solid var(--copper);
-  border-radius: 3px;
-  padding: 10px 10px 8px;
-  box-shadow:
-    0 10px 0 var(--ink),
-    inset 0 0 0 3px #3e3024;
-  animation: slideup 0.22s ease-out;
+  animation: unroll 0.24s ease-out;
+  transform-origin: top;
 }
-@keyframes slideup {
+@keyframes unroll {
   from {
-    transform: translateY(40px);
+    transform: scaleY(0.2);
     opacity: 0;
   }
 }
-.phone-status {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: #e9e9f5;
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 2px 16px 8px;
-}
-.phone-notch {
-  width: 90px;
+/* a turned wooden rod with a finial at each end; the knobs sit inside the scroll's box so narrow screens never scroll sideways */
+.scroll-rod {
+  position: relative;
+  flex: none;
   height: 18px;
-  background: #15151f;
-  border-radius: 3px;
+  margin: 0 8px;
+  background: #7a4a24;
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  box-shadow:
+    inset 0 3px 0 rgba(255, 214, 170, 0.28),
+    inset 0 -4px 0 rgba(42, 29, 20, 0.35);
+}
+.scroll-rod::before,
+.scroll-rod::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  width: 12px;
+  height: 26px;
+  background: #5b3417;
+  border: 2px solid var(--ink);
+  border-radius: 45%;
+  box-shadow: inset 2px 0 0 rgba(255, 214, 170, 0.25);
+}
+.scroll-rod::before {
+  left: -8px;
+}
+.scroll-rod::after {
+  right: -8px;
+}
+.scroll-sheet {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin: 0 14px;
+  background: var(--paper);
+  border-left: 2px solid var(--ink);
+  border-right: 2px solid var(--ink);
+  /* the parchment's curl under the top rod and over the bottom one */
+  box-shadow:
+    inset 0 7px 0 #d6c29a,
+    inset 0 8.5px 0 rgba(42, 29, 20, 0.4),
+    inset 0 -7px 0 #d6c29a,
+    inset 0 -8.5px 0 rgba(42, 29, 20, 0.4);
+  padding: 9px 0;
+}
+.scroll-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 8px;
+  border-bottom: 3px double var(--ink);
+  margin: 0 8px;
+}
+.wax-seal {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  margin: -2px 0 -4px;
+  transform: rotate(-8deg);
+}
+.wax-seal-letter {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  fill: #5e2410;
+}
+.scroll-hold {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.03em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scroll-hour {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
 }
 .phone-screen {
   flex: 1;
   min-height: 0;
-  background: var(--paper);
-  border-radius: 3px 26px 12px 12px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 .phone-tabs {
   display: flex;
-  gap: 4px;
-  padding: 8px 4px 2px;
+  margin: 0 8px;
+  border-bottom: 1.5px solid var(--ink);
 }
 .phone-tab {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 6px 4px;
+  gap: 1px;
+  padding: 6px 4px 5px;
   border: none;
-  border-radius: 3px;
+  border-radius: 0;
   background: transparent;
-  color: #b8bbd6;
-  font-family: var(--font);
-  font-weight: 600;
-  font-size: 0.78rem;
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 0.82rem;
   cursor: pointer;
 }
+.phone-tab:hover {
+  color: var(--ink);
+}
 .phone-tab-on {
-  background: #3e3024;
-  color: #fff;
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+.phone-tab-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .phone-tab-icon {
   position: relative;
-  font-size: 1.3rem;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+/* counts on the scroll are drops of the same rust wax as its seal */
+.phone .badge {
+  background: var(--accent);
+  color: var(--vellum);
+  border: 1.5px solid var(--ink);
+  border-radius: 52% 46% 55% 48%;
 }
 .badge-dot {
   position: absolute;
   top: -6px;
-  right: -14px;
+  right: -16px;
   min-width: 18px;
   height: 18px;
   font-size: 0.65rem;
 }
 .phone-hint {
-  text-align: center;
-  color: #8e92b3;
+  color: var(--muted);
+  font-style: italic;
   font-size: 0.72rem;
-  padding-top: 4px;
+  padding: 5px 12px 0;
+  margin: 0 8px;
+  border-top: 1px solid rgba(42, 29, 20, 0.35);
 }
 .phone-hint kbd {
   font-size: 0.7rem;
+  font-style: normal;
 }
 .phone-scroll {
   flex: 1;
   overflow: auto;
-  padding: 12px;
+  padding: 12px 14px;
+}
+/* a recruit's buttons drop under one another on a narrow scroll rather than run off its edge */
+.phone .resume .row {
+  flex-wrap: wrap;
+}
+.phone .resume .row .btn {
+  white-space: normal;
 }
 .phone-h {
-  margin: 10px 2px 8px;
+  margin: 12px 0 8px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid rgba(42, 29, 20, 0.35);
+  font-family: var(--font-display);
   font-size: 1rem;
   display: flex;
   align-items: center;
@@ -2196,26 +2297,51 @@ input.inline:focus {
   display: flex;
   flex-direction: column;
 }
+/* a woodcut initial: ink on parchment inside a printer's double rule, the bearer's tincture as a lozenge in the corner */
+.seal-mark {
+  position: relative;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  background: var(--vellum);
+  border: 3px double var(--ink);
+  border-radius: 2px;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1;
+}
+.seal-mark::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 9px;
+  height: 9px;
+  background: var(--tincture, var(--accent));
+  border: 1.5px solid var(--ink);
+  transform: rotate(45deg);
+}
 .chat-head {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  border-bottom: 2px solid rgba(42, 29, 20, 0.08);
-  background: var(--vellum);
+  padding: 10px 14px 8px;
+  margin: 0 8px;
+  border-bottom: 1px solid rgba(42, 29, 20, 0.35);
 }
 .presence-busy {
-  color: #d9480f;
+  color: var(--accent);
+  font-style: italic;
   font-weight: 600;
 }
 .chat-log {
   flex: 1;
   overflow: auto;
-  padding: 10px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: #ece0c4;
+  gap: 10px;
 }
 .bubble-row {
   display: flex;
@@ -2223,26 +2349,29 @@ input.inline:focus {
 .bubble-row-me {
   justify-content: flex-end;
 }
+/* letters, not bubbles: square slips of vellum, the DungeonMaster's with a heavy ink rule down the left */
 .bubble {
-  max-width: 86%;
-  padding: 8px 11px 5px;
-  border: 2px solid var(--ink);
-  border-radius: 3px;
+  max-width: 88%;
+  padding: 6px 10px 4px;
+  border: 1.5px solid var(--ink);
+  border-radius: 0;
   font-size: 0.9rem;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 .bubble-them {
   background: var(--vellum);
-  border-bottom-left-radius: 4px;
+  border-left-width: 4px;
 }
 .bubble-me {
-  background: #dcbf8f;
-  border-bottom-right-radius: 4px;
+  background: #e3cfa4;
+  border-right-width: 4px;
 }
 .bubble-from {
-  font-size: 0.72rem;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--ink);
+  letter-spacing: 0.02em;
 }
 .bubble-text {
   white-space: pre-wrap;
@@ -2384,77 +2513,99 @@ input.inline:focus {
 
 .bubble-time {
   text-align: right;
-  font-size: 0.65rem;
+  font-size: 0.68rem;
+  font-style: italic;
   color: var(--muted);
   margin-top: 2px;
 }
+/* the dungeon's own notices: a line of italic between two rules, like a rubric */
 .bubble-office {
-  align-self: center;
-  max-width: 92%;
-  text-align: center;
-  font-size: 0.76rem;
-  color: #4a3a2a;
-  background: rgba(42, 29, 20, 0.07);
-  border-radius: 3px;
-  padding: 3px 10px;
-}
-.bubble-typing {
   display: flex;
-  gap: 4px;
-  padding: 10px 12px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.76rem;
+  font-style: italic;
+  color: #4a3a2a;
 }
-.bubble-typing span {
-  width: 7px;
-  height: 7px;
+.bubble-office::before,
+.bubble-office::after {
+  content: '';
+  flex: 1 0 14px;
+  border-top: 1px solid rgba(42, 29, 20, 0.4);
+}
+.bubble-office > span {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* the DungeonMaster's quill at work: three drops of ink that come and go */
+.quill-line {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  padding: 2px 4px;
+  color: var(--ink);
+  font-size: 1.1rem;
+}
+.ink-dot {
+  width: 5px;
+  height: 5px;
+  margin-bottom: 3px;
   border-radius: 50%;
-  background: var(--muted);
-  animation: typing 1.2s infinite;
+  background: var(--ink);
+  animation: ink-dot 1.5s ease-in-out infinite;
 }
-.bubble-typing span:nth-child(2) {
-  animation-delay: 0.15s;
+.ink-dot:nth-of-type(2) {
+  animation-delay: 0.25s;
 }
-.bubble-typing span:nth-child(3) {
-  animation-delay: 0.3s;
+.ink-dot:nth-of-type(3) {
+  animation-delay: 0.5s;
 }
-@keyframes typing {
+@keyframes ink-dot {
   0%,
-  60%,
   100% {
-    transform: translateY(0);
-    opacity: 0.5;
+    opacity: 0.12;
   }
-  30% {
-    transform: translateY(-4px);
+  40% {
     opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .phone,
+  .ink-dot {
+    animation: none;
   }
 }
 .quick {
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding: 6px 10px 0;
-  background: var(--vellum);
+  padding: 6px 14px 0;
+  margin: 0 8px;
+  border-top: 1px solid rgba(42, 29, 20, 0.35);
 }
 .quick-chip {
   flex: none;
   font-family: var(--font);
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border: 1.5px solid rgba(42, 29, 20, 0.3);
-  border-radius: 3px;
+  font-size: 0.78rem;
+  font-style: italic;
+  padding: 3px 9px;
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
   background: var(--vellum);
+  color: var(--ink);
   cursor: pointer;
 }
 .quick-chip:hover {
   border-color: var(--accent);
+  color: var(--accent);
 }
 .chat-input {
   display: flex;
   align-items: flex-end;
   gap: 6px;
-  padding: 8px 10px 10px;
-  background: var(--vellum);
+  padding: 8px 14px 8px;
+  margin: 0 8px;
 }
 
 /* resumes */
@@ -2517,18 +2668,27 @@ input.inline:focus {
   padding: 8px;
 }
 
-/* company */
+/* the realm: a ruled tally, a short report and one entry per chamber */
 .tiles {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  border-top: 3px double var(--ink);
+  border-bottom: 3px double var(--ink);
 }
 .tile {
-  background: var(--vellum);
-  border: 2.5px solid var(--ink);
-  border-radius: 3px;
-  padding: 8px;
-  text-align: center;
+  min-width: 0;
+  padding: 7px 8px 6px;
+  border-left: 1px solid rgba(42, 29, 20, 0.35);
+}
+.tile:nth-child(3n + 1) {
+  border-left: none;
+}
+.tile:nth-child(n + 4) {
+  border-top: 1px solid rgba(42, 29, 20, 0.35);
+}
+/* a short last row: its last cell takes the rest of the line so the rules close */
+.tile:last-child:nth-child(3n + 2) {
+  grid-column: span 2;
 }
 .tile-value {
   font-weight: 700;
@@ -2536,9 +2696,10 @@ input.inline:focus {
   white-space: nowrap;
 }
 .tile-label {
-  font-size: 0.7rem;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: 500;
 }
 .report {
   list-style: none;
@@ -2546,32 +2707,28 @@ input.inline:focus {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
 }
 .report li {
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  background: var(--vellum);
-  border: 2px solid rgba(42, 29, 20, 0.12);
-  border-radius: 3px;
-  padding: 7px 10px;
+  border-bottom: 1px dotted rgba(42, 29, 20, 0.45);
+  border-left: 3px solid transparent;
+  padding: 6px 4px 6px 7px;
   font-size: 0.86rem;
   line-height: 1.4;
 }
 .report li.report-good {
-  background: #e7fbe9;
-  border-color: #8fa85a;
+  border-left-color: var(--good);
 }
 .report li.report-warn {
-  background: #efe1bd;
-  border-color: #c89a3e;
+  border-left-color: var(--accent);
 }
 .proj {
   background: var(--vellum);
-  border: 2.5px solid var(--ink);
-  border-left: 10px solid var(--accent);
-  border-radius: 3px;
+  border: 1.5px solid var(--ink);
+  border-left: 8px solid var(--accent);
+  border-radius: 0;
   padding: 6px 10px 8px;
   margin-bottom: 8px;
 }
@@ -2600,12 +2757,17 @@ input.inline:focus {
   font-weight: 600;
 }
 .proj-ready {
-  color: #4f6b2a;
+  color: var(--good);
 }
 @media (max-width: 520px) {
   .phone-overlay {
     place-items: center;
     padding: 8px;
+  }
+  .phone-scroll,
+  .chat-log {
+    padding-left: 10px;
+    padding-right: 10px;
   }
   .phone-btn-label {
     display: none;

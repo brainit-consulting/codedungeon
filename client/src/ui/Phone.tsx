@@ -6,10 +6,12 @@ import { Markdown } from './Markdown';
 import { MessageBox } from './MessageBox';
 import { closeOverlay } from './Overlays';
 import { effectiveModel } from '../../../shared/models';
-import { IconText } from './Icon';
+import { Icon, IconText } from './Icon';
+import type { IconName } from './icons';
+import { canonicalHour, presenceText, sealInitial, waxOutline } from './scroll';
 
-// The manager's phone: text the CEO, decide on hires, see the whole company at a glance
-// without walking anywhere, and play a game while the team works. Press P anywhere in the office.
+// The Overlord's scroll: write to the DungeonMaster, decide on recruits and see the whole realm at a glance
+// without walking anywhere. Press P anywhere in the dungeon. (Its code and classes still say "phone".)
 
 async function attempt<T>(fn: () => Promise<T>): Promise<T | undefined> {
   try {
@@ -21,11 +23,29 @@ async function attempt<T>(fn: () => Promise<T>): Promise<T | undefined> {
 
 const clock = (t: number) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-function Avatar({ name, color, size = 34 }: { name: string; color: string; size?: number }) {
+/** A woodcut initial in ink on parchment, framed by a printer's double rule, with the bearer's tincture in a lozenge. */
+function Seal({ name, color, size = 34 }: { name: string; color: string; size?: number }) {
   return (
-    <span className="avatar" style={{ background: color, width: size, height: size, fontSize: size * 0.45 }}>
-      {name[0]}
+    <span className="seal-mark" aria-hidden="true" style={{ width: size, height: size, fontSize: size * 0.55, ['--tincture' as string]: color }}>
+      {sealInitial(name)}
     </span>
+  );
+}
+
+const WAX = waxOutline(15, 27, 2.6);
+
+/** The rust wax seal on the scroll's head, pressed with the hold's initial. */
+function WaxSeal({ initial }: { initial: string }) {
+  return (
+    <svg className="wax-seal" viewBox="0 0 64 64" aria-hidden="true">
+      <path d={WAX} fill="#a0441c" stroke="#2a1d14" strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx="32" cy="32" r="18.5" fill="none" stroke="#5e2410" strokeWidth="1.6" />
+      <circle cx="32" cy="32" r="15.5" fill="none" stroke="#5e2410" strokeWidth="0.8" strokeDasharray="1.4 2.2" />
+      <path d="M14 22C17 16 22 12 28 10" fill="none" stroke="#d98a5a" strokeWidth="1.4" strokeLinecap="round" />
+      <text x="32" y="33" textAnchor="middle" dominantBaseline="central" className="wax-seal-letter">
+        {initial}
+      </text>
+    </svg>
   );
 }
 
@@ -52,7 +72,7 @@ export function Resume({ req, highlight }: { req: HireRequestView; highlight?: b
   return (
     <div ref={ref} className={`resume ${hire ? '' : 'resume-letgo'} ${highlight ? 'resume-hot' : ''} ${pending ? '' : 'resume-done'}`}>
       <div className="resume-head">
-        <Avatar name={req.name} color={req.color} size={42} />
+        <Seal name={req.name} color={req.color} size={42} />
         <div className="grow">
           <div className="resume-name">{hire ? req.name : `Let ${req.name} go?`}</div>
           <div className="resume-title">{req.title}</div>
@@ -141,7 +161,9 @@ function Bubble({ m, ceoName }: { m: PhoneMessage; ceoName: string }) {
   if (m.from === 'office')
     return (
       <div className="bubble-office">
-        <IconText text={m.text} />
+        <span>
+          <IconText text={m.text} />
+        </span>
       </div>
     );
   const mine = m.from === 'manager';
@@ -186,23 +208,20 @@ function Chat() {
   };
   const replying = ceo.status === 'working' && info.job?.kind === 'chat';
   const chatQueued = info.queue.some((j) => j.kind === 'chat');
-  const presence =
-    ceo.status === 'working'
-      ? replying
-        ? 'writing…'
-        : `busy: ${info.job?.label ?? 'working'}`
-      : chatQueued
-        ? settings.sessionLimit && running >= settings.sessionLimit
-          ? `will reply when a session slot frees up (${running}/${settings.sessionLimit} busy)`
-          : 'reading your message…'
-        : info.queue.length
-          ? `next up: ${info.queue[0].label}`
-          : 'available';
+  const presence = presenceText({
+    working: ceo.status === 'working',
+    replying,
+    jobLabel: info.job?.label,
+    letterQueued: chatQueued,
+    nextLabel: info.queue[0]?.label,
+    running,
+    sessionLimit: settings.sessionLimit,
+  });
 
   return (
     <div className="phone-chat">
       <div className="chat-head">
-        <Avatar name={ceo.name} color={ceo.color} />
+        <Seal name={ceo.name} color={ceo.color} />
         <div className="grow">
           <b>{ceo.name}</b> <span className="muted small">DungeonMaster</span>
           <div className={`small ${ceo.status === 'working' ? 'presence-busy' : 'muted'}`}>{presence}</div>
@@ -219,10 +238,11 @@ function Chat() {
         ))}
         {replying && (
           <div className="bubble-row">
-            <div className="bubble bubble-them bubble-typing">
-              <span />
-              <span />
-              <span />
+            <div className="quill-line" role="status" aria-label={`${ceo.name} is penning a reply`}>
+              <Icon name="quill" />
+              <span className="ink-dot" />
+              <span className="ink-dot" />
+              <span className="ink-dot" />
             </div>
           </div>
         )}
@@ -373,14 +393,22 @@ function Company() {
             </button>
           </div>
           <div className="proj-stats small">
-            <span>
-              👥 {f.team}
+            <span title="in the guild here">
+              <Icon name="hood" /> {f.team}
               {f.working ? ` (${f.working} busy)` : ''}
             </span>
-            <span>📋 {f.issues}</span>
-            <span>🔍 {f.inQa}</span>
-            <span className={f.ready ? 'proj-ready' : ''}>✅ {f.ready}</span>
-            <span>🎉 {f.merged}</span>
+            <span title="open issues">
+              <Icon name="board" /> {f.issues}
+            </span>
+            <span title="in QA">
+              <Icon name="lens" /> {f.inQa}
+            </span>
+            <span className={f.ready ? 'proj-ready' : ''} title="passed QA, ready to merge">
+              <Icon name="check" /> {f.ready}
+            </span>
+            <span title="merged">
+              <Icon name="banner" /> {f.merged}
+            </span>
           </div>
         </div>
       ))}
@@ -397,6 +425,7 @@ export function Phone({ tab: initialTab, requestId }: { tab?: PhoneTab; requestI
   const messages = useStore((s) => s.messages);
   const readAt = useStore((s) => s.phoneReadAt);
   const ceoName = useStore((s) => s.agents[CEO_ID]?.name ?? 'DungeonMaster');
+  const hold = useStore((s) => s.settings.companyName) || 'Code Dungeon';
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 20_000);
@@ -422,43 +451,49 @@ export function Phone({ tab: initialTab, requestId }: { tab?: PhoneTab; requestI
 
   const pending = pendingRequests(requests).length;
   const unread = unreadMessages(messages, readAt);
-  const tabs: [PhoneTab, string, string, number][] = [
-    ['chat', '💬', ceoName, tab === 'chat' ? 0 : unread],
-    ['hires', '📄', 'Recruits', pending],
-    ['company', '📊', 'Company', 0],
+  const tabs: [PhoneTab, IconName, string, number][] = [
+    ['chat', 'quill', ceoName, tab === 'chat' ? 0 : unread],
+    ['hires', 'letter', 'Recruits', pending],
+    ['company', 'map', 'The Realm', 0],
   ];
   return (
     <div className="overlay phone-overlay" onMouseDown={(e) => e.target === e.currentTarget && closeOverlay()}>
       <div className="phone">
-        <div className="phone-status">
-          <span>{clock(now)}</span>
-          <span className="phone-notch" />
-          <span>📶 🔋</span>
+        <div className="scroll-rod" aria-hidden="true" />
+        <div className="scroll-sheet">
+          <header className="scroll-head">
+            <WaxSeal initial={sealInitial(hold)} />
+            <span className="scroll-hold">{hold}</span>
+            <span className="scroll-hour" title={clock(now)}>
+              <Icon name="candle" /> {canonicalHour(new Date(now))}
+            </span>
+          </header>
+          <nav className="phone-tabs">
+            {tabs.map(([k, icon, label, badge]) => (
+              <button key={k} className={`phone-tab ${tab === k ? 'phone-tab-on' : ''}`} onClick={() => setTab(k)}>
+                <span className="phone-tab-icon">
+                  <Icon name={icon} />
+                  {badge > 0 && <span className="badge badge-dot">{badge}</span>}
+                </span>
+                <span className="phone-tab-label">{label}</span>
+              </button>
+            ))}
+          </nav>
+          <div className="phone-screen">
+            {tab === 'chat' && <Chat />}
+            {tab === 'hires' && <Hires focusId={requestId} />}
+            {tab === 'company' && <Company />}
+          </div>
+          <div className="phone-hint">
+            {tab === 'chat' && (
+              <>
+                <kbd>Shift</kbd>+<kbd>Enter</kbd> new line ·{' '}
+              </>
+            )}
+            <kbd>P</kbd> or <kbd>Esc</kbd> to roll it up
+          </div>
         </div>
-        <div className="phone-screen">
-          {tab === 'chat' && <Chat />}
-          {tab === 'hires' && <Hires focusId={requestId} />}
-          {tab === 'company' && <Company />}
-        </div>
-        <nav className="phone-tabs">
-          {tabs.map(([k, icon, label, badge]) => (
-            <button key={k} className={`phone-tab ${tab === k ? 'phone-tab-on' : ''}`} onClick={() => setTab(k)}>
-              <span className="phone-tab-icon">
-                {icon}
-                {badge > 0 && <span className="badge badge-dot">{badge}</span>}
-              </span>
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-        <div className="phone-hint">
-          {tab === 'chat' && (
-            <>
-              <kbd>Shift</kbd>+<kbd>Enter</kbd> new line ·{' '}
-            </>
-          )}
-          <kbd>P</kbd> or <kbd>Esc</kbd> to put it away
-        </div>
+        <div className="scroll-rod" aria-hidden="true" />
       </div>
     </div>
   );
