@@ -9,6 +9,7 @@ import { HandPose } from './handPose';
 import { WOLF, WOLF_RUG } from './layout';
 import { Rug } from './Props';
 import { createWolf, stepWolf, type Wolf as WolfState, type WolfEnv } from './wolfBrain';
+import { wolfSounds } from './wolfSounds';
 
 // The great hall's wolf, asleep on his rug by the hearth (CC0 Quaternius wolf, rigged and given his lying-down clips by
 // scripts/build-wolf.py). His brain (wolfBrain.ts) says what he's doing; this plays the matching clip and adds the
@@ -50,8 +51,6 @@ function clipFor(w: WolfState): [ClipName, number] {
 }
 
 let living: WolfState | null = null;
-/** The wolf as he is right now, or null before he's in the hall. */
-export const theWolf = () => living;
 
 /** The world yaw for the brain's yaw: half a turn between his two ways of lying, each turned a little to the room. */
 export const wolfHeading = (yaw: number) => yaw + TURN_OUT * Math.cos(yaw);
@@ -157,6 +156,8 @@ function WolfBody({ brain }: { brain: React.RefObject<WolfState | null> }) {
   );
   const look = useRef({ yaw: 0, weight: 0 });
   const breath = useRef({ phase: 0, next: 0 });
+  const heard = useRef(-1); // the brain's started count whose sounds have played
+  const at = useMemo(() => new THREE.Vector3(), []);
   const local = useRef(new THREE.Vector3());
 
   useFrame(({ clock }, rawDt) => {
@@ -189,7 +190,6 @@ function WolfBody({ brain }: { brain: React.RefObject<WolfState | null> }) {
         next.play();
         if (was && was.name !== name) actions[was.name]?.fadeOut(fade);
         playing.current = { name, started: w.started };
-        onStart(w, name);
       }
     }
     hand.undo();
@@ -257,29 +257,19 @@ function WolfBody({ brain }: { brain: React.RefObject<WolfState | null> }) {
     else if (!lying || w.action === 'look') lid = (t * 0.23) % 1 > 0.97 ? 0.15 : 1;
     for (const e of bones.eyes) e.scale.y *= lid;
 
-    // his breathing, heard only close up
-    const d = camera.position.distanceTo(g.position);
+    // his breathing, heard only close up (g sits inside the hall's group: measure from where he is in the world)
+    const d = camera.position.distanceTo(g.getWorldPosition(at));
+    if (w.started !== heard.current) {
+      heard.current = w.started;
+      const near = Math.max(0, 1 - d / SOUND_HEAR);
+      if (near > 0) for (const s of wolfSounds(w)) (s.sound === 'sigh' ? sighSound : yawnSound)(near, s.at);
+    }
     if (lying && t >= breath.current.next) {
       breath.current.next = t + period;
       const near = Math.max(0, 1 - d / BREATH_HEAR);
       if (near > 0) breathSound(near, w.action === 'sleep');
     }
   });
-
-  /** Sounds that start with an action: a sigh, a yawn. */
-  function onStart(w: WolfState, name: ClipName) {
-    const g = root.current;
-    if (!g) return;
-    const near = Math.max(0, 1 - camera.position.distanceTo(g.position) / SOUND_HEAR);
-    if (near <= 0) return;
-    if ((w.action === 'stir' && w.stir === 'sigh') || w.action === 'settle') sighSound(near);
-    if (w.action === 'glance') {
-      // the sigh comes as he looks away
-      sighSound(near, w.dur * 0.6);
-    }
-    if (name === 'Lie_Yawn') yawnSound(near, w.dur * 0.35);
-    if (name === 'Stretch_Yawn') yawnSound(near, w.dur * 0.4);
-  }
 
   return (
     <group ref={root}>

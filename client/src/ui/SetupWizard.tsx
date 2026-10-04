@@ -6,8 +6,8 @@ import { CEO_ID, type RepoView } from '../../../shared/types';
 import { BronzeGear, Icon } from './Icon';
 import { ProjectPicker } from './ProjectPicker';
 
-// First run: who you are, the company, your CEO and your first project. Every field has a default, so
-// "Skip" (or just pressing Next) gets a working office.
+// First run: who you are, your hold, your DungeonMaster and your first project. Every field has a default, so
+// "Skip" (or just pressing Next) gets a working dungeon.
 
 const COMPANIES = ['The Gilded Quill', 'Blackthorn Forge', 'Ravenhold Scriptorium', 'The Iron Lantern Guild', 'Wyrmstone Works', 'The Crooked Tower', 'Owl & Anvil', 'The Salt Road Company', 'Hollow Oak Abbey', 'The Merge & Mortar Guild'];
 const CEO_NAMES = [

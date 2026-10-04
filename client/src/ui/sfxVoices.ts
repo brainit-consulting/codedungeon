@@ -67,7 +67,7 @@ export function bell(partials: BellPartial[], freq: number, { at = 0, ring, peak
 
 export type Sound = 'message' | Cue;
 
-/** What each sound plays. Levels are set so none peaks above the office sound it replaced. */
+/** What each sound plays. Levels are set so none peaks above the beep it replaced. */
 export const SOUNDS: Record<Sound, () => Voice[]> = {
   // A DungeonMaster message: a small handbell shaken once, ting-ting.
   message: () => [...bell(HANDBELL, 1174.7, { ring: 0.7, peak: 0.05 }), ...bell(HANDBELL, 1174.7, { at: 0.16, ring: 0.6, peak: 0.03 })],

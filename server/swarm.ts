@@ -499,7 +499,7 @@ export class Swarm {
           alerted: q.alerted ?? false,
           mergeNote: null,
         })),
-        requests: loaded.requests ?? [],
+        requests: (loaded.requests ?? []).map((r) => ({ ...r, color: periodColor(r.color) })),
         ceo: { ...this.state.ceo, ...loaded.ceo },
         messages: loaded.messages ?? [],
         phoneReadAt: loaded.phoneReadAt ?? 0,

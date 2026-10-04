@@ -24,7 +24,7 @@ async function attempt<T>(fn: () => Promise<T>): Promise<T | undefined> {
 const clock = (t: number) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 /** A woodcut initial in ink on parchment, framed by a printer's double rule, with the bearer's tincture in a lozenge. */
-function Seal({ name, color, size = 34 }: { name: string; color: string; size?: number }) {
+export function Seal({ name, color, size = 34 }: { name: string; color: string; size?: number }) {
   return (
     <span className="seal-mark" aria-hidden="true" style={{ width: size, height: size, fontSize: size * 0.55, ['--tincture' as string]: color }}>
       {sealInitial(name)}

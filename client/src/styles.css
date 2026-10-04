@@ -729,24 +729,6 @@ input.inline:focus {
   white-space: nowrap;
   pointer-events: none;
 }
-.fade {
-  position: absolute;
-  inset: 0;
-  background: #15151f;
-  opacity: 0;
-  transition: opacity 0.6s ease;
-  pointer-events: none;
-  display: grid;
-  place-items: center;
-}
-.fade-in {
-  opacity: 1;
-}
-.fade-label {
-  color: #7cffb2;
-  font-size: 3rem;
-  font-weight: 700;
-}
 .toasts {
   position: absolute;
   bottom: 16px;
@@ -1045,18 +1027,6 @@ input.inline:focus {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-.avatar {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 3px solid var(--copper);
-  color: #fff;
-  font-weight: 700;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
-  flex: none;
 }
 .term-meta {
   display: flex;

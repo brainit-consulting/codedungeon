@@ -134,9 +134,9 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
             1024,
             317,
             [
-              { text: `⚒️ ${agents.length} in the guild`, size: 54, color: '#2d3142' },
-              { text: `⚙️ ${working} busy · 🔍 ${inQa} in QA · ✅ ${ready} to merge`, size: 46, color: '#2d3142', weight: 600 },
-              { text: `📋 ${repo.issues.length} open issue${repo.issues.length === 1 ? '' : 's'}${repo.autoAssign ? ' · ⚡ auto' : ''}`, size: 44, color: '#5c6078', weight: 500 },
+              { text: `⚒️ ${agents.length} in the guild`, size: 54 },
+              { text: `⚙️ ${working} busy · 🔍 ${inQa} in QA · ✅ ${ready} to merge`, size: 46, weight: 600 },
+              { text: `📋 ${repo.issues.length} open issue${repo.issues.length === 1 ? '' : 's'}${repo.autoAssign ? ' · ⚡ auto' : ''}`, size: 44, weight: 500 },
             ],
             '#fffdf5',
           )

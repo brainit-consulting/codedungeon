@@ -10,7 +10,7 @@ import { IssueForm } from './KanbanView';
 import { Icon, IconText } from './Icon';
 import { LiveTerminal } from './LiveTerminal';
 import { Panel } from './Overlays';
-import { Resume } from './Phone';
+import { Resume, Seal } from './Phone';
 import { ProjectPicker } from './ProjectPicker';
 import { StatusPill } from './TerminalView';
 
@@ -285,9 +285,7 @@ function CeoTab() {
       <div>
         <div className="card">
           <div className="row">
-            <span className="avatar" style={{ background: ceo.color }}>
-              {ceo.name[0]}
-            </span>
+            <Seal name={ceo.name} color={ceo.color} size={30} />
             <input
               className="inline"
               defaultValue={ceo.name}

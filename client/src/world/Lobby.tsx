@@ -234,8 +234,8 @@ function CeoBoard() {
           [
             { text: `🧠 ${ceo?.name ?? 'The DungeonMaster'}'s board`, size: 54 },
             { text: `Now: ${now}`, size: 36, weight: 600 },
-            { text: `Next: ${next}`, size: 32, weight: 500, color: 'rgba(255,255,255,0.8)' },
-            { text: pending ? `📄 ${pending} recruit${pending === 1 ? '' : 's'} waiting for you` : '📄 no recruits waiting', size: 34, weight: 600, color: pending ? '#ffe066' : '#ffffff' },
+            { text: `Next: ${next}`, size: 32, weight: 500 },
+            { text: pending ? `📄 ${pending} recruit${pending === 1 ? '' : 's'} waiting for you` : '📄 no recruits waiting', size: 34, weight: 600 },
           ],
           '#3c2a63',
         )
@@ -250,7 +250,7 @@ function CeoOffice() {
   const ceo = useStore((s) => s.agents[CEO_ID]);
   return (
     <group>
-      <Rug position={[(c.minX + c.maxX) / 2, 0.005, (c.minZ + c.maxZ) / 2]} size={[c.maxX - c.minX, c.maxZ - c.minZ]} color="#e6dcff" />
+      <Rug position={[(c.minX + c.maxX) / 2, 0.005, (c.minZ + c.maxZ) / 2]} size={[c.maxX - c.minX, c.maxZ - c.minZ]} color="#8a6a8e" />
       <GlassWall from={[c.minX, c.minZ]} to={[c.minX, c.maxZ]} />
       <GlassWall from={[c.minX, c.maxZ]} to={[c.doorMinX, c.maxZ]} />
       <GlassWall from={[c.doorMaxX, c.maxZ]} to={[c.maxX, c.maxZ]} />
@@ -373,7 +373,7 @@ export function Lobby() {
       <Shell torches={HALL_TORCHES} />
 
       {/* manager's office */}
-      <Rug position={[(m.minX + m.maxX) / 2, 0.005, (m.minZ + m.maxZ) / 2]} size={[m.maxX - m.minX, m.maxZ - m.minZ]} color="#cde7e1" />
+      <Rug position={[(m.minX + m.maxX) / 2, 0.005, (m.minZ + m.maxZ) / 2]} size={[m.maxX - m.minX, m.maxZ - m.minZ]} color="#7d8a5c" />
       <GlassWall from={[m.maxX, m.minZ]} to={[m.maxX, m.maxZ]} />
       <GlassWall from={[m.minX, m.maxZ]} to={[m.doorMinX, m.maxZ]} />
       <GlassWall from={[m.doorMaxX, m.maxZ]} to={[m.maxX, m.maxZ]} />

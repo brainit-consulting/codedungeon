@@ -17,8 +17,8 @@ import { pokeToy } from './toys/poke';
 
 let canvasEl: HTMLCanvasElement | null = null;
 
-// After an action, mouse presses are swallowed for a moment, so the second half of a double click
-// (or a click right after E) can't land on the panel's backdrop and close it, or confirm a hire.
+// After a click on the world (not E: see hushesAfterUse), mouse presses are swallowed for a moment, so the second
+// half of a double click can't land on the panel's backdrop and close it, or confirm a hire.
 const QUIET_MS = 400;
 let quietUntil = 0;
 const QUIET_EVENTS = ['mousedown', 'mouseup', 'click', 'dblclick'] as const;

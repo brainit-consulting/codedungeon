@@ -7,6 +7,7 @@ import { LiveTerminal } from './LiveTerminal';
 import { effectiveModel } from '../../../shared/models';
 import { Markdown } from './Markdown';
 import { MessageBox } from './MessageBox';
+import { Seal } from './Phone';
 import { closeOverlay, Panel } from './Overlays';
 import { toolVerb } from '../world/draw';
 
@@ -90,9 +91,7 @@ export function TerminalView({ agentId }: { agentId: string }) {
       accent={agent.color}
       title={
         <div className="term-title">
-          <span className="avatar" style={{ background: agent.color }}>
-            {agent.name[0]}
-          </span>
+          <Seal name={agent.name} color={agent.color} size={30} />
           <span>{agent.name}</span>
           <span className="chip" title={agent.brief || undefined}>
             <Icon name={isQa ? 'lens' : 'anvil'} /> {agent.title || (isQa ? 'QA tester' : 'Coder')}
