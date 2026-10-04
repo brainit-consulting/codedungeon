@@ -3,7 +3,7 @@ import { requestLook } from '../world/Player';
 import { CEO_ID } from '../../../shared/types';
 import { SetupWizard } from './SetupWizard';
 import { unlockAudio } from './sfx';
-import { Icon, IconText } from './Icon';
+import { BronzeGear, Icon, IconText } from './Icon';
 
 export function StartScreen() {
   const started = useStore((s) => s.started);
@@ -29,7 +29,7 @@ export function StartScreen() {
   return (
     <div className="start">
       <div className="start-card">
-        <div className="start-logo">✻</div>
+        <div className="start-logo"><BronzeGear /></div>
         <h1>{settings.companyName || 'Code Dungeon'}</h1>
         <p className="start-tag">{settings.managerName ? `Welcome back, ${settings.managerName}.` : 'A dungeon where a guild of AI coders works through your GitHub issues.'}</p>
         <ul className="start-list">

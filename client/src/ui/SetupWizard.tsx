@@ -3,15 +3,19 @@ import { api } from '../api';
 import { useStore } from '../store';
 import { requestLook } from '../world/Player';
 import { CEO_ID, type RepoView } from '../../../shared/types';
-import { Icon } from './Icon';
+import { BronzeGear, Icon } from './Icon';
 import { ProjectPicker } from './ProjectPicker';
 
 // First run: who you are, the company, your CEO and your first project. Every field has a default, so
 // "Skip" (or just pressing Next) gets a working office.
 
-const COMPANIES = ['Pixel & Pine', 'Byte Bakery', 'Night Owl Software', 'Tiny Rocket Co.', 'Moonbeam Works', 'Happy Path Inc.', 'Merge Conflict Ltd.', 'Quokka Labs', 'Blue Kettle Studio', 'Paper Plane Software'];
-const CEO_NAMES = ['Mortimer', 'Morgana', 'Bertilak', 'Ysolde', 'Gawain', 'Brangwen', 'Percival', 'Elaine', 'Tristram', 'Vivienne', 'Lancelin', 'Guinevere'];
-const TIES = ['#e63946', '#3a86ff', '#06d6a0', '#ffbe0b', '#9b5de5', '#fb5607'];
+const COMPANIES = ['The Gilded Quill', 'Blackthorn Forge', 'Ravenhold Scriptorium', 'The Iron Lantern Guild', 'Wyrmstone Works', 'The Crooked Tower', 'Owl & Anvil', 'The Salt Road Company', 'Hollow Oak Abbey', 'The Merge & Mortar Guild'];
+const CEO_NAMES = [
+  'Mortimer', 'Morgana', 'Bertilak', 'Ysolde', 'Gawain', 'Brangwen', 'Percival', 'Elaine', 'Tristram', 'Vivienne', 'Taliesin', 'Melisande',
+  'Ermengarde', 'Bohemond', 'Radegund', 'Hrothgar', 'Theodora', 'Ottokar', 'Morgause', 'Aldous',
+];
+/** Heraldic tinctures for the DungeonMaster's robe: gules, azure, vert, or, purpure, tenné. */
+const ROBES = ['#8e2a22', '#2f4d7a', '#3d6332', '#b8862b', '#5e3a63', '#a5512a'];
 const STEPS = ['Welcome', 'You', 'Your DungeonMaster', 'First project', 'Ready'];
 
 const pickOther = <T,>(list: T[], current: T) => {
@@ -19,20 +23,32 @@ const pickOther = <T,>(list: T[], current: T) => {
   return rest[Math.floor(Math.random() * rest.length)];
 };
 
-/** A little portrait of the CEO in their suit, drawn to match the 3D office. */
+/** The DungeonMaster as a woodcut: hooded robe in their tincture, a staff with an ember, a beard or long hair. */
 function CeoPortrait({ color, look }: { color: string; look: 'feminine' | 'masculine' }) {
+  const ink = '#2a1d14';
+  const line = { stroke: ink, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   return (
     <svg viewBox="0 0 120 120" className="ceo-portrait" aria-hidden="true">
-      <circle cx="60" cy="60" r="58" fill="#e6dcff" stroke="#1f1d2b" strokeWidth="3" />
-      {look === 'feminine' && <ellipse cx="60" cy="58" rx="27" ry="32" fill="#2b2118" stroke="#1f1d2b" strokeWidth="2.5" />}
-      <path d="M22 118 C24 88 40 80 60 80 C80 80 96 88 98 118 Z" fill="#2b2d42" stroke="#1f1d2b" strokeWidth="3" />
-      <path d="M50 81 L60 96 L70 81 Z" fill="#f8f9fa" />
-      <path d="M57 84 L63 84 L65 108 L60 113 L55 108 Z" fill={color} stroke="#1f1d2b" strokeWidth="1.5" />
-      <circle cx="60" cy="52" r="22" fill="#f1c27d" stroke="#1f1d2b" strokeWidth="3" />
-      <path d="M38 50 C38 30 82 30 82 50 C74 40 46 40 38 50 Z" fill="#2b2118" stroke="#1f1d2b" strokeWidth="2" />
-      <circle cx="52" cy="54" r="2.6" fill="#1f1d2b" />
-      <circle cx="68" cy="54" r="2.6" fill="#1f1d2b" />
-      <path d="M53 62 Q60 68 67 62" fill="none" stroke="#1f1d2b" strokeWidth="2.4" strokeLinecap="round" />
+      <circle cx="60" cy="60" r="57" fill="#ecdfc2" {...line} strokeWidth="3" />
+      <circle cx="60" cy="60" r="51" fill="none" {...line} strokeWidth="0.8" strokeDasharray="2 3" />
+      <path d="M97 112V34" {...line} strokeWidth="4" />
+      <path d="M97 13C103 20 102 26 97 29C92 26 91 20 97 13Z" fill="#a0441c" {...line} strokeWidth="1.6" />
+      <path d="M20 117C21 92 36 82 60 82C84 82 99 92 100 117Z" fill={color} {...line} strokeWidth="3" />
+      <path d="M60 84C51 95 49 106 50 117M60 84C69 95 71 106 70 117" fill="none" {...line} strokeWidth="1.4" />
+      <path d="M30 104L33 110M36 98L39 104M84 98L81 104M90 104L87 110" {...line} strokeWidth="1" />
+      <path d="M27 92C23 54 37 22 60 18C83 22 97 54 93 92C83 82 37 82 27 92Z" fill={color} {...line} strokeWidth="3" />
+      <path d="M60 18C83 22 97 54 93 92C88 87 82 85 76 84C84 60 76 32 60 18Z" fill={ink} opacity="0.28" />
+      <ellipse cx="60" cy="56" rx="20" ry="25" fill={ink} />
+      <ellipse cx="60" cy="59" rx="14" ry="18" fill="#e3bd8e" />
+      {look === 'feminine' ? (
+        <path d="M47 46C44 62 45 76 49 86M73 46C76 62 75 76 71 86" fill="none" stroke="#4a3322" strokeWidth="5" strokeLinecap="round" />
+      ) : (
+        <path d="M46 61C46 80 52 92 60 97C68 92 74 80 74 61C69 69 51 69 46 61Z" fill="#d8d0bf" {...line} strokeWidth="1.8" />
+      )}
+      <path d="M50 52L56 51M64 51L70 52" {...line} strokeWidth="2.4" />
+      <path d="M52 56H55M65 56H68" {...line} strokeWidth="2" />
+      <path d="M56 70Q60 72 64 70" fill="none" {...line} strokeWidth="1.8" />
+      <circle cx="60" cy="88" r="4.2" fill="#a0441c" {...line} strokeWidth="1.6" />
     </svg>
   );
 }
@@ -48,9 +64,10 @@ export function SetupWizard() {
   const [step, setStep] = useState(0);
   const [managerName, setManagerName] = useState('');
   const [companyName, setCompanyName] = useState(() => COMPANIES[Math.floor(Math.random() * COMPANIES.length)]);
-  const [ceoName, setCeoName] = useState(ceoAgent?.name ?? 'Mortimer');
+  // a name or colour saved before the dungeon (an office-era name like Morgan, a tie colour) gives way to a period one
+  const [ceoName, setCeoName] = useState(() => (ceoAgent && CEO_NAMES.includes(ceoAgent.name) ? ceoAgent.name : CEO_NAMES[Math.floor(Math.random() * CEO_NAMES.length)]));
   const [ceoLook, setCeoLook] = useState<'feminine' | 'masculine'>(ceoAgent?.look ?? 'masculine');
-  const [ceoColor, setCeoColor] = useState(ceoAgent?.color ?? TIES[0]);
+  const [ceoColor, setCeoColor] = useState(() => (ceoAgent && ROBES.includes(ceoAgent.color) ? ceoAgent.color : ROBES[0]));
   const [hiring, setHiring] = useState<'approve' | 'auto'>('approve');
   const [project, setProject] = useState<RepoView | null>(null);
   const [busy, setBusy] = useState(false);
@@ -96,7 +113,7 @@ export function SetupWizard() {
 
         {step === 0 && (
           <>
-            <div className="start-logo">✻</div>
+            <div className="start-logo"><BronzeGear /></div>
             <h1>Code Dungeon</h1>
             <p className="start-tag">Your own software dungeon, worked by a guild of AI coders.</p>
             <ul className="start-list">
@@ -162,8 +179,8 @@ export function SetupWizard() {
                     <input type="radio" checked={ceoLook === 'masculine'} onChange={() => setCeoLook('masculine')} /> He
                   </label>
                   <span className="spacer" />
-                  {TIES.map((c) => (
-                    <button key={c} type="button" className={`swatch ${c === ceoColor ? 'swatch-on' : ''}`} style={{ background: c }} onClick={() => setCeoColor(c)} title="Their colour" />
+                  {ROBES.map((c) => (
+                    <button key={c} type="button" className={`swatch ${c === ceoColor ? 'swatch-on' : ''}`} style={{ background: c }} onClick={() => setCeoColor(c)} title="Their robe" />
                   ))}
                 </div>
                 <div className="muted small">Claude Opus 5.5 at xhigh effort: the thinking-hardest soul in the dungeon.</div>

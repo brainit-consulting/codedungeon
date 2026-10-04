@@ -806,8 +806,18 @@ input.inline:focus {
   font-size: 4rem;
   line-height: 1;
   color: var(--accent);
-  animation: spin 12s linear infinite;
+  animation: spin 40s linear infinite;
   display: inline-block;
+}
+.bronze-gear {
+  display: block;
+  width: 1.1em;
+  height: 1.1em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .start-logo {
+    animation: none;
+  }
 }
 @keyframes spin {
   to {
