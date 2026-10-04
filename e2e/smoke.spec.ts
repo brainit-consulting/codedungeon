@@ -112,7 +112,7 @@ test('H opens help and Esc closes it', async ({ page }) => {
 test('the scroll opens and closes with P, its button and Esc', async ({ page }) => {
   await enterOffice(page);
   const hires = page.getByRole('button', { name: /Recruits/ }); // one of the scroll's tabs
-  const company = page.getByRole('button', { name: /Company/ });
+  const company = page.getByRole('button', { name: /The Realm/ });
   await page.keyboard.press('p');
   await expect(hires).toBeVisible();
   await expect(phoneButton(page)).toBeHidden();

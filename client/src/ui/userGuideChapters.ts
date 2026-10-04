@@ -178,7 +178,7 @@ export const CHAPTERS: GuideChapter[] = [
       list(
         '**Chat**: write to the DungeonMaster and read what he and the dungeon send you (merges, refused merges, usage warnings).',
         '**Recruits**: the people waiting for your yes.',
-        '**Company**: every project at a glance.',
+        '**The Realm**: every project at a glance.',
       ),
       p('The red badge on the scroll counts messages and decisions waiting for you.'),
       h('Sound'),
