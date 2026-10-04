@@ -23,7 +23,7 @@ describe('gaugeFace', () => {
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
     expect(a.dials.map((d) => d.pct)).toEqual([40, 50, 25]);
     expect(a.dials[1].detail).toBe('8.00 GB of 16.0 GB');
-    expect(a.sessions).toBe('1 session running · office 100 MB');
+    expect(a.sessions).toBe('1 session running · dungeon 100 MB');
   });
 
   it('shows empty dials before the first reading', () => {

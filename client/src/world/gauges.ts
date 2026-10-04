@@ -118,7 +118,7 @@ export function gaugeFace(v: SystemView | null, usage: UsageView, failed: boolea
       { label: 'Disk', pct: round(v?.disk ? percentOf(v.disk.total - v.disk.free, v.disk.total) : null), detail: v?.disk ? `${formatBytes(v.disk.free)} free` : '' },
     ],
     usage: usageLine(usage),
-    sessions: v ? `${v.sessions.running} session${v.sessions.running === 1 ? '' : 's'} running · office ${formatBytes(v.process.rss)}` : '',
+    sessions: v ? `${v.sessions.running} session${v.sessions.running === 1 ? '' : 's'} running · dungeon ${formatBytes(v.process.rss)}` : '',
     stale: failed,
   };
 }

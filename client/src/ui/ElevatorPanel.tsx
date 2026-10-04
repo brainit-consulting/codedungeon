@@ -19,7 +19,7 @@ export function ElevatorPanel() {
 
   const floors = [...repos].sort((a, b) => b.floor - a.floor);
   return (
-    <Panel title="🗺️ Directory">
+    <Panel title="🗺️ Roll of Chambers">
       <div className="elevator">
         {floors.map((r) => {
           const team = Object.values(agents).filter((a) => a.repoId === r.id);

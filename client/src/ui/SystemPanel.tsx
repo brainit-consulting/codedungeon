@@ -53,7 +53,7 @@ export function SystemPanel() {
   if (!v) {
     return (
       <Panel title="The Gauges" className="gauges-panel">
-        <p className="muted">{failed ? 'The office did not answer. Trying again every 5 seconds.' : 'Taking the first reading…'}</p>
+        <p className="muted">{failed ? 'The dungeon did not answer. Trying again every 5 seconds.' : 'Taking the first reading…'}</p>
       </Panel>
     );
   }
@@ -125,19 +125,19 @@ export function SystemPanel() {
         <dd className={usage.state === 'normal' ? 'good' : 'high'}>{usageText}</dd>
         <dt>Sessions</dt>
         <dd>
-          {s.running} running{s.limit > 0 ? ` of ${s.limit} allowed` : ''} · {s.agents} hired
+          {s.running} running{s.limit > 0 ? ` of ${s.limit} allowed` : ''} · {s.agents} in the guild
         </dd>
         <dt>Agent CLIs</dt>
         <dd>
           {s.clisWorking} working · {s.clisWaiting} waiting at their prompt
         </dd>
-        <dt>Office process</dt>
+        <dt>Dungeon process</dt>
         <dd>
           {formatBytes(v.process.rss)} in memory · {formatBytes(v.process.heapUsed)} JavaScript heap
         </dd>
         <dt>Uptime</dt>
         <dd>
-          computer {formatDuration(v.uptime.system)} · office {formatDuration(v.uptime.office)}
+          computer {formatDuration(v.uptime.system)} · dungeon {formatDuration(v.uptime.office)}
         </dd>
       </dl>
     </Panel>

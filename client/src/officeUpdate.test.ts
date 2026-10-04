@@ -23,9 +23,9 @@ describe('officeUpdateChip', () => {
     expect(officeUpdateChip(u({}))).toBeNull();
     expect(officeUpdateChip(u({ state: 'available', behind: 2 }))).toBeNull();
     expect(officeUpdateChip(u({ state: 'failed', detail: 'x' }))).toBeNull();
-    expect(officeUpdateChip(u({ state: 'draining', running: 2 }))).toBe('⟳ Updating the office after 2 sessions finish');
-    expect(officeUpdateChip(u({ state: 'waiting', running: 1 }))).toBe('⟳ Updating the office after 1 session finishes');
-    expect(officeUpdateChip(u({ state: 'updating' }))).toBe('⟳ Updating the office…');
+    expect(officeUpdateChip(u({ state: 'draining', running: 2 }))).toBe('⟳ Updating the dungeon after 2 sessions finish');
+    expect(officeUpdateChip(u({ state: 'waiting', running: 1 }))).toBe('⟳ Updating the dungeon after 1 session finishes');
+    expect(officeUpdateChip(u({ state: 'updating' }))).toBe('⟳ Updating the dungeon…');
   });
 });
 

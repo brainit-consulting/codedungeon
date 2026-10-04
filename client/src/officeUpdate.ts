@@ -26,9 +26,9 @@ export function officeUpdateText(u: OfficeUpdateView): string {
 /** The HUD chip while an update is on its way; null when there's nothing to show. */
 export function officeUpdateChip(u: OfficeUpdateView | undefined): string | null {
   if (!u) return null;
-  if (u.state === 'updating') return '⟳ Updating the office…';
+  if (u.state === 'updating') return '⟳ Updating the dungeon…';
   if (u.state !== 'waiting' && u.state !== 'draining') return null;
-  return u.running > 0 ? `⟳ Updating the office after ${plural(u.running, 'session')} finish${u.running === 1 ? 'es' : ''}` : '⟳ Updating the office shortly';
+  return u.running > 0 ? `⟳ Updating the dungeon after ${plural(u.running, 'session')} finish${u.running === 1 ? 'es' : ''}` : '⟳ Updating the dungeon shortly';
 }
 
 /** When a drain gives up on the sessions still running, or null when it isn't draining. */

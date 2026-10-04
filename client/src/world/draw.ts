@@ -643,7 +643,7 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
   } else if (p.status === 'unconfigured') {
     centred('⚙️', midY - 90, 110, '#ffffff', 400);
     centred('No run command yet.', midY + 40, 66, '#ffffff');
-    centred("Set one in the manager's console.", midY + 120, 44, '#b8b8cc', 600);
+    centred("Set one in the Overlord's ledger.", midY + 120, 44, '#b8b8cc', 600);
     footer('Press E to open the app');
   } else if (p.status === 'error') {
     const firstLine = (p.error ?? '').split(/\r?\n/).find((l) => l.trim())?.trim() || 'The app stopped unexpectedly.';

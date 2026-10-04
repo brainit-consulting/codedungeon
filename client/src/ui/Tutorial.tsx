@@ -46,7 +46,7 @@ const STEPS: Step[] = [
     title: 'Your scroll',
     body: (c) => (
       <>
-        <Icon name="speech" /> {c.ceo} writes to you here, and you can write back. <Icon name="letter" /> <b>Recruits</b> holds the people waiting for your yes. <Icon name="board" /> <b>Company</b> is every project at a glance. Put it away with <kbd>P</kbd>.
+        <Icon name="speech" /> {c.ceo} writes to you here, and you can write back. <Icon name="letter" /> <b>Recruits</b> holds the people waiting for your yes. <Icon name="board" /> <b>The Realm</b> is every project at a glance. Put it away with <kbd>P</kbd>.
       </>
     ),
     done: (s) => s.overlay?.kind !== 'phone',
@@ -189,7 +189,7 @@ export function Tutorial() {
       <div className="tour-title">
         {cheer && <Icon name="check" />} {s.title}
       </div>
-      <div className="tour-body">{s.body({ ceo, company: company || 'the company', repo })}</div>
+      <div className="tour-body">{s.body({ ceo, company: company || 'the hold', repo })}</div>
       <div className="tour-nav">
         {step > 0 && (
           <button className="btn btn-small btn-ghost" onClick={() => go(step - 1)}>

@@ -178,7 +178,7 @@ export const CHAPTERS: GuideChapter[] = [
       list(
         '**Chat**: write to the DungeonMaster and read what he and the dungeon send you (merges, refused merges, usage warnings).',
         '**Recruits**: the people waiting for your yes.',
-        '**Company**: every project at a glance.',
+        '**The Realm**: every project at a glance.',
       ),
       p('The red badge on the scroll counts messages and decisions waiting for you.'),
       h('Sound'),
@@ -222,7 +222,7 @@ export const CHAPTERS: GuideChapter[] = [
         '**Recruiting**: approve every recruit, or auto-approve up to the **guild cap per chamber**.',
         '**Dungeon review every** so many minutes: how often the DungeonMaster looks over everything (0 turns it off).',
         '**How coders run**: real terminals (recommended) or the Agent SDK.',
-        'Your name, the company name, the folder new projects are created in, and **Replay the tour**.',
+        'Your name, the name of your hold, the folder new projects are created in, and **Replay the tour**.',
       ),
       p(
         'When an update to the dungeon itself is ready, a row at the top of the ledger offers **Update now** or **Later**. Updating lets running sessions finish first, then restarts the dungeon.',
@@ -243,7 +243,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('The black cat'),
       p(
-        'A black cat lives in the dungeon and thinks she runs it. She sleeps by the hearth, sits on the bar, keeps working coders company and takes the DungeonMaster\'s desk when he isn\'t looking.',
+        'A black cat lives in the dungeon and thinks she runs it. She sleeps by the hearth, sits on the bar, keeps working coders company and takes the DungeonMaster\'s table when he isn\'t looking.',
       ),
       p(
         'Press [[C]] to call her. She will ignore you for a moment, then follow you about. She never blocks your way or a click, and a shut door doesn\'t stop her: she shoulders it open a crack and slips through.',

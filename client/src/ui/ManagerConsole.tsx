@@ -743,7 +743,7 @@ function SettingsTab() {
         <p className="muted small">A review is skipped when nothing changed since the last one. The DungeonMaster's own model and effort are on the DungeonMaster tab.</p>
       </div>
       <div className="card">
-        <h3>⌨️ How coders run</h3>
+        <h3><Icon name="hammer" /> How coders run</h3>
         <label className="toggle block">
           <input type="radio" checked={settings.runtime === 'terminal'} onChange={() => set({ runtime: 'terminal' })} />
           <span>
@@ -760,13 +760,13 @@ function SettingsTab() {
           Coders work like your own coding agents in a terminal, with your skills, MCP servers and settings, and don't stop to ask. The dungeon's workflow (branches, pull requests, QA reporting
           back) is in their instructions.
         </p>
-        <h3><Icon name="castle" /> Company</h3>
+        <h3><Icon name="castle" /> Your hold</h3>
         <label className="field">
           <span>Your name</span>
           <input defaultValue={settings.managerName} placeholder={user ?? 'Overlord'} onBlur={(e) => e.target.value !== settings.managerName && set({ managerName: e.target.value })} />
         </label>
         <label className="field">
-          <span>Company name</span>
+          <span>Name of your hold</span>
           <input defaultValue={settings.companyName} placeholder="Code Dungeon" onBlur={(e) => e.target.value !== settings.companyName && set({ companyName: e.target.value })} />
         </label>
         <label className="field">

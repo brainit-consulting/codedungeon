@@ -159,8 +159,8 @@ function VacantMonitor({ accent, qa }: { accent: string; qa: boolean }) {
       ctx.fillRect(0, 0, 640, 384);
       drawSign(ctx, 640, 384, [
         { text: qa ? '🔍' : '🪑', size: 70 },
-        { text: qa ? 'QA STATION' : 'VACANT', size: 70, color: '#ffd6a5' },
-        { text: qa ? 'press E or click to hire a tester' : 'press E or click to hire an agent', size: 36, color: '#a9adc6', weight: 500 },
+        { text: qa ? 'ASSAY BENCH' : 'EMPTY BENCH', size: 70, color: '#ffd6a5' },
+        { text: qa ? 'press E or click to recruit a tester' : 'press E or click to recruit a coder', size: 36, color: '#a9adc6', weight: 500 },
       ], 'rgba(0,0,0,0)');
     },
     [qa],

@@ -123,7 +123,7 @@ export function SetupWizard() {
             </ul>
             {!ghReady && ghError && <div className="term-error small"><Icon name="warning" /> {ghError}</div>}
             <button className="btn btn-big" onClick={() => setStep(1)}>
-              Let's set up your company
+              Let's raise your hold
             </button>
             <div className="start-meta">
               <button className="linkish" onClick={finish} disabled={busy}>
@@ -138,13 +138,13 @@ export function SetupWizard() {
           <>
             <div className="wizard-icon"><Icon name="crown" /></div>
             <h2>Who's the Overlord?</h2>
-            <p className="start-tag">That's you. You run the company; the coders do the typing.</p>
+            <p className="start-tag">That's you. You rule the hold; the guild does the typing.</p>
             <label className="field">
               <span>Your name</span>
               <input value={managerName} onChange={(e) => setManagerName(e.target.value)} placeholder={user ?? 'Overlord'} autoFocus />
             </label>
             <label className="field">
-              <span>Company name</span>
+              <span>Name of your hold</span>
               <div className="row" style={{ margin: 0 }}>
                 <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder={COMPANIES[0]} />
                 <button type="button" className="btn btn-small" title="Suggest another name" onClick={() => setCompanyName(pickOther(COMPANIES, companyName))}>
@@ -229,7 +229,7 @@ export function SetupWizard() {
         {step === 4 && (
           <>
             <div className="wizard-icon"><Icon name="castle" /></div>
-            <h2>{company} is open for business</h2>
+            <h2>The gates of {company} are open</h2>
             <ul className="start-list">
               <li>
                 <Icon name="crown" /> {ceo}{project ? ` is studying ${project.fullName.split('/')[1]}` : ' is waiting for your first project'}.{' '}

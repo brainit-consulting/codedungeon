@@ -131,7 +131,7 @@ function Directory() {
       ctx.fillStyle = '#ffd6a5';
       ctx.font = `700 46px ${SANS}`;
       ctx.textBaseline = 'middle';
-      ctx.fillText('Directory', 36, 52);
+      ctx.fillText('Roll of Chambers', 36, 52);
       const floors = [...stats.floors].sort((a, b) => b.floor - a.floor).slice(0, 7);
       floors.forEach((f, i) => {
         const y = 118 + i * 58;
@@ -352,7 +352,7 @@ function WaitingRoom() {
         size={[3.6, 0.62]}
         px={[864, 150]}
         draw={(ctx) =>
-          drawSign(ctx, 864, 150, [{ text: n ? `🪑 Waiting room · ${n} recruit${n === 1 ? '' : 's'}${n > WAITING.seats.length ? ` (${n - WAITING.seats.length} more outside)` : ''}` : '🪑 Waiting room', size: 50 }], '#06a77d')
+          drawSign(ctx, 864, 150, [{ text: n ? `🪑 Antechamber · ${n} recruit${n === 1 ? '' : 's'}${n > WAITING.seats.length ? ` (${n - WAITING.seats.length} more outside)` : ''}` : '🪑 Antechamber', size: 50 }], '#06a77d')
         }
         deps={[n]}
       />
