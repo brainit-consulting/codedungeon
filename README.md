@@ -15,7 +15,8 @@ slate on every workbench is that coder's live terminal.
 | --- | --- |
 | [**Introduction to Code Dungeon**](https://youtu.be/RzP2SoLmC6Q) (2 min 23 s): what it is and how the guild works. | [**Getting started**](https://youtu.be/Mn74ZSlh78U) (2 min 35 s): installing it and your first project. |
 
-The projects in them come from demo mode and are made up.
+Both are in the [Code Dungeon playlist](https://www.youtube.com/playlist?list=PLUwGnHgif6To). The projects in them
+come from demo mode and are made up.
 
 Code Dungeon grew out of Leon van Zyl's [cubefarm](https://github.com/leonvanzyl/cubefarm). It is free and open
 source under the [MIT licence](LICENSE).
