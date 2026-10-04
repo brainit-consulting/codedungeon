@@ -1,13 +1,13 @@
 // The office's parent process, for a checkout of this repo (`npm run dev`, `npm run demo`, `npm start`).
 //
 //   --dev    the server from source (tsx) plus Vite, restarting the server when server/ or shared/ code changes
-//   (none)   the built office: bin/cubefarm.js (checks, then dist-server/ serving dist/), no Vite, no watching
+//   (none)   the built office: bin/codedungeon.js (checks, then dist-server/ serving dist/), no Vite, no watching
 //   --demo   passed to the server
 //
 // It also updates the office. When the server has drained and sends `office:update` (or you type `u` + Enter here),
 // it stops everything, fast-forwards this folder to origin's default branch, runs npm install if the dependencies
 // changed and, in start mode, npm run build, then starts the office again. A failed step rolls back to the old
-// commit. The result goes to <SWARM_HOME>/last-update.json for the server to report. `npx cubefarm` has no launcher:
+// commit. The result goes to <SWARM_HOME>/last-update.json for the server to report. `node bin/codedungeon.js` on its own has no launcher:
 // installed from npm, the office only reports that an update is ready.
 import { execFile, spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -101,7 +101,7 @@ function startServer() {
   const demo = opts.demo ? ['--demo'] : [];
   const args = opts.dev
     ? ['--import', 'tsx', path.join('server', 'index.ts'), ...demo]
-    : [path.join('bin', 'cubefarm.js'), ...demo, ...(opts.open && firstStart ? [] : ['--no-open'])];
+    : [path.join('bin', 'codedungeon.js'), ...demo, ...(opts.open && firstStart ? [] : ['--no-open'])];
   const child = spawnChild('server', args, { ipc: true, env: { ...process.env, SWARM_LAUNCHER: '1' } });
   child.proc.on('message', (msg) => {
     if (msg?.type === 'office:update') void update(`the office asked, from ${short(String(msg.from ?? ''))}`);

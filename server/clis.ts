@@ -70,7 +70,7 @@ export function unwrapCmdShim(shimPath: string, text: string): { file: string; a
 /**
  * The Claude Code the Agent SDK ships as a per-platform package (the one `cubefarm login` signs in with), so the
  * terminal runtime works without Claude Code installed, on the version the office was tested with. Same lookup as
- * the SDK's own and bin/cubefarm.js.
+ * the SDK's own and bin/codedungeon.js.
  */
 let bundled: string | null | undefined;
 

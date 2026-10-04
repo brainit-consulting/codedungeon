@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// `npx cubefarm`: checks this machine is ready, starts the office and opens it in the browser.
+// The `codedungeon` command (npm start, npm run login, npm run doctor): checks this machine is ready, starts the
+// dungeon and opens it in the browser.
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
@@ -14,21 +15,22 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 
 const HELP = `
-  cubefarm ${pkg.version}: a cartoon 3D office where a team of AI coding agents works through your GitHub issues.
+  Code Dungeon ${pkg.version}: a medieval dungeon where a guild of AI coders works through your GitHub issues.
 
-  Usage
-    npx cubefarm            start the office and open it in your browser
-    npx cubefarm login      sign in to Claude Code, the built-in coding agent
-    npx cubefarm doctor     check that this machine is ready
+  Usage (from the codedungeon folder)
+    npm start               start the dungeon and open it in your browser
+    npm run login           sign in to Claude Code, the built-in coding agent
+    npm run doctor          check that this machine is ready
+    node bin/codedungeon.js [login | doctor] [options]   the same, with options
 
   Options
-    --port <n>   port for the office (default 4417)
+    --port <n>   port for the dungeon (default 4417)
     --demo       fake GitHub and fake agents: look around without spending any usage
     --no-open    don't open the browser
     -v, --version
     -h, --help
 
-  The office keeps its state and workspaces in codedungeon-home next to this folder (set SWARM_HOME to use another folder).
+  The dungeon keeps its state and workspaces in codedungeon-home next to this folder (set SWARM_HOME to use another folder).
 `;
 
 const color = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -41,7 +43,7 @@ const fail = (msg) => {
   process.exit(1);
 };
 
-if (Number(process.versions.node.split('.')[0]) < MIN_NODE) fail(`cubefarm needs Node.js ${MIN_NODE} or newer (this is ${process.version}). Get it from https://nodejs.org`);
+if (Number(process.versions.node.split('.')[0]) < MIN_NODE) fail(`Code Dungeon needs Node.js ${MIN_NODE} or newer (this is ${process.version}). Get it from https://nodejs.org`);
 
 let args;
 try {
@@ -56,7 +58,7 @@ try {
     },
   });
 } catch (err) {
-  fail(`${err.message}\n    Run npx cubefarm --help for the options.`);
+  fail(`${err.message}\n    Run node bin/codedungeon.js --help for the options.`);
 }
 const { values, positionals } = args;
 const command = positionals[0] ?? 'start';
@@ -122,7 +124,7 @@ function checks() {
 
   const claude = claudeBinary();
   if (!claude) {
-    out.push({ name: 'Claude Code', ok: false, fix: `reinstall cubefarm: Claude Code for ${process.platform}-${process.arch} is missing` });
+    out.push({ name: 'Claude Code', ok: false, fix: `run npm install again: Claude Code for ${process.platform}-${process.arch} is missing` });
   } else {
     let status = null;
     try {
@@ -131,7 +133,7 @@ function checks() {
       // unreadable: treated as signed out
     }
     const ok = status?.loggedIn === true;
-    out.push({ name: 'Claude', ok, detail: ok ? `signed in${status.subscriptionType ? ` (${status.subscriptionType})` : ''}` : 'not signed in', fix: 'run: npx cubefarm login' });
+    out.push({ name: 'Claude', ok, detail: ok ? `signed in${status.subscriptionType ? ` (${status.subscriptionType})` : ''}` : 'not signed in', fix: 'run: npm run login' });
   }
 
   // Agents test in a browser through Playwright, which drives Google Chrome by default.
@@ -192,46 +194,26 @@ function openBrowser(url) {
   }
 }
 
-const newer = (a, b) => {
-  const [x, y] = [a, b].map((v) => v.split('-')[0].split('.').map(Number));
-  for (let i = 0; i < 3; i++) if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) > (y[i] ?? 0);
-  return false;
-};
-
-async function checkForUpdate() {
-  // A checkout's `npm start` runs this under scripts/office.mjs, which updates the office from its origin instead.
-  if (process.env.CI || process.env.SWARM_LAUNCHER === '1') return;
-  try {
-    const res = await fetch(`https://registry.npmjs.org/${pkg.name}/latest`, { signal: AbortSignal.timeout(4000) });
-    const { version } = await res.json();
-    if (typeof version === 'string' && newer(version, pkg.version)) {
-      console.log(`\n  cubefarm ${version} is out (this is ${pkg.version}). Start it with ${green('npx cubefarm@latest')} to update.\n`);
-    }
-  } catch {
-    // offline, or the registry is slow: try again next time
-  }
-}
-
 // ---------- commands ----------
 
 if (command === 'doctor') {
-  console.log(`\n  cubefarm ${pkg.version}\n`);
+  console.log(`\n  Code Dungeon ${pkg.version}\n`);
   const results = checks();
   results.forEach(printCheck);
   const ok = results.every((c) => c.ok);
-  console.log(ok ? `\n  All set. Start the office with: npx cubefarm\n` : '');
+  console.log(ok ? `\n  All set. Start the dungeon with: npm start (or npm run dev)\n` : '');
   process.exit(ok ? 0 : 1);
 }
 
 if (command === 'login') {
   const claude = claudeBinary();
-  if (!claude) fail(`Claude Code for ${process.platform}-${process.arch} is missing. Reinstall cubefarm.`);
+  if (!claude) fail(`Claude Code for ${process.platform}-${process.arch} is missing. Run npm install in the codedungeon folder again.`);
   console.log('\n  Signing in to Claude. Your agents use this login and your subscription.\n');
   const res = spawnSync(claude, ['auth', 'login'], { stdio: 'inherit', env: claudeEnv() });
   process.exit(res.status ?? 1);
 }
 
-if (command !== 'start') fail(`Unknown command "${command}". Run npx cubefarm --help for the options.`);
+if (command !== 'start') fail(`Unknown command "${command}". Run node bin/codedungeon.js --help for the options.`);
 
 const port = Number(values.port ?? process.env.SWARM_PORT ?? 4417);
 if (!Number.isInteger(port) || port < 0 || port > 65535) fail(`"${values.port ?? process.env.SWARM_PORT}" isn't a port number.`);
@@ -240,8 +222,8 @@ const demo = values.demo || process.env.SWARM_DEMO === '1' || process.env.SWARM_
 
 // A second office on the same state would resume every agent's session a second time.
 if (port !== 0 && (await portOpen(port))) {
-  if (!(await isOffice(`http://127.0.0.1:${port}`))) fail(`Something else is using port ${port}. Start cubefarm on another one: npx cubefarm --port 4400`);
-  console.log(`\n  cubefarm is already running: ${url}\n`);
+  if (!(await isOffice(`http://127.0.0.1:${port}`))) fail(`Something else is using port ${port}. Start the dungeon on another one: node bin/codedungeon.js --port 4400`);
+  console.log(`\n  Code Dungeon is already running: ${url}\n`);
   if (!values['no-open']) openBrowser(url);
   process.exit(0);
 }
@@ -251,8 +233,8 @@ if (!demo) {
   if (problems.length) {
     console.log('');
     problems.forEach(printCheck);
-    if (problems.some((c) => c.required)) fail('cubefarm can’t run without these.');
-    console.log(dim('\n  Starting anyway. Fix the above, and check again with: npx cubefarm doctor'));
+    if (problems.some((c) => c.required)) fail('Code Dungeon can’t run without these.');
+    console.log(dim('\n  Starting anyway. Fix the above, and check again with: npm run doctor'));
   }
 }
 
@@ -269,4 +251,3 @@ if (!values['no-open'] && port !== 0) {
   for (let i = 0; i < 100 && !(await portOpen(port)); i++) await new Promise((r) => setTimeout(r, 200));
   openBrowser(url);
 }
-void checkForUpdate();

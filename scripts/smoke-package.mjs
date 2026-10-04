@@ -23,10 +23,10 @@ try {
   sh('npm init -y', tmp);
   sh(`npm install --no-audit --no-fund "${tarball}"`, tmp);
   fs.rmSync(tarball);
-  const version = sh('npx --no-install cubefarm --version', tmp);
-  console.log(`cubefarm --version: ${version}`);
+  const version = sh('npx --no-install codedungeon --version', tmp);
+  console.log(`codedungeon --version: ${version}`);
 
-  const bin = path.join(tmp, 'node_modules', 'codedungeon', 'bin', 'cubefarm.js');
+  const bin = path.join(tmp, 'node_modules', 'codedungeon', 'bin', 'codedungeon.js');
   server = spawn(process.execPath, [bin, '--demo', '--no-open', '--port', String(PORT)], {
     env: { ...process.env, SWARM_HOME: path.join(tmp, 'home') },
     stdio: ['ignore', 'inherit', 'inherit'],

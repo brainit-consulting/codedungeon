@@ -295,11 +295,11 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('"GitHub CLI is not ready"'),
       p(
-        'The dungeon reaches GitHub only through the `gh` command. Open a terminal and run `gh auth login`, then `gh auth status` to check. Restart the dungeon afterwards. From the Code Dungeon folder, `node bin/cubefarm.js doctor` checks Node, git, `gh` and the Claude login in one go.',
+        'The dungeon reaches GitHub only through the `gh` command. Open a terminal and run `gh auth login`, then `gh auth status` to check. Restart the dungeon afterwards. In the codedungeon folder, `npm run doctor` checks Node, git, `gh` and the Claude login in one go.',
       ),
       h('Claude asks to sign in'),
       p(
-        'Agents use your own Claude subscription. If an agent\'s terminal is waiting at a sign-in or first-run screen, it waits for you there: open the terminal and answer it, or run `node bin/cubefarm.js login` from the Code Dungeon folder.',
+        'Agents use your own Claude subscription. If an agent\'s terminal is waiting at a sign-in or first-run screen, it waits for you there: open the terminal and answer it, or run `npm run login` in the codedungeon folder.',
       ),
       h('Usage limits and pacing'),
       p(

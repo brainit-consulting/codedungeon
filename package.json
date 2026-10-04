@@ -24,7 +24,7 @@
   "author": "BrainIT Consulting",
   "type": "module",
   "bin": {
-    "cubefarm": "bin/cubefarm.js"
+    "codedungeon": "bin/codedungeon.js"
   },
   "files": [
     "bin",
@@ -36,6 +36,8 @@
   },
   "scripts": {
     "dev": "node scripts/office.mjs --dev",
+    "login": "node bin/codedungeon.js login",
+    "doctor": "node bin/codedungeon.js doctor",
     "build": "tsc --noEmit -p tsconfig.json && vite build && node scripts/build-server.mjs",
     "start": "node scripts/office.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
