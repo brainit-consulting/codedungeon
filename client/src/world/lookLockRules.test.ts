@@ -1,6 +1,6 @@
 // Run with `npm test` (Vitest).
 import { describe, expect, it } from 'vitest';
-import { shouldGrabLook, viewUncovered, type Covering } from './lookLockRules';
+import { hushesAfterUse, shouldGrabLook, viewUncovered, type Covering } from './lookLockRules';
 
 const c = (overlay: boolean, confirm = false): Covering => ({ overlay, confirm });
 const on = { started: true, enabled: true };
@@ -50,5 +50,15 @@ describe('shouldGrabLook', () => {
   it('never grabs when nothing closed', () => {
     expect(shouldGrabLook(c(false), c(true), on)).toBe(false);
     expect(shouldGrabLook(c(true, true), c(true), on)).toBe(false);
+  });
+});
+
+describe('hushesAfterUse', () => {
+  it('swallows a double click after clicking something in the world open', () => {
+    expect(hushesAfterUse('click')).toBe(true);
+  });
+
+  it('leaves the mouse alone after E, so a quick click on the panel that opened still counts', () => {
+    expect(hushesAfterUse('key')).toBe(false);
   });
 });

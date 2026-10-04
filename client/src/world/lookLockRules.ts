@@ -17,3 +17,11 @@ export function viewUncovered(prev: Covering, next: Covering): boolean {
 export function shouldGrabLook(prev: Covering, next: Covering, opts: { started: boolean; enabled: boolean }): boolean {
   return opts.enabled && opts.started && viewUncovered(prev, next);
 }
+
+/**
+ * Whether using something should swallow mouse presses for a moment: only when it was clicked, so a double click's
+ * second half can't land on the panel it opened. After E there is no second click, and a quick click is meant.
+ */
+export function hushesAfterUse(via: 'key' | 'click'): boolean {
+  return via === 'click';
+}

@@ -12,6 +12,7 @@ import { footstepsFollow, getAudioPrefs, toggleMusic, toggleMute } from '../ui/s
 import { callTheCat } from './Cat';
 import { collectDarts, dropHeld, startCharge, throwHeld } from './toys/hands';
 import { watchLookLock } from './lookLock';
+import { hushesAfterUse } from './lookLockRules';
 import { pokeToy } from './toys/poke';
 
 let canvasEl: HTMLCanvasElement | null = null;
@@ -58,7 +59,7 @@ const lookDiag = { dropped: 0, skipped: 0 };
 
 export function runFocusAction(focus: Focus, via: 'key' | 'click' = 'key') {
   const s = useStore.getState();
-  quietUntil = performance.now() + QUIET_MS;
+  if (hushesAfterUse(via)) quietUntil = performance.now() + QUIET_MS;
   if (focus.action.kind === 'pickup') {
     collectDarts(); // the dart board: every dart comes back into your hand
     return;
