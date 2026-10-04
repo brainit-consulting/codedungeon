@@ -307,8 +307,11 @@ table.keys th {
 
 .title-page h1 {
   margin: 0;
-  font-size: clamp(2.8rem, 9vw, 4.4rem);
-  line-height: 1;
+  /* blackletter, as on the dungeon's own title page */
+  font-family: 'UnifrakturMaguntia', 'Alegreya SC', Georgia, serif;
+  font-size: clamp(3rem, 10vw, 4.8rem);
+  font-weight: 400;
+  line-height: 1.05;
 }
 
 .subtitle {
