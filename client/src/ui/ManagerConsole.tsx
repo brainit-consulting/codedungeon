@@ -786,6 +786,10 @@ function SettingsTab() {
           <span>Projects folder (new projects are created here)</span>
           <input key={settings.projectsDir} defaultValue={settings.projectsDir} onBlur={(e) => e.target.value.trim() && e.target.value !== settings.projectsDir && set({ projectsDir: e.target.value })} />
         </label>
+        <label className="field">
+          <span>Your domain for launched apps (optional: Launch then suggests name.your-domain)</span>
+          <input key={settings.launchDomain ?? ''} defaultValue={settings.launchDomain ?? ''} placeholder="example.com" onBlur={(e) => e.target.value.trim() !== (settings.launchDomain ?? '') && set({ launchDomain: e.target.value })} />
+        </label>
         <div className="row">
           <button className="btn btn-small" onClick={() => set({ tutorialStep: 0 })}>
             <Icon name="compass" /> Replay the tour

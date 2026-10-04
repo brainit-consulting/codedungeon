@@ -4,7 +4,6 @@
 // Spec: docs/superpowers/specs/2026-10-03-ship-it-design.md
 
 import {
-  LAUNCH_PARENT,
   SHIP_LOG_MAX,
   buildFor,
   earlierLive,
@@ -366,7 +365,7 @@ export class Shipyard {
   /** Give the app its own address and, for GitHub-built chambers, make SHIP IT the gate from now on. */
   async launch(r: ShipRepo, domain: string) {
     const d = domain.trim().toLowerCase();
-    if (!validDomain(d)) throw new HttpError(400, `"${domain}" is not an address Vercel can use. Something like app.${LAUNCH_PARENT}.`);
+    if (!validDomain(d)) throw new HttpError(400, `"${domain}" is not an address Vercel can use. Something like app.example.com.`);
     return this.step(r, 'launching', async (p) => {
       await this.deps.vercel.addDomain(p, d);
       if (r.ship.method === 'git-auto') {

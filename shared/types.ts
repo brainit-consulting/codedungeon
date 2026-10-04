@@ -239,6 +239,7 @@ export interface SwarmSettings {
   managerName: string; // what the office calls you
   companyName: string;
   projectsDir: string; // where your project folders live; new projects are created here
+  launchDomain?: string; // your own domain for launched apps (Launch suggests name.domain); '' for none
   setupDone: boolean; // the first-run setup wizard has been completed or skipped
   tutorialStep: number; // index of the current tutorial step; -1 when finished or skipped
   autoUpdate?: boolean; // update the office itself once it's quiet (absent on servers without self-update)

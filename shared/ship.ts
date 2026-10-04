@@ -41,7 +41,8 @@ export interface ShipConfig {
 
 export const DEFAULT_SHIP: ShipConfig = { method: 'none', project: null, firstShipDone: false, undoneSha: null, lockedMain: null, seenLive: [], log: [] };
 export const SHIP_LOG_MAX = 50;
-export const LAUNCH_PARENT = 'brainit.site';
+/** The example address the Launch box shows when the Overlord hasn't set a domain of their own. */
+export const EXAMPLE_LAUNCH = 'myapp.example.com';
 
 export interface Deployment {
   id: string;
@@ -164,6 +165,18 @@ export function suggestDomain(fullName: string, parent: string): string {
   const name = fullName.split('/').pop() ?? '';
   const label = name.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-{2,}/g, '-').replace(/^-+|-+$/g, '').slice(0, 63);
   return `${label || 'app'}.${parent}`;
+}
+
+/** The address Launch suggests for a chamber: its name under your own domain, or nothing when you have none. */
+export function launchSuggestion(fullName: string, parent: string): string {
+  return parent ? suggestDomain(fullName, parent) : '';
+}
+
+/** Your launch domain as typed ("https://Example.com/" → "example.com"), '' to clear it, null when Vercel can't use it. */
+export function cleanLaunchDomain(input: string): string | null {
+  const d = input.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^\.+|\.+$/g, '');
+  if (!d) return '';
+  return validDomain(d) ? d : null;
 }
 
 /** A host name Vercel will accept as a domain (no scheme, no path). */

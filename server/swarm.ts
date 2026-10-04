@@ -12,7 +12,7 @@ import { CHECKS_ALERT_MS, MAX_MERGE_FIXES, MERGE_RETRY_MS, mergeStep } from './m
 import { orphanedQa } from './qaOrphans.ts';
 import { DEFAULT_PREVIEW, Previews, parsePreviewPatch } from './previews.ts';
 import { Shipyard } from './ship.ts';
-import { DEFAULT_SHIP, type ShipConfig } from '../shared/ship.ts';
+import { cleanLaunchDomain, DEFAULT_SHIP, type ShipConfig } from '../shared/ship.ts';
 import { drainDecision, lastUpdateMessage, POSTPONE_MS, type DrainInput, type LastUpdate } from './officeUpdate.ts';
 import { clampPacingSessions, DEFAULT_PACING_SESSIONS, mayStart, PACING_MS, pacingMessage, usageLabel, usageView, type UsageWarning, type WorkKind } from './pacing.ts';
 import { isCli } from './clis.ts';
@@ -370,6 +370,7 @@ export class Swarm {
       managerName: '',
       companyName: '',
       projectsDir: DEFAULT_PROJECTS_DIR,
+      launchDomain: '',
       setupDone: false,
       tutorialStep: 0,
       autoUpdate: true,
@@ -2219,6 +2220,11 @@ export class Swarm {
     if (typeof patch.managerName === 'string') s.managerName = patch.managerName.trim().slice(0, 40);
     if (typeof patch.companyName === 'string') s.companyName = patch.companyName.trim().slice(0, 60);
     if (typeof patch.projectsDir === 'string' && patch.projectsDir.trim()) s.projectsDir = path.resolve(patch.projectsDir.trim());
+    if (typeof patch.launchDomain === 'string') {
+      const d = cleanLaunchDomain(patch.launchDomain);
+      if (d === null) throw new HttpError(400, `"${patch.launchDomain}" isn't a domain Vercel can use. Something like example.com, or leave it empty.`);
+      s.launchDomain = d;
+    }
     if (typeof patch.setupDone === 'boolean') s.setupDone = patch.setupDone;
     if (patch.tutorialStep !== undefined) s.tutorialStep = Math.max(-1, Math.round(Number(patch.tutorialStep)) || 0);
     if (typeof patch.autoUpdate === 'boolean') s.autoUpdate = patch.autoUpdate;

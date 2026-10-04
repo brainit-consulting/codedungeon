@@ -272,7 +272,7 @@ export const CHAPTERS: GuideChapter[] = [
         '**Deploy from the dungeon**: the dungeon deploys `main` itself when you press **Ship it**, and **Preview** gives you a link to a test copy.',
       ),
       h('Launching'),
-      p('When the app is ready, **Launch** gives it its own address, such as `myapp.brainit.site`, and from then on merges wait for **Ship it** instead of going live by themselves. The first ship of any chamber asks you first, because it makes the app public.'),
+      p('When the app is ready, **Launch** gives it its own address, such as `myapp.example.com` (set your own domain in the ledger\'s Settings and Launch suggests one under it), and from then on merges wait for **Ship it** instead of going live by themselves. The first ship of any chamber asks you first, because it makes the app public.'),
       h('What the panel shows'),
       list(
         '**Live now**: the address, the commit, and since when.',

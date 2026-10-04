@@ -1,6 +1,6 @@
 import * as shipModule from './ship.ts';
 import { describe, expect, it } from 'vitest';
-import { buildFor, earlierLive, prNumbersFromSubjects, shipBlocked, signStatus, suggestDomain, validDomain, waitingPulls, type Deployment, type ShipState } from './ship.ts';
+import { buildFor, cleanLaunchDomain, earlierLive, launchSuggestion, prNumbersFromSubjects, shipBlocked, signStatus, suggestDomain, validDomain, waitingPulls, type Deployment, type ShipState } from './ship.ts';
 
 const dep = (id: string, sha: string, state: Deployment['state'], createdAt: number): Deployment => ({ id, url: `${id}.vercel.app`, sha, state, createdAt });
 
@@ -109,5 +109,21 @@ describe('messages with commands in them', () => {
     ]);
     expect(splitTicks('no marks')).toEqual([{ code: false, text: 'no marks' }]);
     expect(splitTicks('a `lone tick')).toEqual([{ code: false, text: 'a `lone tick' }]);
+  });
+});
+
+describe('your launch domain', () => {
+  it('suggests an address under your own domain, and nothing when you have none', () => {
+    expect(launchSuggestion('acme/Pixel Todo', 'example.com')).toBe('pixel-todo.example.com');
+    expect(launchSuggestion('acme/Pixel Todo', '')).toBe('');
+  });
+
+  it('takes a domain as people type it, and refuses what Vercel could not use', () => {
+    expect(cleanLaunchDomain('  Example.COM ')).toBe('example.com');
+    expect(cleanLaunchDomain('https://example.com/')).toBe('example.com');
+    expect(cleanLaunchDomain('.apps.example.com')).toBe('apps.example.com');
+    expect(cleanLaunchDomain('')).toBe('');
+    expect(cleanLaunchDomain('not a domain')).toBeNull();
+    expect(cleanLaunchDomain('localhost')).toBeNull();
   });
 });

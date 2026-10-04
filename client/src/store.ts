@@ -145,6 +145,7 @@ export const useStore = create<State>((set, get) => ({
     managerName: '',
     companyName: '',
     projectsDir: '',
+    launchDomain: '',
     setupDone: true,
     tutorialStep: -1,
     pacingSessions: 3,

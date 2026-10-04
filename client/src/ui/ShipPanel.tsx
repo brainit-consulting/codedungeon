@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LAUNCH_PARENT, splitTicks, suggestDomain, type ShipMethod, type ShipView } from '../../../shared/ship';
+import { EXAMPLE_LAUNCH, launchSuggestion, splitTicks, type ShipMethod, type ShipView } from '../../../shared/ship';
 import { api } from '../api';
 import { useStore } from '../store';
 import { confirmDialog } from './Confirm';
@@ -116,6 +116,7 @@ function Setup({ repoId, fullName, onDone }: { repoId: string; fullName: string;
 
 export function ShipPanel({ repoId }: { repoId: string }) {
   const repo = useStore((s) => s.repos.find((r) => r.id === repoId));
+  const launchDomain = useStore((st) => st.settings.launchDomain ?? '');
   const [domain, setDomain] = useState('');
   const [changing, setChanging] = useState(false);
   useEffect(() => {
@@ -124,6 +125,7 @@ export function ShipPanel({ repoId }: { repoId: string }) {
   if (!repo) return <Panel title="SHIP IT">This chamber no longer exists.</Panel>;
   const s: ShipView = repo.ship;
   const name = repo.fullName;
+  const suggested = launchSuggestion(name, launchDomain);
 
   const ship = async () => {
     if (!s.firstShipDone) {
@@ -144,7 +146,8 @@ export function ShipPanel({ repoId }: { repoId: string }) {
     if (yes) await api.shipUndo(repo.id, id).catch(() => undefined);
   };
   const launch = async () => {
-    const d = (domain || suggestDomain(name, LAUNCH_PARENT)).trim();
+    const d = (domain || suggested).trim();
+    if (!d) return;
     const yes = await confirmDialog({
       title: `Launch at ${d}?`,
       body: <p>The app gets this public address{s.method === 'git-auto' ? ', and from now on merges wait for Ship it instead of going live by themselves' : ''}.</p>,
@@ -278,8 +281,8 @@ export function ShipPanel({ repoId }: { repoId: string }) {
               <h3>Launch</h3>
               <p className="muted small">When it's ready: give it its own address{s.method === 'git-auto' ? ' and make Ship it the way work goes live' : ''}.</p>
               <div className="row wrap">
-                <input value={domain} placeholder={suggestDomain(name, LAUNCH_PARENT)} onChange={(e) => setDomain(e.target.value)} aria-label="Address" />
-                <button className="btn" disabled={!!s.busy} onClick={() => void launch()}>
+                <input value={domain} placeholder={suggested || EXAMPLE_LAUNCH} onChange={(e) => setDomain(e.target.value)} aria-label="Address" />
+                <button className="btn" disabled={!!s.busy || !(domain.trim() || suggested)} onClick={() => void launch()}>
                   Launch
                 </button>
               </div>
