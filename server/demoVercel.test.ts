@@ -6,10 +6,10 @@ const setup = async (autoAssign: boolean) => {
   const v = createFakeVercel({ buildMs: 0, headOf: () => head });
   const made = await v.createProject('todo', 'demo-team');
   const p = { ...made, scope: 'demo-team' };
-  await v.link(fakeShipDir('demo-co/todo'), p);
-  await v.gitConnect(fakeShipDir('demo-co/todo'), p);
+  await v.link(fakeShipDir('demo-keep/todo'), p);
+  await v.gitConnect(fakeShipDir('demo-keep/todo'), p);
   await v.setAutoAssign(p, autoAssign);
-  return { v, p, push: (sha: string) => ((head = sha), v.merged('demo-co/todo', sha)) };
+  return { v, p, push: (sha: string) => ((head = sha), v.merged('demo-keep/todo', sha)) };
 };
 
 describe('the fake Vercel', () => {
@@ -43,7 +43,7 @@ describe('the fake Vercel', () => {
 
   it('deploys from the CLI, adds domains, and refuses when logged out', async () => {
     const { v, p } = await setup(false);
-    const url = await v.deploy(fakeShipDir('demo-co/todo'), p, true);
+    const url = await v.deploy(fakeShipDir('demo-keep/todo'), p, true);
     expect((await v.project(p)).live?.url).toBe(url);
     await v.addDomain(p, 'todo.brainit.site');
     expect((await v.project(p)).domains[0]).toBe('todo.brainit.site');
@@ -54,11 +54,11 @@ describe('the fake Vercel', () => {
 
 describe('the fake Vercel after a restart', () => {
   it('takes back a project it has never seen, connected to the demo repo of that name and live on its main', async () => {
-    const v = createFakeVercel({ buildMs: 0, headOf: () => 'zzz', repoFor: (name) => (name === 'todo' ? 'demo-co/todo' : null) });
+    const v = createFakeVercel({ buildMs: 0, headOf: () => 'zzz', repoFor: (name) => (name === 'todo' ? 'demo-keep/todo' : null) });
     const p = { id: 'prj_from_before', name: 'todo', scope: 'demo-team' };
     const info = await v.project(p);
     expect(info.live?.sha).toBe('zzz');
-    v.merged('demo-co/todo', 'yyy');
+    v.merged('demo-keep/todo', 'yyy');
     expect((await v.deployments(p))[0].sha).toBe('yyy');
     await expect(v.project({ id: 'prj_x', name: 'unknown', scope: 'demo-team' })).rejects.toThrow(/No Vercel project/);
   });

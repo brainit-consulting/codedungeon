@@ -23,8 +23,8 @@ import { Wolf } from './Wolf';
 
 const SLATE_FRAME = new THREE.MeshStandardMaterial({ color: '#2e1f14', roughness: 0.85 });
 
-const ACCENT = '#ff8a5b';
-const CEO_ACCENT = '#9b5de5';
+const ACCENT = '#a0441c'; // rust, the dungeon's one accent
+const CEO_ACCENT = '#5e3a63'; // purpure, the DungeonMaster's tincture
 
 function useOfficeStats() {
   const repos = useStore((s) => s.repos);
@@ -61,38 +61,35 @@ function ManagerComputer() {
     1024,
     640,
     (ctx) => {
-      const g = ctx.createLinearGradient(0, 0, 1024, 640);
-      g.addColorStop(0, '#20224a');
-      g.addColorStop(1, '#3a1f4d');
-      ctx.fillStyle = g;
+      ctx.fillStyle = '#221e1b';
       ctx.fillRect(0, 0, 1024, 640);
-      ctx.fillStyle = '#ffd6a5';
+      ctx.fillStyle = '#e8a96a';
       ctx.font = `700 54px ${SANS}`;
       ctx.textBaseline = 'middle';
-      ctx.fillText("✻ The Overlord's Ledger", 50, 70);
+      ctx.fillText("The Overlord's Ledger", 50, 70);
       const rows: [string, string][] = [
         ['Chambers (repos)', `${stats.repos}`],
         ['Guild members', `${stats.agents}`],
         ['Sessions running', stats.max ? `${stats.working} / ${stats.max}` : `${stats.working}`],
         ['Open issues', `${stats.issues}`],
         ['PRs in QA / ready to merge', `${stats.inQa} / ${stats.readyToMerge}`],
-        ['📄 Recruits waiting for you', `${stats.pending}`],
+        ['Recruits waiting for you', `${stats.pending}`],
       ];
       rows.forEach(([k, v], i) => {
         const y = 150 + i * 68;
         roundRect(ctx, 50, y - 30, 924, 60, 16);
-        ctx.fillStyle = 'rgba(255,255,255,0.07)';
+        ctx.fillStyle = 'rgba(236, 223, 194, 0.06)';
         ctx.fill();
-        ctx.fillStyle = '#c9c9ee';
+        ctx.fillStyle = '#a99f90';
         ctx.font = `500 34px ${SANS}`;
         ctx.fillText(k, 76, y);
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = '#e6dfcf';
         ctx.font = `700 38px ${SANS}`;
         ctx.textAlign = 'right';
         ctx.fillText(v, 948, y);
         ctx.textAlign = 'left';
       });
-      ctx.fillStyle = '#7CFFB2';
+      ctx.fillStyle = '#9fbf7a';
       ctx.font = `600 32px ${SANS}`;
       ctx.fillText('Press E or click to manage chambers, guild & issues', 50, 592);
     },
@@ -120,15 +117,19 @@ function ManagerComputer() {
 
 function Directory() {
   const stats = useOfficeStats();
-  const ref = useInteractable<THREE.Group>({ id: 'directory', label: 'Open the directory to walk to a chamber', action: { kind: 'elevator' } }, 4);
+  const ref = useInteractable<THREE.Group>({ id: 'directory', label: 'Open the Roll of Chambers to walk to a chamber', action: { kind: 'elevator' } }, 4);
   const tex = useCanvasTexture(
     768,
     560,
     (ctx) => {
-      roundRect(ctx, 0, 0, 768, 560, 30);
-      ctx.fillStyle = '#23263a';
-      ctx.fill();
-      ctx.fillStyle = '#ffd6a5';
+      ctx.fillStyle = '#d8c7a0';
+      ctx.fillRect(0, 0, 768, 560);
+      ctx.strokeStyle = 'rgba(42, 29, 20, 0.6)';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(3, 3, 762, 554);
+      ctx.lineWidth = 2;
+      ctx.strokeRect(18, 18, 732, 524);
+      ctx.fillStyle = '#2a1d14';
       ctx.font = `700 46px ${SANS}`;
       ctx.textBaseline = 'middle';
       ctx.fillText('Roll of Chambers', 36, 52);
@@ -138,16 +139,16 @@ function Directory() {
         ctx.fillStyle = f.color;
         roundRect(ctx, 36, y - 22, 54, 44, 12);
         ctx.fill();
-        ctx.fillStyle = '#1f2233';
+        ctx.fillStyle = '#2a1d14';
         ctx.font = `700 30px ${SANS}`;
         ctx.textAlign = 'center';
         ctx.fillText(String(f.floor), 63, y + 1);
         ctx.textAlign = 'left';
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = '#2a1d14';
         ctx.font = `600 28px ${SANS}`;
         const name = f.name.length > 24 ? `${f.name.slice(0, 23)}…` : f.name;
         ctx.fillText(name, 108, y);
-        ctx.fillStyle = '#a9adc6';
+        ctx.fillStyle = '#5a4632';
         ctx.font = `500 24px ${SANS}`;
         ctx.textAlign = 'right';
         ctx.fillText(`${f.working}/${f.team} busy · ${f.prs} PR`, 740, y);
@@ -157,16 +158,16 @@ function Directory() {
       ctx.fillStyle = ACCENT;
       roundRect(ctx, 36, gy - 22, 54, 44, 12);
       ctx.fill();
-      ctx.fillStyle = '#1f2233';
+      ctx.fillStyle = '#ecdfc2';
       ctx.font = `700 30px ${SANS}`;
       ctx.textAlign = 'center';
       ctx.fillText('G', 63, gy + 1);
       ctx.textAlign = 'left';
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = '#2a1d14';
       ctx.font = `600 28px ${SANS}`;
       ctx.fillText('Great hall & your study', 108, gy);
       if (stats.floors.length === 0) {
-        ctx.fillStyle = '#a9adc6';
+        ctx.fillStyle = '#5a4632';
         ctx.font = `500 26px ${SANS}`;
         ctx.fillText('No chambers yet: connect a repo in', 36, gy + 80);
         ctx.fillText('your study (back left corner).', 36, gy + 116);
@@ -189,7 +190,7 @@ function TrophyCabinet() {
   const tex = useCanvasTexture(
     512,
     160,
-    (ctx) => drawSign(ctx, 512, 160, [{ text: `🏆 ${stats.merged} PRs merged`, size: 50, color: '#2d3142' }], '#ffe8a3'),
+    (ctx) => drawSign(ctx, 512, 160, [{ text: `🏆 ${stats.merged} PRs merged`, size: 50, color: '#2a1d14' }], '#b8862b'),
     [stats.merged],
   );
   const cups = Math.min(8, stats.merged);
@@ -352,7 +353,7 @@ function WaitingRoom() {
         size={[3.6, 0.62]}
         px={[864, 150]}
         draw={(ctx) =>
-          drawSign(ctx, 864, 150, [{ text: n ? `🪑 Antechamber · ${n} recruit${n === 1 ? '' : 's'}${n > WAITING.seats.length ? ` (${n - WAITING.seats.length} more outside)` : ''}` : '🪑 Antechamber', size: 50 }], '#06a77d')
+          drawSign(ctx, 864, 150, [{ text: n ? `🪑 Antechamber · ${n} recruit${n === 1 ? '' : 's'}${n > WAITING.seats.length ? ` (${n - WAITING.seats.length} more outside)` : ''}` : '🪑 Antechamber', size: 50 }], '#3d6332')
         }
         deps={[n]}
       />
@@ -382,12 +383,12 @@ export function Lobby() {
         rotationY={0}
         size={[3.4, 0.5]}
         px={[816, 120]}
-        draw={(ctx) => drawSign(ctx, 816, 120, [{ text: `OVERLORD${boss ? ` · ${boss}` : ''}`, size: 52 }], '#2b2d42')}
+        draw={(ctx) => drawSign(ctx, 816, 120, [{ text: `OVERLORD${boss ? ` · ${boss}` : ''}`, size: 52 }], '#2a1d14')}
         deps={[boss]}
       />
       <ManagerComputer />
       <Bookshelf position={[-HALF_W + 0.4, 0, -8]} rotationY={Math.PI / 2} />
-      <Plant position={[m.maxX - 0.6, 0, m.minZ + 0.6]} scale={1.1} pot="#3a86ff" />
+      <Plant position={[m.maxX - 0.6, 0, m.minZ + 0.6]} scale={1.1} pot="#8a4b2a" />
       <Plant position={[m.minX + 0.6, 0, m.maxZ - 0.6]} scale={0.9} />
       <WallSign
         position={[MANAGER_DESK.x, 2.3, -HALF_D + 0.03]}
@@ -399,7 +400,7 @@ export function Lobby() {
             { text: '⭐', size: 70 },
             { text: 'The Realm’s Best', size: 44, weight: 600 },
             { text: 'Overlord', size: 50 },
-          ], '#9b5de5')
+          ], CEO_ACCENT)
         }
         deps={[]}
       />
@@ -432,7 +433,7 @@ export function Lobby() {
       <Couch position={[11.5, 0, 4]} rotationY={Math.PI} color="#4cc9f0" />
       <CoffeeTable position={[11.5, 0, 6.2]} />
       <Plant position={[HALF_W - 0.7, 0, HALF_D - 0.7]} scale={1.2} />
-      <Plant position={[-HALF_W + 0.7, 0, HALF_D - 0.7]} scale={1.2} pot="#06d6a0" />
+      <Plant position={[-HALF_W + 0.7, 0, HALF_D - 0.7]} scale={1.2} pot="#7a5236" />
       <Plant position={[-3, 0, HALF_D - 0.6]} />
       <Plant position={[3, 0, -HALF_D + 0.7]} scale={0.8} />
     </group>

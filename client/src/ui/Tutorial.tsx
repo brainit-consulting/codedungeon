@@ -75,7 +75,7 @@ const STEPS: Step[] = [
     body: (c) =>
       c.repo ? (
         <>
-          {c.repo} has its own chamber. Walk through the archway in the middle of the hall's south wall into the gallery and find its door, or press <kbd>E</kbd> on the directory beside the archway to walk straight in.
+          {c.repo} has its own chamber. Walk through the archway in the middle of the hall's south wall into the gallery and find its door, or press <kbd>E</kbd> on the Roll of Chambers beside the archway to walk straight in.
         </>
       ) : (
         <>

@@ -285,7 +285,7 @@ input.inline:focus {
   background: #cfa64a;
 }
 .status-working {
-  background: #74c0fc;
+  background: #9fb3c8; /* woad */
 }
 .status-done {
   background: #8fa85a;
@@ -294,7 +294,7 @@ input.inline:focus {
   background: #c98a7a;
 }
 .status-stopped {
-  background: #dee2e6;
+  background: #cfc6b4; /* ash */
 }
 /* app preview statuses (preparing, stopped and error share the agent colours) */
 .status-installing,
@@ -520,7 +520,7 @@ input.inline:focus {
   text-align: left;
 }
 .wk-head b {
-  color: #1e9e45;
+  color: var(--good);
 }
 .wk-chevron {
   color: var(--muted);
@@ -769,7 +769,7 @@ input.inline:focus {
   animation: pop 0.25s ease-out;
 }
 .toast-success {
-  background: #d8f9df;
+  background: #d9dcb4;
 }
 .toast-error {
   background: #e6c8bb;
@@ -1086,8 +1086,8 @@ input.inline:focus {
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
 }
 .term {
-  background: #1b1b29;
-  color: #e8e8f2;
+  background: #221e1b;
+  color: #e6dfcf;
   border: 3px solid var(--copper);
   border-radius: 3px;
   padding: 12px 14px;
@@ -1102,17 +1102,17 @@ input.inline:focus {
   word-break: break-word;
 }
 .term-tool {
-  color: #8be9fd;
+  color: #d9b36a;
 }
 .term-result {
-  color: #8a7a62;
+  color: #8f877a;
 }
 .term-system {
-  color: #bd93f9;
+  color: #c79a7a;
 }
 .term-error.term-line,
 .term-line.term-error {
-  color: #9b2f25;
+  color: #d9705a;
   background: none;
   border: none;
   padding: 0;
@@ -1124,15 +1124,15 @@ input.inline:focus {
   font-weight: 600;
 }
 .term-done {
-  color: #50fa7b;
+  color: #9fbf7a;
   font-weight: 600;
 }
 .term-thinking {
-  color: #f1fa8c;
+  color: #d6cf8a;
   font-style: italic;
 }
 .term-spin {
-  color: #b5592b;
+  color: #e8a96a;
   animation: blink 1.4s ease-in-out infinite;
 }
 .live-term {
@@ -1140,7 +1140,7 @@ input.inline:focus {
   flex-direction: column;
   min-height: 200px;
   min-width: 0;
-  background: #1b1b29;
+  background: #221e1b;
   border: 3px solid var(--copper);
   border-radius: 3px;
   overflow: hidden;
@@ -1170,12 +1170,11 @@ input.inline:focus {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #55566e;
+  background: #5e564c;
   flex: none;
 }
 .live-dot-on {
-  background: #50fa7b;
-  box-shadow: 0 0 6px #50fa7b;
+  background: #7d9a52;
 }
 @keyframes blink {
   50% {
@@ -1278,7 +1277,7 @@ input.inline:focus {
   background: #c89a3e;
 }
 .kcol-progress .kcol-head {
-  background: #4cc9f0;
+  background: #7f9bb5;
 }
 .kcol-review .kcol-head {
   background: #8fa85a;
@@ -1290,7 +1289,7 @@ input.inline:focus {
   grid-template-columns: repeat(5, minmax(210px, 1fr));
 }
 .kcol-merged .kcol-head {
-  background: #c77dff;
+  background: #9a7a9e;
 }
 .count {
   display: inline-block;

@@ -9,7 +9,7 @@ const RUST = '#a0441c';
 export const SIGN_INKS = {
   parchment: { ink: '#2a1d14', paper: '#d8c7a0' },
   faded: { ink: '#5a4632', paper: '#d8c7a0' },
-  slate: { ink: '#ecdfc2', paper: '#1d1c22' },
+  slate: { ink: '#ecdfc2', paper: '#221e1b' },
 } as const;
 
 const cache = new Map<string, HTMLImageElement>();

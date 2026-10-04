@@ -58,7 +58,7 @@ function seed(fullName: string, description: string, titles: [string, string][])
   repos.set(fullName, r);
 }
 
-seed('demo-co/pixel-todo', 'A cheerful todo app', [
+seed('demo-keep/pixel-todo', 'A cheerful todo app', [
   ['Add dark mode toggle', 'Users want a dark theme. Persist the choice in localStorage.'],
   ['Todos should support due dates', 'Add an optional due date and highlight overdue items.'],
   ['Drag and drop to reorder', 'Let users reorder todos by dragging.'],
@@ -66,7 +66,7 @@ seed('demo-co/pixel-todo', 'A cheerful todo app', [
   ['Keyboard shortcuts', 'N for new todo, / to search, ? for help.'],
   ['Fix: completed count off by one', 'The footer shows one more completed item than there is.'],
 ]);
-seed('demo-co/weather-api', 'Tiny weather REST API', [
+seed('demo-keep/weather-api', 'Tiny weather REST API', [
   ['Add /forecast endpoint', 'Return a 5-day forecast for a city.'],
   ['Rate limit anonymous callers', '60 requests per minute per IP.'],
   ['OpenAPI spec', 'Publish an OpenAPI 3.1 document at /openapi.json.'],
@@ -390,7 +390,7 @@ export function createDemoBackend(): Backend {
   addFolder('sketchbook', null);
   addFolder('recipe-notes', null, false);
   const newRepo = (name: string, description = '') => {
-    const fullName = `demo-co/${name}`;
+    const fullName = `demo-keep/${name}`;
     if (!repos.has(fullName)) {
       repos.set(fullName, { fullName, description, issues: [], pulls: [], nextNumber: 1, main: [{ sha: fakeSha(), subject: 'Initial commit' }] });
       bareRepos.add(fullName);
@@ -405,7 +405,7 @@ export function createDemoBackend(): Backend {
   };
   return {
     demo: true,
-    user: async () => 'demo-manager',
+    user: async () => 'demo-overlord',
     listMyRepos: async (): Promise<GhRepoSummary[]> =>
       [...repos.values()].map((r) => ({ nameWithOwner: r.fullName, description: r.description, visibility: 'PUBLIC', updatedAt: now() })),
     repoMeta: async (fullName) => {
@@ -539,7 +539,7 @@ export function createDemoBackend(): Backend {
  * the real one started the demo, or with SWARM_DEMO_LAUNCHER=1; either way the update is faked: a short pause, then
  * the result message, and nothing restarts.
  */
-const OFFICE_REPO = 'demo-co/pixel-todo';
+const OFFICE_REPO = 'demo-keep/pixel-todo';
 const DEMO_HEAD = `0ff1ce5${'0'.repeat(33)}`;
 const lastFakeUpdate = { to: '', commits: 0 };
 const demoOffice: OfficeHost = {
@@ -686,14 +686,14 @@ const PROFILES: Record<string, Profile> = {
   'pixel-todo': {
     summary: 'Todo web app · React + Vite + TypeScript',
     qa: '- Add, complete, edit and delete todos; they survive a reload\n- Keyboard only: every action reachable, focus always visible\n- Phone width (375px): nothing overflows or gets cut off\n- No errors in the browser console',
-    qaTitle: 'UI QA tester',
+    qaTitle: 'UI Assayer',
     qaJob: 'You test every PR the way a picky user would: click through the whole flow, try it on a phone-sized screen and with the keyboard only.',
-    devTitle: 'React UI engineer',
+    devTitle: 'React Glazier',
     devSpecialty: 'frontend',
     devJob: 'You own the React components and styling. Keep components small, reuse the existing hooks, and check every change at desktop and phone widths.',
     hires: [
       {
-        title: 'Accessibility engineer',
+        title: 'Herald of Access',
         specialty: 'a11y',
         job_description:
           'You make the app work for **everyone**:\n\n- Keyboard navigation and focus management\n- ARIA roles, checked with `axe`\n- Colour contrast (WCAG AA)\n\nTest with the keyboard only. The [WAI-ARIA practices](https://www.w3.org/WAI/ARIA/apg/) are your reference.',
@@ -704,14 +704,14 @@ const PROFILES: Record<string, Profile> = {
   'weather-api': {
     summary: 'REST API · Node + Express',
     qa: '- Every endpoint: happy path, bad input (400), unknown city (404)\n- Response shapes match the OpenAPI document\n- Rate limiting returns 429 with Retry-After\n- Tests and lint pass',
-    qaTitle: 'API QA tester',
+    qaTitle: 'API Assayer',
     qaJob: 'You test the API from the outside: curl every endpoint, try bad input and edge cases, and compare responses with the OpenAPI document.',
-    devTitle: 'Backend engineer',
+    devTitle: 'Backend Mason',
     devSpecialty: 'backend',
     devJob: 'You own the routes and data layer. Validate input at the edge, return consistent error shapes, and add tests for every endpoint you touch.',
     hires: [
       {
-        title: 'API reliability engineer',
+        title: 'Warden of the API',
         specialty: 'reliability',
         job_description: 'You own rate limiting, caching and error handling. Measure before you optimise and document every limit in the OpenAPI spec.',
         reason: 'Rate limiting is in the backlog and the forecast endpoint will call an upstream service that needs caching and timeouts.',
@@ -723,14 +723,14 @@ const PROFILES: Record<string, Profile> = {
 const GENERIC: Profile = {
   summary: 'Web project · early stage',
   qa: '- The app builds and starts\n- The changed feature works end to end in the browser\n- Phone width: nothing overflows\n- No console errors',
-  qaTitle: 'QA tester',
+  qaTitle: 'Assayer',
   qaJob: 'You check every PR end to end in the browser, at desktop and phone widths.',
-  devTitle: 'Full-stack engineer',
+  devTitle: 'Master Builder',
   devSpecialty: 'fullstack',
   devJob: 'You build features end to end, from the UI down to the data.',
   hires: [
     {
-      title: 'Frontend engineer',
+      title: 'UI Glazier',
       specialty: 'frontend',
       job_description: 'You own the UI:\n\n1. Layout and components\n2. Styling, checked at **desktop and phone** widths',
       reason: 'The project needs someone who owns the UI from the start.',
@@ -857,7 +857,7 @@ function ceoSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle {
         const devs = f.team.filter((a) => a.role === 'dev').length;
         if (devs >= 6 && idle.length >= 2 && f.backlog.length < devs) {
           await use('propose_let_go', { agent_id: idle[idle.length - 1].id, reason: `Chamber ${f.floor} has ${devs} coders for ${f.backlog.length} open issues; ${idle.length} of them are idle.` });
-          return `Chamber ${f.floor} is overstaffed: ${devs} coders for ${f.backlog.length} open issues. I suggest letting ${idle[idle.length - 1].name} go; it's on your scroll.`;
+          return `Chamber ${f.floor} has more hands than work: ${devs} coders for ${f.backlog.length} open issues. I suggest letting ${idle[idle.length - 1].name} go; it's on your scroll.`;
         }
       }
       // An issue nobody routed while the floor has a specialist: re-route it rather than file a duplicate.
@@ -883,7 +883,7 @@ function ceoSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle {
       return [
         `**Quick status:** ${s.floors.length} chamber${s.floors.length === 1 ? '' : 's'}, ${people} people and ${issues} open issues.`,
         '',
-        '- The team is *heads down* on the backlog',
+        '- The guild is *bent to the backlog*',
         `- ${pending ? `**${pending}** proposal${pending === 1 ? ' is' : 's are'} waiting for you in Recruits` : 'No recruiting decisions waiting on you'}`,
         '  - QA re-tests every PR after a fix',
         '',
@@ -898,7 +898,7 @@ function ceoSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle {
         '3. Recruit only where the backlog is piling up',
         '',
         '```bash',
-        'SWARM_HOME=/tmp/cubefarm-demo SWARM_PORT=5260 node --import tsx server/index.ts --demo',
+        'SWARM_HOME=./.swarm-home SWARM_PORT=5260 node --import tsx server/index.ts --demo',
         '```',
         '',
         `> I'm the demo DungeonMaster, so I can't act on "${short(text)}", but the real one would. See the [Claude Code docs](https://docs.claude.com/en/docs/claude-code/overview).`,

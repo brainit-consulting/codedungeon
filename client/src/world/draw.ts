@@ -1,7 +1,8 @@
 import type { LogLine, PreviewStatus, PreviewView, RepoView } from '../../../shared/types';
 import type { Agent, KanbanCard, KanbanColumns } from '../store';
-import { splitIcons } from '../ui/icons';
+import { splitIcons, type IconName } from '../ui/icons';
 import { SIGN_INKS, signIcon } from './signIcons';
+import { tagIcon } from './tagIcon';
 
 // 2D canvas painters for everything in the office that shows text: laptop terminals,
 // the Kanban whiteboard, signs and name tags.
@@ -39,17 +40,18 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, max
 
 // ---------- terminal ----------
 
+// chalk on a slate: each kind of line in its own muted chalk
 const TERM = {
-  bg: '#1b1b29',
-  bar: '#2a2a3d',
-  text: '#e8e8f2',
-  tool: '#8be9fd',
-  result: '#8d8da8',
-  system: '#bd93f9',
-  error: '#ff6b6b',
-  manager: '#ffb86c',
-  done: '#50fa7b',
-  thinking: '#f1fa8c',
+  bg: '#221e1b',
+  bar: '#2b2823',
+  text: '#e6dfcf',
+  tool: '#d9b36a',
+  result: '#8f877a',
+  system: '#c79a7a',
+  error: '#d9705a',
+  manager: '#e8a96a',
+  done: '#9fbf7a',
+  thinking: '#d6cf8a',
 };
 
 const SPINNER = ['·', '✢', '✳', '✶', '✻', '✽', '✻', '✶', '✳', '✢'];
@@ -83,13 +85,17 @@ export function drawTerminal(
   const barH = 30;
   ctx.fillStyle = TERM.bar;
   ctx.fillRect(0, 0, w, barH);
-  ['#ff5f57', '#febc2e', '#28c840'].forEach((c, i) => {
-    ctx.fillStyle = c;
+  // three iron rivets hold the frame
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = '#5e564c';
+    ctx.strokeStyle = '#141210';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(18 + i * 20, barH / 2, 6, 0, Math.PI * 2);
+    ctx.arc(18 + i * 20, barH / 2, 5.5, 0, Math.PI * 2);
     ctx.fill();
-  });
-  ctx.fillStyle = '#b8b8cc';
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#a99f90';
   ctx.font = `600 14px ${MONO}`;
   ctx.textBaseline = 'middle';
   const job =
@@ -111,7 +117,7 @@ export function drawTerminal(
   const termW = showBrowser ? Math.round(w * 0.56) : w;
 
   if (agent.status === 'idle' && lines.length <= 1) {
-    drawScreensaver(ctx, 0, barH, w, h - barH, agent, now);
+    drawScreensaver(ctx, 0, barH, w, h - barH, agent);
     return;
   }
 
@@ -141,7 +147,7 @@ export function drawTerminal(
       ctx.fillStyle = TERM.tool;
       ctx.fillText(r.text.slice(1), 10 + charW, y);
     } else if (r.kind === 'text' && r.text.startsWith('●')) {
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = TERM.text;
       ctx.fillText('●', 10, y);
       ctx.fillStyle = TERM.text;
       ctx.fillText(r.text.slice(1), 10 + charW, y);
@@ -157,7 +163,7 @@ export function drawTerminal(
     const verb = agent.status === 'preparing' ? 'Setting up worktree' : toolVerb(agent.currentTool) || VERBS[Math.floor(now / 6000) % VERBS.length];
     const secs = agent.startedAt ? Math.floor((Date.now() - agent.startedAt) / 1000) : 0;
     const mm = Math.floor(secs / 60);
-    ctx.fillStyle = '#ff9e64';
+    ctx.fillStyle = TERM.manager;
     ctx.font = `600 ${fontSize}px ${MONO}`;
     ctx.fillText(`${SPINNER[frame]} ${verb}… (${mm}m ${secs % 60}s)`, 10, h - 14);
   }
@@ -165,40 +171,40 @@ export function drawTerminal(
   if (showBrowser) drawBrowser(ctx, termW, barH, w - termW, h - barH, agent.browserUrl, shot);
 }
 
-function drawScreensaver(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, agent: Agent, now: number) {
-  const t = now / 1000;
-  const g = ctx.createLinearGradient(x, y, x + w, y + h);
-  g.addColorStop(0, '#26264a');
-  g.addColorStop(1, '#3b2a55');
-  ctx.fillStyle = g;
+/** An idle slate: a candle chalked in the middle and who is free, nothing moving. */
+function drawScreensaver(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, agent: Agent) {
+  ctx.fillStyle = TERM.bg;
   ctx.fillRect(x, y, w, h);
-  const bx = x + w / 2 + Math.sin(t * 0.7) * w * 0.25;
-  const by = y + h / 2 + Math.cos(t * 0.9) * h * 0.18;
+  const bx = x + w / 2;
+  const by = y + h / 2;
   ctx.textAlign = 'center';
-  ctx.font = `64px ${SANS}`;
-  ctx.fillText('✻', bx, by - 20);
-  ctx.fillStyle = '#ffd6a5';
+  drawIcon(ctx, agent.role === 'qa' ? 'flask' : agent.role === 'ceo' ? 'crown' : 'candle', bx - 32, by - 34, 64, SIGN_INKS.slate);
+  ctx.fillStyle = TERM.manager;
   ctx.font = `600 26px ${SANS}`;
   ctx.fillText(`${agent.name} is free`, bx, by + 34);
-  ctx.fillStyle = '#b8b8dd';
+  ctx.fillStyle = TERM.result;
   ctx.font = `18px ${SANS}`;
   ctx.fillText(agent.role === 'qa' ? 'waiting for a PR to test…' : agent.role === 'ceo' ? 'brooding over the dungeon…' : 'waiting for an issue…', bx, by + 62);
   ctx.textAlign = 'left';
 }
 
 function drawBrowser(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, url: string | null, shot: HTMLImageElement | null) {
-  ctx.fillStyle = '#e9ecf2';
+  // the tester's browser as a framed parchment leaf: an address strip, then the page itself
+  ctx.fillStyle = '#ecdfc2';
   ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = '#d5d9e2';
+  ctx.fillStyle = PARCHMENT;
   ctx.fillRect(x, y, w, 34);
-  roundRect(ctx, x + 10, y + 6, w - 20, 22, 11);
-  ctx.fillStyle = '#ffffff';
-  ctx.fill();
-  ctx.fillStyle = '#4a5160';
+  ctx.fillStyle = '#ecdfc2';
+  ctx.fillRect(x + 10, y + 6, w - 20, 22);
+  ctx.strokeStyle = 'rgba(42, 29, 20, 0.45)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 10.5, y + 6.5, w - 21, 21);
+  ctx.fillStyle = INK_FADED;
   ctx.font = `13px ${SANS}`;
   ctx.textBaseline = 'middle';
   const u = (url ?? 'about:blank').replace(/^https?:\/\//, '');
-  ctx.fillText(`🔒 ${u.length > 42 ? `${u.slice(0, 41)}…` : u}`, x + 20, y + 18);
+  drawIcon(ctx, 'padlock', x + 15, y + 17, 16, SIGN_INKS.faded);
+  ctx.fillText(u.length > 42 ? `${u.slice(0, 41)}…` : u, x + 36, y + 18);
   const area = { x: x + 4, y: y + 38, w: w - 8, h: h - 42 };
   if (shot && shot.complete && shot.naturalWidth > 0) {
     const s = Math.min(area.w / shot.naturalWidth, area.h / shot.naturalHeight);
@@ -206,23 +212,23 @@ function drawBrowser(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
     const dh = shot.naturalHeight * s;
     ctx.drawImage(shot, area.x + (area.w - dw) / 2, area.y, dw, dh);
   } else {
-    ctx.fillStyle = '#9aa1b2';
+    ctx.fillStyle = INK_FADED;
     ctx.textAlign = 'center';
     ctx.font = `16px ${SANS}`;
-    ctx.fillText('🌐 loading page…', area.x + area.w / 2, area.y + area.h / 2);
+    ctx.fillText('loading the page…', area.x + area.w / 2, area.y + area.h / 2);
     ctx.textAlign = 'left';
   }
 }
 
 // ---------- kanban whiteboard ----------
 
-const COLS: { key: keyof KanbanColumns; title: string; chip: string; note: string }[] = [
+const COLS: { key: keyof KanbanColumns; icon: IconName; title: string; chip: string; note: string }[] = [
   // parchment slips pinned to a cork board, each column's strip dyed a little differently
-  { key: 'backlog', title: '📋 Backlog', chip: '#c9a65a', note: '#e8d9b0' },
-  { key: 'progress', title: '🔨 In progress', chip: '#9a7b52', note: '#e4d3ad' },
-  { key: 'qa', title: '🔍 In QA', chip: '#b0703e', note: '#ead2b4' },
-  { key: 'ready', title: '✅ Ready to merge', chip: '#7d8f4a', note: '#dbdcb0' },
-  { key: 'merged', title: '🎉 Merged', chip: '#7a5a78', note: '#dccdc4' },
+  { key: 'backlog', icon: 'board', title: 'Backlog', chip: '#c9a65a', note: '#e8d9b0' },
+  { key: 'progress', icon: 'hammer', title: 'In progress', chip: '#9a7b52', note: '#e4d3ad' },
+  { key: 'qa', icon: 'lens', title: 'In QA', chip: '#b0703e', note: '#ead2b4' },
+  { key: 'ready', icon: 'check', title: 'Ready to merge', chip: '#7d8f4a', note: '#dbdcb0' },
+  { key: 'merged', icon: 'banner', title: 'Merged', chip: '#7a5a78', note: '#dccdc4' },
 ];
 
 const TONE = { warn: '#e9c991', bad: '#e3b9a8', good: '#d3d9a6' };
@@ -244,7 +250,7 @@ export function drawKanban(ctx: CanvasRenderingContext2D, w: number, h: number, 
   ctx.fillStyle = '#d6c39a';
   const synced = repo.lastSync ? `synced ${new Date(repo.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'syncing…';
   ctx.textAlign = 'right';
-  ctx.fillText(`${repo.autoAssign ? '⚡ auto-assign on · ' : ''}${synced}`, w - 40, 50);
+  ctx.fillText(`${repo.autoAssign ? 'auto-assign on · ' : ''}${synced}`, w - 40, 50);
   ctx.textAlign = 'left';
 
   const top = 96;
@@ -257,7 +263,8 @@ export function drawKanban(ctx: CanvasRenderingContext2D, w: number, h: number, 
     ctx.fill();
     ctx.fillStyle = '#21160e';
     ctx.font = `700 30px ${SANS}`;
-    ctx.fillText(`${c.title}  ${cards.length}`, x0 + 30, top + 27);
+    drawIcon(ctx, c.icon, x0 + 24, top + 26, 34, SIGN_INKS.parchment);
+    ctx.fillText(`${c.title}  ${cards.length}`, x0 + 64, top + 27);
     if (ci > 0) {
       ctx.strokeStyle = 'rgba(30, 18, 10, 0.55)';
       ctx.lineWidth = 3;
@@ -338,28 +345,6 @@ function drawNote(ctx: CanvasRenderingContext2D, x: number, y: number, w: number
 
 export function drawTag(ctx: CanvasRenderingContext2D, w: number, h: number, agent: Agent) {
   ctx.clearRect(0, 0, w, h);
-  const icon =
-    agent.status === 'working'
-      ? agent.currentTool?.startsWith('mcp__playwright')
-        ? '🌐'
-        : agent.currentTool === 'Bash' || agent.currentTool === 'PowerShell'
-          ? '▶️'
-          : agent.currentTool
-            ? '⌨️'
-            : '💭'
-      : agent.status === 'preparing'
-        ? '📦'
-        : agent.status === 'done'
-          ? '✅'
-          : agent.status === 'error'
-            ? '❗'
-            : agent.status === 'stopped'
-              ? '⏸️'
-              : agent.role === 'qa'
-                ? '🧪'
-                : agent.role === 'ceo'
-                  ? '🏛️'
-                  : '☕';
   // a parchment label edged in the coder's own colour
   roundRect(ctx, 4, 4, w - 8, h - 8, 6);
   ctx.fillStyle = 'rgba(216, 199, 160, 0.95)';
@@ -368,8 +353,7 @@ export function drawTag(ctx: CanvasRenderingContext2D, w: number, h: number, age
   ctx.strokeStyle = agent.color;
   ctx.stroke();
   ctx.textBaseline = 'middle';
-  ctx.font = `38px ${SANS}`;
-  ctx.fillText(icon, 22, h / 2 + 2);
+  drawIcon(ctx, tagIcon(agent), 18, h / 2, 46, SIGN_INKS.parchment);
   ctx.fillStyle = '#2a1d14';
   ctx.font = `700 40px ${SANS}`;
   const busy = agent.status !== 'idle';
@@ -381,9 +365,9 @@ export function drawTag(ctx: CanvasRenderingContext2D, w: number, h: number, age
           ? `${agent.name} · QA PR #${agent.prNumber}`
           : `${agent.name} · ${agent.title || 'QA'}`
         : busy && agent.task === 'fix' && agent.prNumber
-          ? `${agent.name} · 🔧 PR #${agent.prNumber}`
+          ? `${agent.name} · fixing PR #${agent.prNumber}`
           : busy && agent.task === 'qa' && agent.prNumber
-            ? `${agent.name} · 🧪 PR #${agent.prNumber}`
+            ? `${agent.name} · testing PR #${agent.prNumber}`
             : busy && agent.issueNumber
               ? `${agent.name} · #${agent.issueNumber}`
               : agent.title
@@ -396,8 +380,9 @@ export function drawTag(ctx: CanvasRenderingContext2D, w: number, h: number, age
 /** Name tag for a candidate in the waiting room: who they are and the job they're up for. */
 export function drawCandidateTag(ctx: CanvasRenderingContext2D, w: number, h: number, name: string, title: string, floor: number | null, color: string) {
   ctx.clearRect(0, 0, w, h);
-  roundRect(ctx, 4, 4, w - 8, h - 8, 28);
-  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  // a parchment slip, edged in the chamber's colour with a dashed rule: not yet one of the guild
+  roundRect(ctx, 4, 4, w - 8, h - 8, 6);
+  ctx.fillStyle = 'rgba(216, 199, 160, 0.95)';
   ctx.fill();
   ctx.lineWidth = 6;
   ctx.strokeStyle = color;
@@ -405,8 +390,7 @@ export function drawCandidateTag(ctx: CanvasRenderingContext2D, w: number, h: nu
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.textBaseline = 'middle';
-  ctx.font = `44px ${SANS}`;
-  ctx.fillText('📄', 20, h / 2 + 2);
+  drawIcon(ctx, 'letter', 16, h / 2, 50, SIGN_INKS.parchment);
   const fit = (text: string, max: number) => {
     let t = text;
     while (t.length > 4 && ctx.measureText(t).width > max) t = `${t.slice(0, -2)}…`;
@@ -415,7 +399,7 @@ export function drawCandidateTag(ctx: CanvasRenderingContext2D, w: number, h: nu
   ctx.fillStyle = '#2a1d14';
   ctx.font = `700 40px ${SANS}`;
   ctx.fillText(fit(`${name} · recruit`, w - 100), 80, h * 0.36);
-  ctx.fillStyle = '#5c6078';
+  ctx.fillStyle = INK_FADED;
   ctx.font = `600 28px ${SANS}`;
   ctx.fillText(fit(`${title}${floor ? ` · chamber ${floor}` : ''}`, w - 100), 80, h * 0.72);
 }
@@ -455,6 +439,12 @@ export function drawSign(ctx: CanvasRenderingContext2D, w: number, h: number, li
     y += (l.size * 1.25) / 2;
   }
   ctx.textAlign = 'left';
+}
+
+/** One woodcut icon, `size` px square, its left edge at x and centred on y (nothing while it is still loading). */
+function drawIcon(ctx: CanvasRenderingContext2D, name: IconName, x: number, y: number, size: number, inks: { ink: string; paper: string }) {
+  const img = signIcon(name, inks.ink, inks.paper);
+  if (img) ctx.drawImage(img, x, y - size / 2, size, size);
 }
 
 /** One centred line of sign text, with the emoji the dungeon has drawings for shown as its woodcut icons. */
@@ -548,13 +538,14 @@ const APP_STEPS: { status: PreviewStatus; label: string }[] = [
 ];
 
 const APP_BADGE: Record<PreviewStatus, { text: string; bg: string }> = {
-  unconfigured: { text: 'NOT SET UP', bg: '#5c6078' },
-  stopped: { text: 'STOPPED', bg: '#5c6078' },
-  preparing: { text: 'STARTING', bg: '#f4a261' },
-  installing: { text: 'STARTING', bg: '#f4a261' },
-  starting: { text: 'STARTING', bg: '#f4a261' },
-  running: { text: '● LIVE', bg: '#ef233c' },
-  error: { text: 'ERROR', bg: '#e63946' },
+  // iron when idle, gold while it wakes, vert when the gates are open, gules when it failed
+  unconfigured: { text: 'NOT SET UP', bg: '#5e564c' },
+  stopped: { text: 'STOPPED', bg: '#5e564c' },
+  preparing: { text: 'STARTING', bg: '#9a7224' },
+  installing: { text: 'STARTING', bg: '#9a7224' },
+  starting: { text: 'STARTING', bg: '#9a7224' },
+  running: { text: 'OPEN', bg: '#3d6332' },
+  error: { text: 'FAILED', bg: '#8e2a22' },
 };
 
 /** Shorten text with an ellipsis until it fits in max pixels, in the context's current font. */
@@ -593,7 +584,7 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
   roundRect(ctx, 40, 30, chipW, 54, 27);
   ctx.fillStyle = info.color;
   ctx.fill();
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = TERM.text;
   ctx.fillText(chip, 62, 58);
 
   const badge = APP_BADGE[p.status];
@@ -602,7 +593,7 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
   roundRect(ctx, w - 40 - badgeW, 28, badgeW, 58, 29);
   ctx.fillStyle = badge.bg;
   ctx.fill();
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = TERM.text;
   ctx.textAlign = 'center';
   ctx.fillText(badge.text, w - 40 - badgeW / 2, 58);
   ctx.textAlign = 'left';
@@ -618,7 +609,7 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
     ctx.fillText(fitText(ctx, text, w - 100), w / 2, y);
     ctx.textAlign = 'left';
   };
-  const footer = (text: string, color = '#8d8da8') => centred(text, h - 50, 32, color, 600);
+  const footer = (text: string, color = TERM.result) => centred(text, h - 50, 32, color, 600);
 
   const bodyTop = headH;
   const midY = bodyTop + (h - headH - 100) / 2;
@@ -631,33 +622,34 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
     ctx.beginPath();
     ctx.arc(w / 2, cy, 84, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = TERM.text;
     ctx.beginPath();
     ctx.moveTo(w / 2 - 26, cy - 42);
     ctx.lineTo(w / 2 - 26, cy + 42);
     ctx.lineTo(w / 2 + 44, cy);
     ctx.closePath();
     ctx.fill();
-    centred('Press E to open the app', midY + 80, 70, '#ffffff');
+    centred('Press E to open the app', midY + 80, 70, TERM.text);
     footer("The app isn't running. Start it from the viewer.");
   } else if (p.status === 'unconfigured') {
-    centred('⚙️', midY - 90, 110, '#ffffff', 400);
-    centred('No run command yet.', midY + 40, 66, '#ffffff');
-    centred("Set one in the Overlord's ledger.", midY + 120, 44, '#b8b8cc', 600);
+    drawIcon(ctx, 'gear', w / 2 - 55, midY - 90, 110, SIGN_INKS.slate);
+    centred('No run command yet.', midY + 40, 66, TERM.text);
+    centred("Set one in the Overlord's ledger.", midY + 120, 44, '#a99f90', 600);
     footer('Press E to open the app');
   } else if (p.status === 'error') {
     const firstLine = (p.error ?? '').split(/\r?\n/).find((l) => l.trim())?.trim() || 'The app stopped unexpectedly.';
-    ctx.fillStyle = '#e63946';
+    ctx.fillStyle = '#8e2a22';
     ctx.fillRect(0, midY - 120, w, 130);
     ctx.font = `700 44px ${SANS}`;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(fitText(ctx, `⚠ ${firstLine}`, w - 100), 50, midY - 55);
-    centred("The app couldn't start.", midY + 90, 52, '#ffffff');
-    footer('Press E to see the log and try again', '#ffb4ba');
+    ctx.fillStyle = TERM.text;
+    drawIcon(ctx, 'warning', 50, midY - 55, 52, SIGN_INKS.slate);
+    ctx.fillText(fitText(ctx, firstLine, w - 170), 116, midY - 55);
+    centred("The app couldn't start.", midY + 90, 52, TERM.text);
+    footer('Press E to see the log and try again', '#e8b8a8');
   } else if (p.status !== 'running') {
     const at = Math.max(0, APP_STEPS.findIndex((s) => s.status === p.status));
-    centred(`Getting ${ref} ready…`, bodyTop + 80, 46, '#b8b8cc', 600);
-    centred(`${APP_STEPS[at].label}…`, midY - 20, 72, '#ffffff');
+    centred(`Getting ${ref} ready…`, bodyTop + 80, 46, '#a99f90', 600);
+    centred(`${APP_STEPS[at].label}…`, midY - 20, 72, TERM.text);
     // a three-step progress bar
     const gap = 18;
     const segW = (w - 200 - gap * (APP_STEPS.length - 1)) / APP_STEPS.length;
@@ -665,10 +657,10 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
       const x = 100 + i * (segW + gap);
       const y = midY + 90;
       roundRect(ctx, x, y, segW, 34, 17);
-      ctx.fillStyle = i < at ? TERM.done : i === at ? '#f4a261' : '#3a3a52';
+      ctx.fillStyle = i < at ? TERM.done : i === at ? '#9a7224' : '#3a352e';
       ctx.fill();
       ctx.font = `600 28px ${SANS}`;
-      ctx.fillStyle = i <= at ? TERM.text : '#6c6c88';
+      ctx.fillStyle = i <= at ? TERM.text : '#6e665a';
       ctx.textAlign = 'center';
       ctx.fillText(`${i < at ? '✓ ' : ''}${s.label}`, x + segW / 2, y + 70);
       ctx.textAlign = 'left';
@@ -679,7 +671,7 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
     const left = 56;
     const colW = info.shot ? w * 0.5 : w - 2 * left;
     ctx.font = `600 34px ${SANS}`;
-    ctx.fillStyle = '#b8b8cc';
+    ctx.fillStyle = '#a99f90';
     ctx.fillText('Serving at', left, bodyTop + 72);
     ctx.font = `700 50px ${MONO}`;
     ctx.fillStyle = TERM.tool;
@@ -690,7 +682,7 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
     roundRect(ctx, left, bodyTop + 208, refW, 64, 32);
     ctx.fillStyle = info.color;
     ctx.fill();
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = TERM.text;
     ctx.fillText(ref, left + 24, bodyTop + 241);
     if (p.commit) {
       ctx.font = `600 42px ${MONO}`;
@@ -699,7 +691,7 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
     }
     if (p.startedAt) {
       ctx.font = `500 32px ${SANS}`;
-      ctx.fillStyle = '#8d8da8';
+      ctx.fillStyle = TERM.result;
       ctx.fillText(`up since ${new Date(p.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`, left, bodyTop + 330);
     }
 
@@ -708,14 +700,14 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
       const th = Math.round(tw * 0.5625);
       const tx = w - 40 - tw;
       const ty = bodyTop + 50;
-      ctx.fillStyle = '#3a3a52';
+      ctx.fillStyle = '#3a352e';
       ctx.fillRect(tx - 6, ty - 6, tw + 12, th + 12);
       // cover-fit, anchored to the top left like a browser viewport
       const img = info.shot;
       const scale = Math.max(tw / img.width, th / img.height);
       ctx.drawImage(img, 0, 0, tw / scale, th / scale, tx, ty, tw, th);
       ctx.font = `500 26px ${SANS}`;
-      ctx.fillStyle = '#8d8da8';
+      ctx.fillStyle = TERM.result;
       ctx.fillText(fitText(ctx, info.shotBy ? `latest from ${info.shotBy}'s browser` : 'latest agent screenshot', tw), tx, ty + th + 36);
     }
     footer('Press E to open the app', TERM.done);

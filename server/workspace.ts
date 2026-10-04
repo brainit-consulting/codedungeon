@@ -49,7 +49,7 @@ async function addLocalExcludes(main: string) {
   const missing = LOCAL_EXCLUDES.filter((l) => !current.split(/\r?\n/).includes(l));
   if (missing.length === 0) return;
   await fs.mkdir(path.dirname(file), { recursive: true });
-  await fs.appendFile(file, `${current && !current.endsWith('\n') ? '\n' : ''}# added by cubefarm\n${missing.join('\n')}\n`);
+  await fs.appendFile(file, `${current && !current.endsWith('\n') ? '\n' : ''}# added by Code Dungeon\n${missing.join('\n')}\n`);
 }
 
 /** Make sure the floor's worktrees keep LOCAL_EXCLUDES out of git status. */

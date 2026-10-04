@@ -59,7 +59,7 @@ function ShipSign({ repo }: { repo: RepoView }) {
             { text: '⚔️', size: 80 },
             { text: 'SHIP IT', size: 64 },
             { text: status, size: 28, weight: 500 },
-          ], '#3a86ff')
+          ], '#2f4d7a')
         }
         deps={[status]}
       />
@@ -98,7 +98,7 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
         rotationY={-Math.PI / 2}
         size={[3.2, 0.55]}
         px={[768, 132]}
-        draw={(ctx) => drawSign(ctx, 768, 132, [{ text: `🔍 ASSAY ROOM · ${inQa} in testing`, size: 56 }], '#ff9f68')}
+        draw={(ctx) => drawSign(ctx, 768, 132, [{ text: `🔍 ASSAY ROOM · ${inQa} in testing`, size: 56 }], '#a5512a')}
         deps={[inQa]}
       />
 
@@ -148,7 +148,7 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
       <Plant position={[7.1, 0, -HALF_D + 0.7]} />
       <Plant position={[-HALF_W + 0.7, 0, HALF_D - 0.8]} scale={1.2} />
       <Plant position={[-11, 0, -HALF_D + 0.7]} scale={1.1} />
-      <Plant position={[HALF_W - 0.7, 0, HALF_D - 0.7]} scale={0.9} pot="#8338ec" />
+      <Plant position={[HALF_W - 0.7, 0, HALF_D - 0.7]} scale={0.9} pot="#6e4a30" />
       <Couch position={[-HALF_W + 0.9, 0, 6.5]} rotationY={-Math.PI / 2} color={shade(repo.color, -0.05)} />
       <CoffeeTable position={[-HALF_W + 2.6, 0, 6.5]} rotationY={Math.PI / 2} />
       <Kitchenette position={[HALF_W - 0.45, 0, 7]} />

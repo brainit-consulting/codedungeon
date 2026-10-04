@@ -11,7 +11,7 @@ function world(opts: { buildMs?: number } = {}) {
   const emitted: string[] = [];
   let checks: 'passing' | 'failing' = 'passing';
   let githubDown = false;
-  const repo: ShipRepo = { id: 'demo-co/todo', fullName: 'demo-co/todo', defaultBranch: 'main', ship: structuredClone(DEFAULT_SHIP) };
+  const repo: ShipRepo = { id: 'demo-keep/todo', fullName: 'demo-keep/todo', defaultBranch: 'main', ship: structuredClone(DEFAULT_SHIP) };
   const yard = new Shipyard(
     {
       vercel,
@@ -260,7 +260,7 @@ describe('SHIP IT, after the final review', () => {
     const project = await w.vercel.createProject('todo', 'demo-team');
     await expect(w.yard.setup(w.repo, { method: 'git-auto', scope: 'demo-team', project })).rejects.toThrow(/public/);
     const other = await w.vercel.createProject('other', 'demo-team');
-    await w.vercel.gitConnect(fakeShipDir('demo-co/other'), { ...other, scope: 'demo-team' });
-    await expect(w.yard.setup(w.repo, { method: 'git-promote', scope: 'demo-team', project: other })).rejects.toThrow(/connected to demo-co\/other/);
+    await w.vercel.gitConnect(fakeShipDir('demo-keep/other'), { ...other, scope: 'demo-team' });
+    await expect(w.yard.setup(w.repo, { method: 'git-promote', scope: 'demo-team', project: other })).rejects.toThrow(/connected to demo-keep\/other/);
   });
 });

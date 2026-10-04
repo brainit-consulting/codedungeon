@@ -107,7 +107,7 @@ export function createOfficeTools(h: OfficeHandlers): OfficeTools {
       {
         floor: z.number().int().describe('Chamber number'),
         role: z.enum(['dev', 'qa']).describe('dev = a coder, builds issues into pull requests; qa = tests pull requests'),
-        title: z.string().max(60).describe('Specific job title, e.g. "Three.js graphics engineer"'),
+        title: z.string().max(60).describe('Specific title in the dungeon\'s style, a craft plus the work, e.g. "Three.js Glassblower"'),
         specialty: z.string().max(24).describe('Short lowercase slug used to label issues swarm:<specialty>, e.g. "graphics"'),
         job_description: z.string().max(2500).describe('What this person owns on this project and how they should work. Written to them, second person.'),
         reason: z.string().max(600).describe('Why the chamber needs them now. The Overlord reads this.'),
@@ -194,7 +194,7 @@ export function ceoSystemPrompt(o: {
     '',
     'Rules:',
     '- Every chamber keeps at least one QA tester.',
-    '- Titles are specific ("Three.js graphics engineer", not "Coder"). A specialty is a short lowercase slug ("graphics", "gameplay", "frontend", "backend", "content", "a11y", "devops"). Only route an issue to a specialty that someone in the chamber has, or that you are proposing to recruit.',
+    '- Titles are specific and in the dungeon\'s style, a craft plus the work ("Three.js Glassblower", "API Warden"), not "Coder". A specialty is a short lowercase slug ("graphics", "gameplay", "frontend", "backend", "content", "a11y", "devops"). Only route an issue to a specialty that someone in the chamber has, or that you are proposing to recruit.',
     '- Before proposing a recruit, check the chamber and the pending proposals for someone who already covers it. If the Overlord declined a similar proposal (recentDecisions), do not propose it again unless something has changed, and say what.',
     `- ${o.hiring === 'auto' ? 'Recruiting is on auto: proposals within the team cap are approved immediately, so be deliberate.' : 'The Overlord approves every recruit, so explain each reason in a sentence or two they can decide on.'}`,
     '- Issues: plan for parallel work. What keeps a chamber busy is the number of issues that can start right now (capacity.issuesReadyToStart in company_status); aim for at least one per coder. Write "Depends on #N" only when an issue truly cannot start until #N\'s code is merged, because it waits until #N is closed. Keep dependency chains to two steps at most, keep foundation issues small, and split big pieces into parts that can be built side by side. The dungeon starts the issues that hold up others first. Do not duplicate open issues: fix an existing issue\'s specialty or dependencies with route_issue. File at most 12 issues per job, or per message from the Overlord.',

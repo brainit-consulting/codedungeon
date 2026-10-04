@@ -20,6 +20,7 @@ import { AgentTerminal } from './terminal.ts';
 import { nextChamber } from '../shared/chambers.ts';
 import { blockers, holdUps, issueSpecialty } from '../shared/issues.ts';
 import { effectiveModel } from '../shared/models.ts';
+import { CHAMBER_DYES, COAT_DYES, periodColor } from '../shared/palette.ts';
 import { CEO_ID } from '../shared/types.ts';
 import type {
   AgentCli,
@@ -188,8 +189,6 @@ interface QaReport {
 
 // ---------- flavour ----------
 
-const FLOOR_COLORS = ['#ff8a5b', '#4fb3e8', '#8fd14f', '#c77dff', '#ffc93c', '#ff6fb5', '#2ec4b6', '#f25f5c'];
-const SHIRTS = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#9b5de5', '#f15bb5', '#00bbf9', '#06d6a0', '#ffbe0b', '#8338ec', '#fb5607', '#3a86ff'];
 const HAIR = ['#2b2118', '#6b4226', '#c68642', '#f2d16b', '#d94f30', '#1c1c1c', '#8e8e8e', '#5b3cc4', '#e76f51'];
 const SKIN = ['#ffdbac', '#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#ffe0bd'];
 // Code Dungeon's coders and testers: a name and a trade. The trade fits the craft (testers are assayers, wardens and
@@ -464,6 +463,7 @@ export class Swarm {
         settings: { ...this.state.settings, ...loaded.settings },
         repos: (loaded.repos ?? []).map((r) => ({
           ...r,
+          color: periodColor(r.color), // chambers made under cubefarm kept its bright colours
           autoMerge: r.autoMerge ?? true,
           links: r.links ?? [],
           mission: r.mission ?? '',
@@ -475,6 +475,7 @@ export class Swarm {
         })),
         agents: (loaded.agents ?? []).map((a) => ({
           ...a,
+          color: periodColor(a.color),
           effort: a.effort ?? '',
           role: a.role ?? 'dev',
           title: a.title ?? '',
@@ -565,7 +566,7 @@ export class Swarm {
 
     if (this.backend.demo && this.state.repos.length === 0) {
       // The demo opens on a busy office; the tutorial still runs so it can be tried.
-      Object.assign(this.state.settings, { setupDone: true, managerName: 'Demo Manager', companyName: 'Demo Co.' });
+      Object.assign(this.state.settings, { setupDone: true, managerName: 'Demo Overlord', companyName: 'Demo Keep' });
       for (const r of await this.backend.listMyRepos()) {
         const repo = await this.connectRepo(r.nameWithOwner);
         for (let i = 0; i < (repo.floor === 1 ? 5 : 3); i++) this.hireAgent(repo.id, {});
@@ -884,7 +885,7 @@ export class Swarm {
       url: meta.url,
       defaultBranch: meta.defaultBranch,
       floor,
-      color: FLOOR_COLORS[(floor - 1) % FLOOR_COLORS.length],
+      color: CHAMBER_DYES[(floor - 1) % CHAMBER_DYES.length],
       autoAssign: !!opts.autoAssign,
       autoMerge: true,
       browserTesting: true,
@@ -1349,7 +1350,7 @@ export class Swarm {
       look: LOOKS.includes(opts.look as AgentLook) ? (opts.look as AgentLook) : lookFor(name),
       task: null,
       desk,
-      color: opts.appearance?.color ?? pick(SHIRTS),
+      color: opts.appearance?.color ?? pick(COAT_DYES),
       hair: opts.appearance?.hair ?? pick(HAIR),
       skin: opts.appearance?.skin ?? pick(SKIN),
       model: opts.model ?? '',
@@ -2593,7 +2594,7 @@ export class Swarm {
         look: lookFor(CEO_NAME),
         task: null,
         desk: 0,
-        color: '#e63946',
+        color: COAT_DYES[0],
         hair: '#2b2118',
         skin: pick(SKIN),
         model: CEO_MODEL,
@@ -2922,7 +2923,7 @@ export class Swarm {
       this.decide(req, { status: 'approved', note: '', decidedBy: by });
       this.postMessage(
         'office',
-        by === 'auto' ? `🤖 Auto-approved: ${agent.name} joined chamber ${repo.floor} as ${req.title}.` : `✅ You recruited ${agent.name} as ${req.title} in chamber ${repo.floor}.`,
+        by === 'auto' ? `✅ Recruited on the DungeonMaster's word: ${agent.name} joined chamber ${repo.floor} as ${req.title}.` : `✅ You recruited ${agent.name} as ${req.title} in chamber ${repo.floor}.`,
         req.id,
       );
       this.toast('success', `${agent.name} (${req.title}) joined chamber ${repo.floor}`);
@@ -3139,7 +3140,7 @@ export class Swarm {
       model: String(x.model ?? '').trim(),
       effort: EFFORTS.includes(x.effort as EffortLevel) ? (x.effort as EffortLevel) : '',
       look: lookFor(name),
-      color: pick(SHIRTS),
+      color: pick(COAT_DYES),
       hair: pick(HAIR),
       skin: pick(SKIN),
       status: 'pending',

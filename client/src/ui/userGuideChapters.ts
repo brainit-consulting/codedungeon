@@ -34,7 +34,7 @@ export const CHAPTERS: GuideChapter[] = [
       p(
         'Each chamber has a pair of oak doors. They creak open as you come up the gallery towards them and swing shut once you are well past, so from inside one chamber you see the shut doors of the chamber opposite.',
       ),
-      p('The directory beside the archway lists every chamber: press [[E]] on it to walk straight into one instead of finding the door.'),
+      p('The Roll of Chambers beside the archway lists every chamber: press [[E]] on it to walk straight into one instead of finding the door.'),
       h('Inside a chamber'),
       list(
         '**The notice board** on the far wall, facing you as you come in: the chamber\'s issues and pull requests (chapter IV).',
@@ -59,7 +59,7 @@ export const CHAPTERS: GuideChapter[] = [
         ['W A S D or the arrow keys', 'Walk'],
         ['Shift', 'Hold to run'],
         ['Mouse', 'Look around'],
-        ['E or left click', 'Use whatever the cross is on: a bench, the notice board, the directory, your table'],
+        ['E or left click', 'Use whatever the cross is on: a bench, the notice board, the Roll of Chambers, your table'],
         ['Esc', 'Let go of the mouse, or close the panel that is open'],
       ),
       p(

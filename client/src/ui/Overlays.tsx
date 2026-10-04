@@ -145,7 +145,7 @@ function Help() {
         <h3>The dungeon</h3>
         <p>
           The great hall: your study is the room at the back left, the DungeonMaster's quarters are at the back right, and recruits wait on the chairs along the east wall. Every connected GitHub repo gets its own
-          chamber off the gallery: walk through the archway in the middle of the south wall, or use the directory beside it to walk straight in.
+          chamber off the gallery: walk through the archway in the middle of the south wall, or use the Roll of Chambers beside it to walk straight in.
         </p>
         <h3>Your scroll</h3>
         <p>
