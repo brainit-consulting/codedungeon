@@ -19,7 +19,8 @@ describe('stepChapter', () => {
 
 describe('chapterIndex', () => {
   it('finds a chapter by id and falls back to the first', () => {
-    expect(chapterIndex(CHAPTERS, 'keys')).toBe(CHAPTERS.length - 1);
+    expect(chapterIndex(CHAPTERS, 'quick-start')).toBe(CHAPTERS.length - 1);
+    expect(chapterIndex(CHAPTERS, 'keys')).toBe(CHAPTERS.length - 2);
     expect(chapterIndex(CHAPTERS, 'no-such-chapter')).toBe(0);
     expect(chapterIndex(CHAPTERS, undefined)).toBe(0);
   });
@@ -64,7 +65,7 @@ describe('the chapters', () => {
   });
   it('close every inline mark they open', () => {
     const lines = CHAPTERS.flatMap((c) =>
-      c.blocks.flatMap((b) => (b.kind === 'p' || b.kind === 'h' ? [b.text] : b.kind === 'list' ? b.items : b.rows.flat())),
+      c.blocks.flatMap((b) => (b.kind === 'p' || b.kind === 'h' ? [b.text] : b.kind === 'list' ? b.items : b.kind === 'keys' ? b.rows.flat() : [])),
     );
     for (const line of lines) {
       const plain = parseInline(line)
@@ -86,5 +87,20 @@ describe('chapter numbers in the text', () => {
     expect(text).not.toMatch(/chapter \d/i);
     const valid = new Set(CHAPTERS.map((_, i) => roman(i + 1)));
     for (const m of text.matchAll(/chapter ([IVXLC]+)\b/g)) expect(valid, `chapter ${m[1]}`).toContain(m[1]);
+  });
+});
+
+describe('links in chapter text', () => {
+  it('reads [text](https://…) as a link', () => {
+    expect(parseInline('Get it from [nodejs.org](https://nodejs.org), then go on.')).toEqual([
+      { kind: 'text', text: 'Get it from ' },
+      { kind: 'link', text: 'nodejs.org', href: 'https://nodejs.org' },
+      { kind: 'text', text: ', then go on.' },
+    ]);
+  });
+
+  it('leaves anything that is not an http(s) address as plain text', () => {
+    expect(parseInline('a [x](javascript:alert(1)) b')).toEqual([{ kind: 'text', text: 'a [x](javascript:alert(1)) b' }]);
+    expect(parseInline('[[E]] still a key')[0]).toEqual({ kind: 'key', text: 'E' });
   });
 });

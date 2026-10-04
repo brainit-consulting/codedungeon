@@ -15,9 +15,34 @@ function Line({ text }: { text: string }) {
   return (
     <>
       {parseInline(text).map((r, i) =>
-        r.kind === 'key' ? <kbd key={i}>{r.text}</kbd> : r.kind === 'code' ? <code key={i}>{r.text}</code> : r.kind === 'bold' ? <b key={i}><IconText text={r.text} /></b> : <span key={i}><IconText text={r.text} /></span>,
+        r.kind === 'link' ? (
+          <a key={i} href={r.href} target="_blank" rel="noopener noreferrer">
+            <IconText text={r.text} />
+          </a>
+        ) : r.kind === 'key' ? <kbd key={i}>{r.text}</kbd> : r.kind === 'code' ? <code key={i}>{r.text}</code> : r.kind === 'bold' ? <b key={i}><IconText text={r.text} /></b> : <span key={i}><IconText text={r.text} /></span>,
       )}
     </>
+  );
+}
+
+/** A line to paste into a terminal, with a button that copies it exactly. */
+function Command({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () =>
+    void navigator.clipboard?.writeText(text).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      },
+      () => undefined,
+    );
+  return (
+    <div className="ug-command">
+      <code>{text}</code>
+      <button type="button" className="btn btn-small" onClick={copy}>
+        {copied ? 'Copied' : 'Copy'}
+      </button>
+    </div>
   );
 }
 
@@ -41,6 +66,8 @@ function Block({ block }: { block: GuideBlock }): ReactNode {
           ))}
         </ul>
       );
+    case 'command':
+      return <Command text={block.text} />;
     case 'keys':
       return (
         <table className="ug-keys">

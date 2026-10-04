@@ -1,14 +1,12 @@
-// The office's parent process, for a checkout of this repo (`npm run dev`, `npm run demo`, `npm start`).
+// The dungeon's parent process, for a checkout of this repo (`npm run dev`, `npm start`; add `-- --demo` for the demo).
 //
 //   --dev    the server from source (tsx) plus Vite, restarting the server when server/ or shared/ code changes
 //   (none)   the built office: bin/codedungeon.js (checks, then dist-server/ serving dist/), no Vite, no watching
 //   --demo   passed to the server
 //
-// It also updates the office. When the server has drained and sends `office:update` (or you type `u` + Enter here),
-// it stops everything, fast-forwards this folder to origin's default branch, runs npm install if the dependencies
-// changed and, in start mode, npm run build, then starts the office again. A failed step rolls back to the old
-// commit. The result goes to <SWARM_HOME>/last-update.json for the server to report. `node bin/codedungeon.js` on its own has no launcher:
-// installed from npm, the office only reports that an update is ready.
+// Updating is by hand for now (git pull, npm install, start again): update() below only logs, and the server never
+// asks for one (server/officeUpdate.ts selfUpdates). The drain-and-fast-forward machinery is kept for when it's
+// switched back on. `node bin/codedungeon.js` on its own has no launcher.
 import { execFile, spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';

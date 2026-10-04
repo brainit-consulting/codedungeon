@@ -5,7 +5,8 @@ export type GuideBlock =
   | { kind: 'p'; text: string }
   | { kind: 'h'; text: string }
   | { kind: 'list'; items: string[] }
-  | { kind: 'keys'; rows: [keys: string, what: string][] };
+  | { kind: 'keys'; rows: [keys: string, what: string][] }
+  | { kind: 'command'; text: string }; // one line to paste into a terminal, with a Copy button
 
 export interface GuideChapter {
   /** Stable id, so a chapter can be opened by name. */
@@ -56,16 +57,22 @@ export function roman(n: number): string {
   return out;
 }
 
-export type Inline = { kind: 'text' | 'key' | 'code' | 'bold'; text: string };
+export type Inline = { kind: 'text' | 'key' | 'code' | 'bold'; text: string } | { kind: 'link'; text: string; href: string };
 
-const MARK = /(\[\[[^\]]+\]\]|`[^`]+`|\*\*[^*]+\*\*)/;
+const MARK = /(\[\[[^\]]+\]\]|\[[^\]]+\]\(https?:\/\/[^)\s]+\)|`[^`]+`|\*\*[^*]+\*\*)/;
+const LINK = /^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/;
 
-/** Split a line of chapter text into plain text, keys, code and bold runs. Unclosed marks stay as plain text. */
+/**
+ * Split a line of chapter text into plain text, keys, code, bold and links ([text](https://…), which open in their
+ * own tab). Unclosed marks, and links to anything but http(s), stay as plain text.
+ */
 export function parseInline(line: string): Inline[] {
   const out: Inline[] = [];
   for (const part of line.split(MARK)) {
     if (!part) continue;
-    if (part.startsWith('[[') && part.endsWith(']]')) out.push({ kind: 'key', text: part.slice(2, -2) });
+    const link = LINK.exec(part);
+    if (link) out.push({ kind: 'link', text: link[1], href: link[2] });
+    else if (part.startsWith('[[') && part.endsWith(']]')) out.push({ kind: 'key', text: part.slice(2, -2) });
     else if (part.length > 1 && part.startsWith('`') && part.endsWith('`')) out.push({ kind: 'code', text: part.slice(1, -1) });
     else if (part.length > 4 && part.startsWith('**') && part.endsWith('**')) out.push({ kind: 'bold', text: part.slice(2, -2) });
     else out.push({ kind: 'text', text: part });

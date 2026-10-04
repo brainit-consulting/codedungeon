@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CHAPTERS } from '../client/src/ui/userGuideChapters.ts';
-import { SITE_CHAPTERS, buildSite, chapterFile, inlineHtml } from './guideSite.ts';
+import { buildSite, chapterFile, inlineHtml } from './guideSite.ts';
 
 describe('the public User Guide site', () => {
   const files = buildSite(CHAPTERS);
@@ -73,20 +73,26 @@ describe('the guide as a book with a contents column', () => {
   });
 });
 
-describe('the quick start (website only)', () => {
-  const files = buildSite([...CHAPTERS, ...SITE_CHAPTERS]);
+describe('the quick start (in the app and on the site)', () => {
+  const files = buildSite(CHAPTERS);
+  const html = files['quick-start.html'];
 
-  it('comes last, so the chapter numbers the text refers to stay right, and the title page points to it', () => {
-    expect(SITE_CHAPTERS.map((c) => c.id)).toEqual(['quick-start']);
-    expect(files['quick-start.html']).toContain('Quick start');
+  it('is the last chapter, so the chapter numbers the text refers to stay right, and the title page points to it', () => {
+    expect(CHAPTERS.at(-1)?.id).toBe('quick-start');
     expect(files['index.html']).toContain('href="/quick-start"');
-    expect(CHAPTERS.map((c) => c.id)).not.toContain('quick-start');
   });
 
-  it("says the code isn't public yet, and what to have ready", () => {
-    const html = files['quick-start.html'];
-    expect(html).toMatch(/not public yet/i);
-    for (const need of ['Node.js', 'git', 'GitHub', 'Claude']) expect(html).toContain(need);
+  it('gives the one line that installs and starts it, and how to start and restart it later', () => {
+    expect(html).not.toMatch(/not public yet/i);
+    expect(html).toContain('git clone https://github.com/brainit-consulting/codedungeon.git; cd codedungeon; npm install; npm run login; npm run dev');
+    expect(html).toContain('http://localhost:5417');
+    for (const heading of ['Starting it again', 'Restarting it', 'Updating it']) expect(html).toContain(heading);
+  });
+
+  it('links every vendor, each opening in its own tab', () => {
+    for (const url of ['https://nodejs.org', 'https://git-scm.com', 'https://cli.github.com', 'https://claude.ai', 'https://www.google.com/chrome/', 'https://vercel.com']) {
+      expect(html).toContain(`<a href="${url}" target="_blank" rel="noopener noreferrer">`);
+    }
   });
 });
 
@@ -105,7 +111,21 @@ describe('icons on the site', () => {
   });
 
   it('puts no raw emoji with a drawing anywhere on the site', () => {
-    const pages = Object.values(buildSite([...CHAPTERS, ...SITE_CHAPTERS])).join('\n');
+    const pages = Object.values(buildSite(CHAPTERS)).join('\n');
     expect(pages).not.toMatch(/🚢|📜|⚙|🔍|🏰/u);
+  });
+});
+
+describe('links on the site', () => {
+  it('opens every link in its own tab, without handing the page to it', () => {
+    expect(inlineHtml('from [nodejs.org](https://nodejs.org).')).toBe('from <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>.');
+  });
+});
+
+describe('commands to copy', () => {
+  it('sets a command in its own box with a Copy button that carries the exact line', () => {
+    const html = buildSite(CHAPTERS)['quick-start.html'];
+    const line = 'git clone https://github.com/brainit-consulting/codedungeon.git; cd codedungeon; npm install; npm run login; npm run dev';
+    expect(html).toContain(`<div class="command"><code>${line}</code><button type="button" class="copy" data-copy="${line}">Copy</button></div>`);
   });
 });

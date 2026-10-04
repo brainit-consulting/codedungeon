@@ -563,3 +563,31 @@ table.keys th {
   height: 1.2em;
   vertical-align: -0.25em;
 }
+
+/* a line to paste into a terminal: the line itself, then its Copy button */
+.command {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 0 0 1.4rem;
+  padding: 0.8rem 1rem;
+  background: rgba(42, 29, 20, 0.07);
+  border-left: 4px solid #a0441c;
+}
+.command code {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  background: none;
+  padding: 0;
+}
+.command .copy {
+  flex: none;
+  font: 600 0.9rem 'Alegreya SC', Georgia, serif;
+  color: #2a1d14;
+  background: #ecdfc2;
+  border: 2px solid #2a1d14;
+  border-radius: 2px;
+  padding: 0.2rem 0.7rem;
+  cursor: pointer;
+}

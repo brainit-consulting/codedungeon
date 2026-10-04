@@ -86,9 +86,10 @@ Server (`server/`, Node + Express 5 + ws, run by tsx in development; esbuild bun
 The `cubefarm` command (`bin/cubefarm.js`, plain JS): checks Node/git/gh/Claude login, starts `dist-server/index.js`,
 opens the browser; `login` and `doctor` subcommands.
 
-The launcher (`scripts/office.mjs`, plain JS; `npm run dev` / `demo` / `start`): runs the server (plus Vite with
-`--dev`, watching `server/` and `shared/`) with `SWARM_LAUNCHER=1` and an IPC channel, and applies office updates:
-stop, fast-forward, install/build, restart, roll back on failure, `<SWARM_HOME>/last-update.json`. Its pure decisions
+The launcher (`scripts/office.mjs`, plain JS; `npm run dev` / `start`, either with `-- --demo`): runs the server (plus Vite with
+`--dev`, watching `server/` and `shared/`) with `SWARM_LAUNCHER=1` and an IPC channel. Its self-update (stop,
+fast-forward, install/build, restart, roll back on failure, `<SWARM_HOME>/last-update.json`) is switched off for now
+(`server/officeUpdate.ts` `selfUpdates`); updating is `git pull` + `npm install` by hand. Its pure decisions
 are in `scripts/officeSteps.mjs` (tested in `officeSteps.test.ts`).
 
 Shared (`shared/`, imported by both sides):

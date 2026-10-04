@@ -364,3 +364,23 @@
     animation: none;
   }
 }
+
+/* a line to paste into a terminal: the line itself, then its Copy button */
+.ug-command {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 1em;
+  padding: 10px 12px;
+  background: rgba(42, 29, 20, 0.07);
+  border-left: 4px solid var(--accent);
+}
+.ug-command code {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+}
+.ug-command .btn {
+  flex: none;
+}

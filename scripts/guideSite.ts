@@ -25,7 +25,17 @@ function textHtml(text: string): string {
 /** A line of chapter text with its [[Key]], `code` and **bold** marks turned into HTML. */
 export function inlineHtml(line: string): string {
   return parseInline(line)
-    .map((p) => (p.kind === 'key' ? `<kbd>${esc(p.text)}</kbd>` : p.kind === 'code' ? `<code>${esc(p.text)}</code>` : p.kind === 'bold' ? `<strong>${textHtml(p.text)}</strong>` : textHtml(p.text)))
+    .map((p) =>
+      p.kind === 'link'
+        ? `<a href="${esc(p.href)}" target="_blank" rel="noopener noreferrer">${textHtml(p.text)}</a>`
+        : p.kind === 'key'
+          ? `<kbd>${esc(p.text)}</kbd>`
+          : p.kind === 'code'
+            ? `<code>${esc(p.text)}</code>`
+            : p.kind === 'bold'
+              ? `<strong>${textHtml(p.text)}</strong>`
+              : textHtml(p.text),
+    )
     .join('');
 }
 
@@ -56,6 +66,8 @@ function blockHtml(b: GuideBlock, first: boolean, id?: string): string {
       return `<h2 id="${id}">${inlineHtml(b.text)}</h2>`;
     case 'list':
       return `<ul>${b.items.map((i) => `<li>${inlineHtml(i)}</li>`).join('')}</ul>`;
+    case 'command':
+      return `<div class="command"><code>${esc(b.text)}</code><button type="button" class="copy" data-copy="${esc(b.text)}">Copy</button></div>`;
     case 'keys':
       return `<table class="keys"><tbody>${b.rows.map(([k, what]) => `<tr><th scope="row">${esc(k)}</th><td>${inlineHtml(what)}</td></tr>`).join('')}</tbody></table>`;
   }
@@ -108,50 +120,11 @@ ${opts.body}
 
 const running = `<p class="running"><a href="/">Code Dungeon · The User Guide</a></p>`;
 
-/**
- * Chapters only the website has, after the in-app ones (so the chapter numbers the text refers to stay right): how to
- * get Code Dungeon onto your own computer. Readers of the in-app guide already have it.
- */
-export const SITE_CHAPTERS: GuideChapter[] = [
-  {
-    id: 'quick-start',
-    title: 'Quick start',
-    blocks: [
-      {
-        kind: 'p',
-        text: "Code Dungeon is shown at BrainIT Consulting's workshops, running on a real project. Its code is not public yet. It will be published as open source, free to use, and when it is, this chapter will give you the one line that sets it up on your own computer and opens the dungeon in your browser.",
-      },
-      { kind: 'h', text: 'What to have ready' },
-      {
-        kind: 'list',
-        items: [
-          '**A Windows 10 or 11 computer.** Linux works too.',
-          '**Node.js** 22 or newer, from nodejs.org.',
-          '**git**, from git-scm.com.',
-          '**A GitHub account** and the GitHub command line, signed in: install it from cli.github.com, then run `gh auth login`. Every project in the dungeon lives on GitHub.',
-          '**A Claude subscription.** The coders are Claude Code; you sign it in once.',
-          '**Google Chrome**, so the testers can try your app in a real browser.',
-          '**A Vercel account**, only if you want to put your apps on the internet from the dungeon.',
-        ],
-      },
-      { kind: 'h', text: 'When it is published' },
-      {
-        kind: 'p',
-        text: 'You will paste one line into a terminal. It fetches Code Dungeon, checks that your computer has what it needs, and opens the dungeon. A demo mode with pretend projects and pretend coders lets you walk round first without touching your own work or spending any of your subscription.',
-      },
-      {
-        kind: 'p',
-        text: 'Until then, the chapters before this one show how it all works, and a workshop is the place to see it running.',
-      },
-    ],
-  },
-];
-
 /** Shown only on the website, for readers who have never seen the dungeon. */
 const PROLOGUE = [
   'Code Dungeon is a software workshop drawn as a medieval dungeon. You walk through it in first person, from a great hall down a torchlit gallery into a chamber for each of your projects. The people at the workbenches are real AI coding agents, each running in its own terminal on your computer and working through the GitHub issues of that project.',
   'Nothing in it is pretend. The slate on a workbench is that coder\'s live terminal. The notice board is the project\'s real issues and pull requests. When a pull request has passed the testers in the assay room, it is merged on GitHub. You are the Overlord: you set the work, recruit the guild, and step in whenever you like.',
-  'It runs on your own machine: Node.js, git, the GitHub command line signed in to your account, and a coding agent (Claude Code by default; Codex or OpenCode if you have them). Code Dungeon is made by BrainIT Consulting.',
+  'It runs on your own machine: Node.js, git, the GitHub command line signed in to your account, and a coding agent (Claude Code by default; Codex or OpenCode if you have them). Code Dungeon is made by BrainIT Consulting, and it is free and open source: [github.com/brainit-consulting/codedungeon](https://github.com/brainit-consulting/codedungeon).',
 ];
 
 /** The contents column: every chapter, the one being read marked and opened out to its sections; the text size buttons. */
@@ -207,7 +180,7 @@ ${chapters.some((c) => c.id === 'quick-start') ? '<p class="begin"><a href="/qui
 </header>
 <section class="prologue">
 <h2>Before you go down</h2>
-${PROLOGUE.map((t, i) => `<p${i === 0 ? ' class="opening"' : ''}>${esc(t)}</p>`).join('\n')}
+${PROLOGUE.map((t, i) => `<p${i === 0 ? ' class="opening"' : ''}>${inlineHtml(t)}</p>`).join('\n')}
 <p class="begin"><a href="/${chapters[0]?.id ?? ''}">Begin with chapter I →</a></p>
 </section>`,
   });

@@ -8,6 +8,7 @@ const p = (text: string): GuideBlock => ({ kind: 'p', text });
 const h = (text: string): GuideBlock => ({ kind: 'h', text });
 const list = (...items: string[]): GuideBlock => ({ kind: 'list', items });
 const keys = (...rows: [string, string][]): GuideBlock => ({ kind: 'keys', rows });
+const command = (text: string): GuideBlock => ({ kind: 'command', text });
 
 export const CHAPTERS: GuideChapter[] = [
   {
@@ -222,7 +223,7 @@ export const CHAPTERS: GuideChapter[] = [
         '**Recruiting**: approve every recruit, or auto-approve up to the **guild cap per chamber**.',
         '**Dungeon review every** so many minutes: how often the DungeonMaster looks over everything (0 turns it off).',
         '**How coders run**: real terminals (recommended) or the Agent SDK.',
-        'Your name, the name of your hold, the folder new projects are created in, and **Replay the tour**.',
+        'Your name, the name of your hold, the folder new projects are created in, your own domain for launched apps (chapter VIII), and **Replay the tour**.',
       ),
       p(
         'When an update to the dungeon itself is ready, a row at the top of the ledger offers **Update now** or **Later**. Updating lets running sessions finish first, then restarts the dungeon.',
@@ -352,6 +353,44 @@ export const CHAPTERS: GuideChapter[] = [
         ['Shift + Enter', 'New line in those boxes'],
       ),
       p('In this book, [[←]] and [[→]] turn to the previous and next chapter.'),
+    ],
+  },  {
+    id: 'quick-start',
+    title: 'Quick start',
+    blocks: [
+      p(
+        'Code Dungeon is free and open source, under the MIT licence: [github.com/brainit-consulting/codedungeon](https://github.com/brainit-consulting/codedungeon). It runs on your own computer, and the coders work on your own GitHub projects with your own Claude subscription.',
+      ),
+      h('What to have ready'),
+      list(
+        '**A Windows 10 or 11 computer.** Linux works too; macOS has not been tried yet.',
+        '**Node.js 22 or newer**, from [nodejs.org](https://nodejs.org).',
+        '**git**, from [git-scm.com](https://git-scm.com).',
+        '**A GitHub account** ([github.com](https://github.com)) and the GitHub command line, from [cli.github.com](https://cli.github.com). Sign it in with `gh auth login`. Every project in the dungeon lives on GitHub.',
+        '**A Claude subscription**, from [claude.ai](https://claude.ai). The coders run Claude Code, which comes with the dungeon; you sign it in once.',
+        '**Google Chrome**, from [google.com/chrome](https://www.google.com/chrome/), so the testers can try your app in a real browser.',
+        '**A Vercel account**, from [vercel.com](https://vercel.com), only if you want to put your apps on the internet from the dungeon (chapter VIII).',
+      ),
+      h('Install it and start it'),
+      p('Open PowerShell (on Linux, a terminal) in the folder where you keep your projects, and paste this one line:'),
+      command('git clone https://github.com/brainit-consulting/codedungeon.git; cd codedungeon; npm install; npm run login; npm run dev'),
+      p(
+        'It fetches Code Dungeon into a folder called codedungeon, installs what it needs (about a minute), signs Claude in (a browser window asks you to allow it), and starts the dungeon. Then open **http://localhost:5417** in your browser and press **Enter the dungeon**. The first time, a short setup asks your name, names your hold and your DungeonMaster, and brings in your first project.',
+      ),
+      p('If something is missing, `npm run doctor` in the codedungeon folder checks Node.js, git, the GitHub command line and the Claude sign-in, and says what to fix.'),
+      p('To walk round with pretend projects and pretend coders first, start it with `npm run dev -- --demo` instead. Nothing touches GitHub and nothing uses your subscription.'),
+      h('Starting it again'),
+      p(
+        'The dungeon runs while its PowerShell window is open. Another day, open PowerShell in the codedungeon folder, run `npm run dev`, and open http://localhost:5417. Your projects, your guild and your settings are where you left them, in the codedungeon-home folder beside it.',
+      ),
+      h('Restarting it'),
+      p(
+        'To stop it, press [[Ctrl]] + [[C]] in its window; that stops the coders\' sessions too. To start it again, run `npm run dev`. When the dungeon restarts by itself, after an update, the coders keep working through it.',
+      ),
+      h('Updating it'),
+      p(
+        'The ledger\'s Chambers tab shows when a newer Code Dungeon is on GitHub. To update, stop it with [[Ctrl]] + [[C]], then in its folder run `git pull; npm install; npm run dev`. Your projects, guild and settings stay as they are.',
+      ),
     ],
   },
 ];

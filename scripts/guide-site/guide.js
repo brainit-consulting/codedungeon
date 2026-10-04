@@ -64,3 +64,16 @@
   );
   mark();
 })();
+
+// Copy buttons: put the command's exact line on the clipboard and say so for a moment.
+document.addEventListener('click', (e) => {
+  const b = e.target instanceof Element ? e.target.closest('button.copy') : null;
+  if (!b || !navigator.clipboard) return;
+  navigator.clipboard.writeText(b.getAttribute('data-copy') || '').then(
+    () => {
+      b.textContent = 'Copied';
+      setTimeout(() => (b.textContent = 'Copy'), 1500);
+    },
+    () => {},
+  );
+});
