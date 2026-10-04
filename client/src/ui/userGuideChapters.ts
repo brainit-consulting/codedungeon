@@ -361,6 +361,9 @@ export const CHAPTERS: GuideChapter[] = [
       p(
         'Code Dungeon is free and open source, under the MIT licence: [github.com/brainit-consulting/codedungeon](https://github.com/brainit-consulting/codedungeon). It runs on your own computer, and the coders work on your own GitHub projects with your own Claude subscription.',
       ),
+      p(
+        'Two short videos show it: [Introduction to Code Dungeon](https://youtu.be/RzP2SoLmC6Q) (2 minutes 23), what it is and how the guild works, and [Getting started](https://youtu.be/Mn74ZSlh78U) (2 minutes 35), installing it and your first project.',
+      ),
       h('What to have ready'),
       list(
         '**A Windows 10 or 11 computer.** Linux works too; macOS has not been tried yet.',

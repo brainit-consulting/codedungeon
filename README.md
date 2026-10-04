@@ -9,6 +9,14 @@ slate on every workbench is that coder's live terminal.
 
 **The User Guide** (also in the dungeon: press `B`): https://codedungeon-guide.vercel.app
 
+## Watch it first
+
+| [![Introduction to Code Dungeon](docs/images/video-intro.jpg)](https://youtu.be/RzP2SoLmC6Q) | [![Getting started with Code Dungeon](docs/images/video-start.jpg)](https://youtu.be/Mn74ZSlh78U) |
+| --- | --- |
+| [**Introduction to Code Dungeon**](https://youtu.be/RzP2SoLmC6Q) (2 min 23 s): what it is and how the guild works. | [**Getting started**](https://youtu.be/Mn74ZSlh78U) (2 min 35 s): installing it and your first project. |
+
+The projects in them come from demo mode and are made up.
+
 Code Dungeon grew out of Leon van Zyl's [cubefarm](https://github.com/leonvanzyl/cubefarm). It is free and open
 source under the [MIT licence](LICENSE).
 
