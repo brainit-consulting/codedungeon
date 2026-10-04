@@ -1,6 +1,8 @@
-// Every office sound, synthesized with WebAudio (no audio files). One shared AudioContext feeds a
-// master gain, so volume and mute apply to everything at once. Audio is optional: when it's blocked
-// or unavailable (headless browsers), sounds just don't play.
+// Every sound in the dungeon, synthesized with WebAudio (no audio files); the bell and gong recipes are in
+// sfxVoices.ts. One shared AudioContext feeds a master gain, so volume and mute apply to everything at once.
+// Audio is optional: when it's blocked or unavailable (headless browsers), sounds just don't play.
+
+import { SOUNDS, type Voice } from './sfxVoices';
 
 export interface AudioPrefs {
   volume: number; // 0-100
@@ -170,15 +172,17 @@ export function noise({ at = 0, dur, peak, filter = 'lowpass', freq, to, q = 1, 
   }
 }
 
-// ---------- the office's sounds ----------
+// ---------- the dungeon's sounds ----------
+
+const play = (voices: Voice[]) => voices.forEach((v) => (v.kind === 'tone' ? tone(v) : noise(v)));
 
 let lastChirp = -Infinity;
 
-/** The phone's message chirp: two quick rising blips (messages that arrive together chirp once). */
+/** A DungeonMaster message: a small handbell, ting-ting (messages that arrive together ring it once). */
 export function chirp() {
   if (performance.now() - lastChirp < 800) return;
   lastChirp = performance.now();
-  [1046.5, 1568].forEach((freq, i) => tone({ freq, type: 'triangle', at: i * 0.11, dur: 0.18, peak: 0.12 }));
+  play(SOUNDS.message());
 }
 
 /** One soft footstep: a muffled thud. */
@@ -198,51 +202,17 @@ export function footstepsFollow(bobPhase: number, moving: boolean, running: bool
   stepCount = n;
 }
 
-/** A basket: the net's swish, then a small cheer. */
-export function swish() {
-  noise({ dur: 0.3, peak: 0.14, filter: 'bandpass', freq: 5200, to: 2600, q: 0.8, attack: 0.03 });
-  noise({ at: 0.18, dur: 0.9, peak: 0.05, filter: 'bandpass', freq: 900, to: 1500, q: 0.5, attack: 0.2 });
-  [784, 988, 1318.5].forEach((freq, i) => tone({ freq, type: 'triangle', at: 0.2 + i * 0.08, dur: 0.3, peak: 0.06 }));
-}
-
 // ---------- event cues ----------
 
 export type Cue = 'error' | 'qaFailed' | 'ready' | 'merged' | 'welcome';
 
+// What each cue sounds like is in sfxVoices.ts (SOUNDS); the rank decides which one wins a burst.
 const CUES: Record<Cue, { rank: number; play: () => void }> = {
-  // An agent hit an error: a soft low buzz.
-  error: {
-    rank: 5,
-    play: () => [0, 0.2].forEach((at) => tone({ freq: 110, type: 'sawtooth', at, dur: 0.16, peak: 0.035, attack: 0.02 })),
-  },
-  // QA failed a PR: a gentle descending "womp".
-  qaFailed: {
-    rank: 4,
-    play: () => {
-      tone({ freq: 392, to: 370, type: 'triangle', dur: 0.26, peak: 0.12 });
-      tone({ freq: 311, to: 196, type: 'triangle', at: 0.26, dur: 0.55, peak: 0.12 });
-    },
-  },
-  // A PR passed QA and is ready to merge: a short bright arpeggio.
-  ready: {
-    rank: 3,
-    play: () => [784, 988, 1175, 1568].forEach((freq, i) => tone({ freq, type: 'triangle', at: i * 0.07, dur: 0.28, peak: 0.09 })),
-  },
-  // A PR was merged: a pop and a little cheer.
-  merged: {
-    rank: 2,
-    play: () => {
-      noise({ dur: 0.07, peak: 0.16, filter: 'bandpass', freq: 1400, q: 1.2, attack: 0.002 });
-      tone({ freq: 523, to: 1046, type: 'square', at: 0.04, dur: 0.12, peak: 0.04 });
-      [1046.5, 1318.5, 1568].forEach((freq) => tone({ freq, type: 'triangle', at: 0.14, dur: 0.5, peak: 0.05 }));
-      noise({ at: 0.12, dur: 0.6, peak: 0.03, filter: 'bandpass', freq: 2500, q: 0.6, attack: 0.08 });
-    },
-  },
-  // A hire was approved or a new teammate arrived: a small welcome jingle.
-  welcome: {
-    rank: 1,
-    play: () => [659, 784, 1046.5].forEach((freq, i) => tone({ freq, type: 'sine', at: i * 0.12, dur: i === 2 ? 0.5 : 0.2, peak: 0.12 })),
-  },
+  error: { rank: 5, play: () => play(SOUNDS.error()) },
+  qaFailed: { rank: 4, play: () => play(SOUNDS.qaFailed()) },
+  ready: { rank: 3, play: () => play(SOUNDS.ready()) },
+  merged: { rank: 2, play: () => play(SOUNDS.merged()) },
+  welcome: { rank: 1, play: () => play(SOUNDS.welcome()) },
 };
 
 const GATHER_MS = 150; // cues that arrive together are gathered, and only the most important plays
