@@ -10,6 +10,8 @@ import { tagIcon } from './tagIcon';
 export const MONO = '"JetBrains Mono", Consolas, "Cascadia Mono", monospace';
 // The dungeon's lettering on signs and slates: Alegreya, a calligraphic serif that stays readable.
 export const SANS = 'Alegreya, "Iowan Old Style", Georgia, serif';
+/** Blackletter, for the hold's name (the title page's face). */
+export const TITLE = 'UnifrakturMaguntia, "Alegreya SC", Georgia, serif';
 
 export function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
@@ -365,9 +367,9 @@ export function drawTag(ctx: CanvasRenderingContext2D, w: number, h: number, age
           ? `${agent.name} · QA PR #${agent.prNumber}`
           : `${agent.name} · ${agent.title || 'QA'}`
         : busy && agent.task === 'fix' && agent.prNumber
-          ? `${agent.name} · fixing PR #${agent.prNumber}`
+          ? `${agent.name} · fix PR #${agent.prNumber}`
           : busy && agent.task === 'qa' && agent.prNumber
-            ? `${agent.name} · testing PR #${agent.prNumber}`
+            ? `${agent.name} · QA PR #${agent.prNumber}`
             : busy && agent.issueNumber
               ? `${agent.name} · #${agent.issueNumber}`
               : agent.title
@@ -408,7 +410,7 @@ export function drawCandidateTag(ctx: CanvasRenderingContext2D, w: number, h: nu
  * A sign: in the dungeon, a parchment board edged in `bg` (the house's colour) with iron-gall ink lettering. A
  * transparent `bg` (lettering over a slate) keeps the lines' own colours.
  */
-export function drawSign(ctx: CanvasRenderingContext2D, w: number, h: number, lines: { text: string; size: number; color?: string; weight?: number }[], bg: string, fg = '#ffffff') {
+export function drawSign(ctx: CanvasRenderingContext2D, w: number, h: number, lines: { text: string; size: number; color?: string; weight?: number; font?: string }[], bg: string, fg = '#ffffff') {
   const onSlate = bg === 'transparent' || /rgba\([^)]*,\s*0\)$/.test(bg);
   if (!onSlate) {
     const edge = Math.max(6, Math.round(Math.min(w, h) * 0.05));
@@ -433,9 +435,9 @@ export function drawSign(ctx: CanvasRenderingContext2D, w: number, h: number, li
     y += (l.size * 1.25) / 2;
     const faded = (l.weight ?? 700) < 600;
     ctx.fillStyle = onSlate ? (l.color ?? fg) : faded ? INK_FADED : INK;
-    ctx.font = `${l.weight ?? 700} ${l.size}px ${SANS}`;
+    ctx.font = `${l.weight ?? 700} ${l.size}px ${l.font ?? SANS}`;
     const inks = onSlate ? SIGN_INKS.slate : faded ? SIGN_INKS.faded : SIGN_INKS.parchment;
-    fillWithIcons(ctx, l.text, w / 2, y, l.size, l.weight ?? 700, w - 40, inks);
+    fillWithIcons(ctx, l.text, w / 2, y, l.size, l.weight ?? 700, w - 40, inks, l.font ?? SANS);
     y += (l.size * 1.25) / 2;
   }
   ctx.textAlign = 'left';
@@ -448,7 +450,7 @@ function drawIcon(ctx: CanvasRenderingContext2D, name: IconName, x: number, y: n
 }
 
 /** One centred line of sign text, with the emoji the dungeon has drawings for shown as its woodcut icons. */
-function fillWithIcons(ctx: CanvasRenderingContext2D, text: string, cx: number, y: number, size: number, weight: number, maxW: number, inks: { ink: string; paper: string }) {
+function fillWithIcons(ctx: CanvasRenderingContext2D, text: string, cx: number, y: number, size: number, weight: number, maxW: number, inks: { ink: string; paper: string }, font = SANS) {
   const runs = splitIcons(text);
   if (!runs.some((r) => 'icon' in r)) {
     let t = text;
@@ -462,7 +464,7 @@ function fillWithIcons(ctx: CanvasRenderingContext2D, text: string, cx: number, 
   if (total > maxW) {
     // too long for the sign: the whole line gets smaller rather than losing its end
     px = Math.max(10, Math.floor((size * maxW) / total));
-    ctx.font = `${weight} ${px}px ${SANS}`;
+    ctx.font = `${weight} ${px}px ${font}`;
     total = width();
   }
   ctx.textAlign = 'left';

@@ -6,7 +6,7 @@ import { CEO_ID, type HireRequestView } from '../../../shared/types';
 import { Character } from './Character';
 import { Desk } from './Desk';
 import { Bar, FeastTables, Hearth } from './GreatHall';
-import { drawCandidateTag, drawSign, roundRect, SANS } from './draw';
+import { drawCandidateTag, drawSign, roundRect, SANS, TITLE } from './draw';
 import { useCanvasTexture, useInteractable } from './interact';
 import { CEO_DESK, CEO_ROOM, HALF_D, HALF_W, MANAGER_DESK, MANAGER_ROOM, WAITING, WAITING_ROTATION } from './layout';
 import { Model } from './models';
@@ -417,7 +417,7 @@ export function Lobby() {
         px={[1400, 320]}
         draw={(ctx) =>
           drawSign(ctx, 1400, 320, [
-            { text: `✻ ${company || 'Code Dungeon'}`, size: 120 },
+            { text: company || 'Code Dungeon', size: 132, weight: 400, font: TITLE },
             { text: company ? 'worked by a guild of AI coders' : 'a guild of AI coders', size: 48, weight: 500 },
           ], ACCENT)
         }
