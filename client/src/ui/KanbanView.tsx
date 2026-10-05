@@ -254,18 +254,20 @@ export function KanbanView({ repoId }: { repoId: string }) {
               </span>
                 <span className="spacer" />
                 <QaLink card={c} />
-                {previewButton(c)}
-                {(st === 'testing' || st === 'fixing') && terminalButton(c)}
-                {(!st || st === 'needs-human') && (
-                  <button className="btn btn-small btn-good" disabled={pending === c.key} onClick={() => act(c.key, () => api.sendToQa(repo.id, c.number))}>
-                    {st === 'needs-human' ? 'Retry QA' : 'Send to QA'}
-                  </button>
-                )}
-                {st === 'needs-human' && (
-                  <button className="btn btn-small btn-ghost" disabled={pending === c.key} onClick={() => merge(c)}>
-                    Merge anyway
-                  </button>
-                )}
+                <span className="kcard-actions">
+                  {previewButton(c)}
+                  {(st === 'testing' || st === 'fixing') && terminalButton(c)}
+                  {(!st || st === 'needs-human') && (
+                    <button className="btn btn-small btn-good" disabled={pending === c.key} onClick={() => act(c.key, () => api.sendToQa(repo.id, c.number))}>
+                      {st === 'needs-human' ? 'Retry QA' : 'Send to QA'}
+                    </button>
+                  )}
+                  {st === 'needs-human' && (
+                    <button className="btn btn-small btn-ghost" disabled={pending === c.key} onClick={() => merge(c)}>
+                      Merge anyway
+                    </button>
+                  )}
+                </span>
               </div>
             );
           },
@@ -286,20 +288,22 @@ export function KanbanView({ repoId }: { repoId: string }) {
                 </span>
                 <span className="spacer" />
                 <QaLink card={c} />
-                {previewButton(c)}
-                <button className="btn btn-small btn-good" disabled={pending === c.key || pr?.isDraft} onClick={() => merge(c)}>
-                  Merge
-                </button>
-                <button
-                  className="btn btn-small btn-ghost"
-                  disabled={pending === c.key}
-                  onClick={async () => {
-                    const ok = await confirmDialog({ tone: 'danger', title: `Close PR #${c.number}?`, body: `“${c.title}” will be closed without merging. The branch stays on GitHub.`, confirm: 'Close PR' });
-                    if (ok) void act(c.key, () => api.closePull(repo.id, c.number));
-                  }}
-                >
-                  Close
-                </button>
+                <span className="kcard-actions">
+                  {previewButton(c)}
+                  <button className="btn btn-small btn-good" disabled={pending === c.key || pr?.isDraft} onClick={() => merge(c)}>
+                    Merge
+                  </button>
+                  <button
+                    className="btn btn-small btn-ghost"
+                    disabled={pending === c.key}
+                    onClick={async () => {
+                      const ok = await confirmDialog({ tone: 'danger', title: `Close PR #${c.number}?`, body: `“${c.title}” will be closed without merging. The branch stays on GitHub.`, confirm: 'Close PR' });
+                      if (ok) void act(c.key, () => api.closePull(repo.id, c.number));
+                    }}
+                  >
+                    Close
+                  </button>
+                </span>
               </div>
             );
           },

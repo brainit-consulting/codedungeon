@@ -867,7 +867,7 @@ input.inline:focus {
   animation: pop 0.2s ease-out;
 }
 .panel-wide {
-  width: min(1320px, 100%);
+  width: min(1600px, 100%);
   height: calc(100vh - 32px);
 }
 .panel-head {
@@ -1319,6 +1319,13 @@ input.inline:focus {
 }
 .kcard-foot-wrap {
   flex-wrap: wrap;
+}
+/* a card's buttons stay together: if they don't fit beside the name they move down as one row */
+.kcard-actions {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-wrap: nowrap;
 }
 
 /* ---------- app viewer overlay ---------- */

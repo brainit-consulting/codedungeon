@@ -100,3 +100,21 @@ describe('collide', () => {
     expect(collide(front.x, front.z, office)).toEqual(front);
   });
 });
+
+describe('the chamber doors standing open', () => {
+  const rects = officeColliders();
+  const blocked = (x: number, z: number) => {
+    const p = collide(x, z, rects, 0.2);
+    return p.x !== x || p.z !== z;
+  };
+
+  it('are solid where each open leaf stands against the inside wall, so the cat walks round them', () => {
+    for (const side of [-1, 1]) expect(blocked(side * 1.15, HALF_D - 0.6)).toBe(true);
+  });
+
+  it('leave the doorway itself clear', () => {
+    expect(blocked(0, HALF_D - 0.3)).toBe(false);
+    expect(blocked(0.5, HALF_D - 0.6)).toBe(false);
+    expect(blocked(-0.5, HALF_D - 0.6)).toBe(false);
+  });
+});

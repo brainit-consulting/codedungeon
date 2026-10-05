@@ -323,21 +323,50 @@ function drawNote(ctx: CanvasRenderingContext2D, x: number, y: number, w: number
   lines.forEach((l, i) => ctx.fillText(l, 14, 38 + i * 21));
 
   ctx.textBaseline = 'middle';
+  // The note sits at the right (its emoji drawn as woodcut icons); the name gets what is left. When both don't fit,
+  // the note drops the word its icon already says ("🔍 round 2"), then the name drops to its first word, then shortens.
+  const iconPx = 16;
+  const noteFont = `500 16px ${SANS}`;
+  const nameFont = `600 17px ${SANS}`;
+  const widthOf = (text: string) => {
+    ctx.font = noteFont;
+    return splitIcons(text).reduce((sum, r) => sum + ('icon' in r ? iconPx * 1.15 : ctx.measureText(r.text).width), 0);
+  };
+  const room = w - 36 - 12;
+  let note = card.note ?? '';
+  let name = card.agent?.name ?? '';
+  const fits = () => {
+    ctx.font = nameFont;
+    return ctx.measureText(name).width + (note ? widthOf(note) + 10 : 0) <= room;
+  };
+  if (name && note && !fits()) note = note.replace(/^(\S+) (testing|fixing) · /, '$1 ');
+  if (name && note && !fits()) name = name.split(' ')[0];
+  if (name && note && !fits()) note = splitIcons(note).some((r) => 'icon' in r) ? note.split(' ')[0] : note; // just the icon
+  let noteW = 0;
+  if (note) {
+    const runs = splitIcons(note);
+    noteW = widthOf(note);
+    ctx.font = noteFont;
+    ctx.fillStyle = '#5c6078';
+    let px = w - 12 - noteW;
+    for (const r of runs) {
+      if ('icon' in r) {
+        drawIcon(ctx, r.icon, px, h - 15, iconPx, SIGN_INKS.faded);
+        px += iconPx * 1.15;
+      } else {
+        ctx.fillText(r.text, px, h - 14);
+        px += ctx.measureText(r.text).width;
+      }
+    }
+  }
   if (card.agent) {
     ctx.fillStyle = card.agent.color;
     ctx.beginPath();
     ctx.arc(22, h - 15, 8, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#2d3142';
-    ctx.font = `600 17px ${SANS}`;
-    ctx.fillText(card.agent.name, 36, h - 14);
-  }
-  if (card.note) {
-    ctx.font = `500 16px ${SANS}`;
-    ctx.fillStyle = '#5c6078';
-    ctx.textAlign = 'right';
-    ctx.fillText(card.note, w - 12, h - 14);
-    ctx.textAlign = 'left';
+    ctx.font = nameFont;
+    ctx.fillText(fitText(ctx, name, room - (noteW ? noteW + 10 : 0)), 36, h - 14);
   }
   ctx.restore();
   ctx.textBaseline = 'middle';

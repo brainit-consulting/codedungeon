@@ -95,6 +95,14 @@ export function officeColliders(): Rect[] {
   out.push(rect(-HALF_W + 2.6, 6.5, 0.9, 1.4, SOLID_H.coffeeTable)); // coffee table
   out.push(rect(HALF_W - 0.45, 7.4, 0.9, 5, SOLID_H.kitchen)); // kitchenette counter + fridge
   out.push(rect(HALF_W - 0.5, -9.5, 0.7, 0.7, SOLID_H.cooler)); // water cooler
+  // The door's two oak leaves (Doors.tsx) swing in and stand open against the south wall either side of the doorway,
+  // each a 1.2 m fin hinged at the doorway's edge. Solid there, so the cat and the player go round them.
+  const { doorHalf } = ELEVATOR;
+  for (const side of [-1, 1]) {
+    const inner = side * (doorHalf - 0.14);
+    const outer = side * (doorHalf + 0.05);
+    out.push({ minX: Math.min(inner, outer), maxX: Math.max(inner, outer), minZ: HALF_D - doorHalf, maxZ: HALF_D });
+  }
   return out;
 }
 
