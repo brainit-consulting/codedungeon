@@ -5,18 +5,25 @@ import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { useStore } from '../store';
 import { noise, tone } from '../ui/sfx';
-import { letOutRat } from './Cat';
+import { letOutRat, letOutSpider, roomForRat, roomForSpider } from './Cat';
 import { useInteractable } from './interact';
-import { chestOpening } from './spoils';
+import type { Spider } from './spiderBrain';
+import { chestOpening, type Surprise } from './spoils';
 import { onPoke } from './toys/poke';
 
 // The DungeonMaster's chest of spoils, in the hall's trophy corner. E opens it: the lid lifts and the scroll of the
 // guild's latest merges comes up (Overlays.tsx, "spoils"); closing that shuts the lid. The very first time it's a mimic
-// and snaps at you twice before it opens, and now and then a rat bolts out of it. The rules are in spoils.ts.
+// and snaps at you twice before it opens. Now and then a rat bolts out of it, or a spider climbs out over the rim,
+// waits there a moment and jumps down at you (the scroll waits for it). The rules are in spoils.ts.
 
 const URL = '/models/props/Chest_Wood.gltf';
 const ID = 'spoils-chest';
 const MIMIC_KEY = 'codedungeon:chest-mimic';
+/** In the chest's own frame (front +z): where a spider starts, on the gold inside, and the top of the front rim. */
+const SPIDER_IN = { y: 0.31, z: 0 };
+const SPIDER_RIM = { y: 0.44, z: 0.34 };
+/** Where whatever comes out lands, in front of the chest (clear of the trophy corner). */
+const OUT_Z = 1.0;
 
 type Clip = 'Chest_Open' | 'Chest_Close' | 'Chest_Closed';
 type Phase = 'shut' | 'snapping' | 'opening' | 'open' | 'closing';
@@ -76,7 +83,9 @@ export function SpoilsChest({ position }: { position: [number, number, number] }
 
   const phase = useRef<Phase>('shut');
   const opens = useRef(0); // this visit
-  const ratOut = useRef(false);
+  const surpriseOut = useRef(false); // this visit
+  /** A spider on its way out, and when it came: the scroll waits until it has landed. */
+  const spider = useRef<{ s: Spider; at: number } | null>(null);
   const steps = useRef<{ at: number; run: () => void }[]>([]);
   const clock = useRef(0);
   const shakeUntil = useRef(0);
@@ -91,6 +100,10 @@ export function SpoilsChest({ position }: { position: [number, number, number] }
     a.play();
   };
   const later = (sec: number, run: () => void) => steps.current.push({ at: clock.current + sec, run });
+  const showScroll = () => {
+    phase.current = 'open';
+    useStore.getState().openOverlay({ kind: 'spoils' });
+  };
 
   useEffect(() => {
     play('Chest_Closed');
@@ -102,28 +115,46 @@ export function SpoilsChest({ position }: { position: [number, number, number] }
   const ref = useInteractable<THREE.Group>({ id: ID, label: 'Open the chest of spoils', action: { kind: 'poke', toyId: ID } });
 
   useEffect(() => {
-    const openForReal = (rat: boolean) => {
+    const chestAt = () => {
+      const at = new THREE.Vector3();
+      ref.current?.getWorldPosition(at);
+      return at;
+    };
+    const openForReal = (surprise: Surprise | null) => {
       phase.current = 'opening';
       opens.current++;
       play('Chest_Open');
       lidCreak();
-      if (rat) {
-        ratOut.current = true;
+      if (surprise !== 'spider') later(0.8, showScroll);
+      if (surprise === 'rat') {
+        surpriseOut.current = true;
         later(0.45, () => {
-          const at = new THREE.Vector3();
-          ref.current?.getWorldPosition(at);
-          if (letOutRat({ x: at.x, z: at.z + 1.0 }, { x: at.x, z: at.z })) squeak(); // out of the front (clear of the trophy corner), bolting into the hall
+          const at = chestAt();
+          if (letOutRat({ x: at.x, z: at.z + OUT_Z }, { x: at.x, z: at.z })) squeak(); // out of the front, bolting into the hall
         });
       }
-      later(0.8, () => {
-        phase.current = 'open';
-        useStore.getState().openOverlay({ kind: 'spoils' });
-      });
+      if (surprise === 'spider') {
+        surpriseOut.current = true;
+        // up over the front rim as the lid lifts, a moment there facing you, then the jump; the scroll waits for it
+        later(0.35, () => {
+          const at = chestAt();
+          const s = letOutSpider({ x: at.x, y: at.y + SPIDER_IN.y, z: at.z + SPIDER_IN.z }, { x: at.x, y: at.y + SPIDER_RIM.y, z: at.z + SPIDER_RIM.z }, { x: at.x, z: at.z + OUT_Z });
+          if (s) spider.current = { s, at: clock.current };
+          else later(0.45, showScroll);
+        });
+      }
     };
     const open = () => {
       if (phase.current !== 'shut') return;
-      const { mimic, rat } = chestOpening({ mimicDone: mimicDone(), opens: opens.current, ratOut: ratOut.current, roll: Math.random() });
-      if (!mimic) return openForReal(rat);
+      const { mimic, surprise } = chestOpening({
+        mimicDone: mimicDone(),
+        opens: opens.current,
+        surpriseOut: surpriseOut.current,
+        roll: Math.random(),
+        pick: Math.random(),
+        room: { rat: roomForRat(), spider: roomForSpider() },
+      });
+      if (!mimic) return openForReal(surprise);
       // the mimic: two quick bites, a shake, then it thinks better of it and opens
       markMimicDone();
       phase.current = 'snapping';
@@ -135,11 +166,11 @@ export function SpoilsChest({ position }: { position: [number, number, number] }
           shakeUntil.current = clock.current + 0.35;
         });
       }
-      later(1.4, () => openForReal(false));
+      later(1.4, () => openForReal(null));
     };
     const off = onPoke(ID, open);
     // window.__spoilsChest: a read-only peek for checking it without seeing it (development only)
-    if (import.meta.env.DEV) Object.defineProperty(window, '__spoilsChest', { get: () => ({ phase: phase.current, opens: opens.current, ratOut: ratOut.current, pending: steps.current.length }), configurable: true });
+    if (import.meta.env.DEV) Object.defineProperty(window, '__spoilsChest', { get: () => ({ phase: phase.current, opens: opens.current, surpriseOut: surpriseOut.current, pending: steps.current.length }), configurable: true });
     // the scroll of spoils closed: shut the lid
     const unsub = useStore.subscribe((s, p) => {
       if (p.overlay?.kind === 'spoils' && s.overlay?.kind !== 'spoils' && phase.current === 'open') {
@@ -153,7 +184,7 @@ export function SpoilsChest({ position }: { position: [number, number, number] }
       off();
       unsub();
     };
-    // play and later read refs only
+    // play, later and showScroll read refs only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actions]);
 
@@ -164,6 +195,12 @@ export function SpoilsChest({ position }: { position: [number, number, number] }
       const due = steps.current.filter((s) => s.at <= clock.current);
       steps.current = steps.current.filter((s) => s.at > clock.current);
       for (const s of due) s.run();
+    }
+    // the spider is down (or, however slowly the frames come, it's been a while): now the scroll
+    const sp = spider.current;
+    if (sp && ((sp.s.action !== 'climb' && sp.s.action !== 'perch' && sp.s.action !== 'leap') || clock.current - sp.at > 6)) {
+      spider.current = null;
+      later(0.6, showScroll);
     }
     mixer.update(dt);
     const g = inner.current;

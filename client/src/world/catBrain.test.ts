@@ -320,6 +320,56 @@ describe('the cat and the rats', () => {
   });
 });
 
+describe('the cat and the spiders', () => {
+  const PILE: CatSpot = { id: 'pile', kind: 'corner', x: -15.2, z: 7, facing: Math.PI / 2, weight: 0 };
+  const spider = (x: number, z: number, id = -1): Prey => ({ id, x, z, dead: false, kind: 'spider' });
+  const hunting = (prey: Prey[]): CatEnv => ({ nav, spots: [], corners: [], player: null, rats: prey, pile: PILE });
+  /** Whether she goes for a spider close by in her first second, and what she did. */
+  const firstLook = (seed: number) => {
+    const cat = createCat(seed, { x: 0, z: 7 });
+    const s = spider(2, 8);
+    const e = hunting([s]);
+    let stalked = false;
+    run(cat, 1, e, (k) => (stalked ||= k.action === 'stalk'));
+    return { cat, s, e, stalked };
+  };
+
+  it('goes for a spider only now and then, and leaves one she passed over alone a while', () => {
+    const N = 300;
+    let went = 0;
+    for (let seed = 1; seed <= N; seed++) {
+      const { cat, e, stalked } = firstLook(seed);
+      if (stalked) {
+        went++;
+        continue;
+      }
+      let again = false;
+      run(cat, 3, e, (k) => (again ||= k.action === 'stalk'));
+      expect(again).toBe(false);
+    }
+    expect(went / N).toBeGreaterThan(CAT.spiderChance - 0.1);
+    expect(went / N).toBeLessThan(CAT.spiderChance + 0.1);
+    expect(CAT.spiderChance).toBeLessThan(0.5);
+  });
+
+  it("eats a spider where she catches it, then washes: it isn't carried to the pile or counted with her rats", () => {
+    let seed = 1;
+    while (!firstLook(seed).stalked) seed++;
+    const { cat, s, e } = firstLook(seed);
+    const seen: string[] = [];
+    run(cat, 30, e, (k) => {
+      if (seen[seen.length - 1] !== k.action) seen.push(k.action);
+    });
+    expect(s.dead).toBe(true);
+    expect(cat.ate).toBe(1);
+    expect(cat.kills).toBe(0);
+    expect(cat.dropped).toBe(0);
+    expect(cat.carrying).toBeNull();
+    expect(seen).not.toContain('carry');
+    expect(seen.indexOf('wash')).toBeGreaterThan(seen.indexOf('pounce'));
+  });
+});
+
 describe('jumpPoint', () => {
   // off the bar: from its top (1.1 m) to the floor 1.75 m out; the bar's front edge is 0.66 m from where she sat
   const down = { from: { x: 0, z: 0, y: 1.1 }, to: { x: 0, z: 1.75, y: 0 } };

@@ -2,22 +2,26 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useStore } from '../store';
-import { CAT, callCat, createCat, stepCat, type Cat as CatState, type CatAction, type CatEnv, type CatSpot } from './catBrain';
+import { CAT, callCat, createCat, stepCat, type Cat as CatState, type CatAction, type CatEnv, type CatSpot, type Prey } from './catBrain';
 import { GALLERY, chamber, drawnFor, dungeonColliders, galleryEnd, inDungeon, toWorld } from './dungeon';
 import { CEO_DESK, DESK_ROWS, HALF_D, HALF_W, HEARTH, RECEPTION, deskPosition } from './layout';
 import { makeNav, type Pt } from './nav';
 import { RAT, createWarren, releaseRat, stepWarren, type Warren, type WarrenEnv } from './ratBrain';
 import { DeadRat, PILE_DROP, Rats } from './Rats';
+import { SPIDER, createNest, releaseSpider, stepNest, type Nest, type NestEnv, type P3, type Spider } from './spiderBrain';
+import { Spiders } from './Spiders';
 
 // The dungeon's black cat, drawn from simple shapes and posed by hand each frame from what her brain (catBrain.ts)
 // is doing. She has no collider and is not something you aim at, so she never blocks a click or the way; you call
-// her with C (Player.tsx). The rats she hunts (ratBrain.ts, drawn by Rats.tsx) are stepped here with her.
+// her with C (Player.tsx). The rats she hunts (ratBrain.ts, drawn by Rats.tsx) and the chest's spiders
+// (spiderBrain.ts, drawn by Spiders.tsx) are stepped here with her.
 
 let calls = 0;
 const HOME = { x: -HALF_W + HEARTH.d + 0.6, z: HEARTH.z + 0.8 };
 let living: CatState | null = null;
-/** The session's rats: kept with her across remounts, so only a reload starts the count over. */
+/** The session's rats and spiders: kept with her across remounts, so only a reload starts the count over. */
 let warren: Warren | null = null;
+let nest: Nest | null = null;
 /** The cat as she is right now (for her purr), or null before she's in the dungeon. */
 export const theCat = () => living;
 /** The Overlord calls the cat (C). */
@@ -26,10 +30,20 @@ export function callTheCat() {
 }
 /** A rat bolts out of somewhere (the chest of spoils), away from `from`: one more for her to chase. False before the warren exists. */
 export function letOutRat(at: Pt, from?: Pt): boolean {
-  // the warren's limits hold for chest rats too: never more than RAT.max about, never past her tally's cap
-  if (!warren || warren.rats.length >= RAT.max || (living?.kills ?? 0) + warren.rats.length >= RAT.cap) return false;
-  releaseRat(warren, at, from);
+  if (!roomForRat()) return false;
+  releaseRat(warren!, at, from);
   return true;
+}
+/** Whether another rat may come out: the warren's limits hold for chest rats too (RAT.max about, her tally's cap). */
+export function roomForRat(): boolean {
+  return !!warren && warren.rats.length < RAT.max && (living?.kills ?? 0) + warren.rats.length < RAT.cap;
+}
+/** A spider climbs out of the chest and jumps down to `landing`. Null before the nest exists or with three about. */
+export function letOutSpider(inside: P3, rim: P3, landing: Pt): Spider | null {
+  return nest && releaseSpider(nest, inside, rim, landing);
+}
+export function roomForSpider(): boolean {
+  return !!nest && nest.spiders.length < SPIDER.max;
 }
 
 // ---------- where she likes to be ----------
@@ -341,9 +355,11 @@ export function Cat({ slots }: { slots: number[] }) {
   const camera = useThree((s) => s.camera);
   const brain = useRef<CatState | null>(null);
   const rats = useRef<Warren | null>(null);
+  const spiders = useRef<Nest | null>(null);
 
   const nav = useMemo(() => catNav(slots), [slots]);
   const ratEnv = useMemo<WarrenEnv>(() => ({ nav, player: null, kills: 0, inside: (x, z) => inDungeon(x, z, slots), threats: [] }), [nav, slots]);
+  const spiderEnv = useMemo<NestEnv>(() => ({ nav, player: null, inside: (x, z) => inDungeon(x, z, slots), threats: [] }), [nav, slots]);
 
   const busyKey = Object.values(agents)
     .filter((a) => a.repoId && (a.status === 'working' || a.status === 'preparing') && a.role === 'dev')
@@ -367,6 +383,8 @@ export function Cat({ slots }: { slots: number[] }) {
     living = brain.current;
     if (!warren) warren = createWarren(Math.floor(Math.random() * 1e9));
     rats.current = warren;
+    if (!nest) nest = createNest(Math.floor(Math.random() * 1e9));
+    spiders.current = nest;
     // window.__dungeonCat: a read-only peek for QA (what she's doing, where, and where she's heading)
     const peek = () => {
       const c = brain.current;
@@ -383,7 +401,9 @@ export function Cat({ slots }: { slots: number[] }) {
           carrying: c.carrying,
           kills: c.kills,
           dropped: c.dropped,
+          ate: c.ate,
           rats: rats.current?.rats.map((r) => ({ id: r.id, action: r.action, x: r.x, z: r.z })) ?? [],
+          spiders: spiders.current?.spiders.map((s) => ({ id: s.id, action: s.action, x: s.x, y: s.y, z: s.z, age: s.age })) ?? [],
         }
       );
     };
@@ -399,6 +419,7 @@ export function Cat({ slots }: { slots: number[] }) {
 
   const seenCalls = useRef(calls);
   const threats = useRef<Pt[]>([]);
+  const prey = useRef<Prey[]>([]);
   const shown = useRef<THREE.Group>(null);
   const checks = useRef(0);
   useFrame((_, rawDt) => {
@@ -418,17 +439,27 @@ export function Cat({ slots }: { slots: number[] }) {
       const dropped = c.dropped + (c.carrying !== null ? 1 : 0); // a rat in her mouth still ends up on the pile
       Object.assign(c, HOME, { y: 0, action: 'sit', left: 3, path: [], goal: null, jump: null, prey: null, carrying: null, dropped });
     }
-    // the rats first (they run from her unless she's stalking), then her
+    // the rats and spiders first (they run from her unless she's stalking), then her
+    threats.current.length = 0;
+    if (c.action !== 'stalk' && c.action !== 'pounce') threats.current.push(c);
+    prey.current.length = 0;
     const w = rats.current;
     if (w) {
       ratEnv.player = env.player;
       ratEnv.kills = c.kills;
-      threats.current.length = 0;
-      if (c.action !== 'stalk' && c.action !== 'pounce') threats.current.push(c);
       ratEnv.threats = threats.current;
       stepWarren(w, dt, ratEnv);
-      env.rats = w.rats;
+      for (const r of w.rats) prey.current.push(r);
     }
+    const n = spiders.current;
+    if (n) {
+      spiderEnv.player = env.player;
+      spiderEnv.threats = threats.current;
+      stepNest(n, dt, spiderEnv);
+      // only once they're down on the floor: never off the chest's rim or out of the air
+      for (const s of n.spiders) if (s.y === 0 && !s.hop) prey.current.push(s);
+    }
+    env.rats = prey.current;
     stepCat(c, dt, env);
     // out of sight when she's in a room that isn't drawn (she'd float in the dark), checked a few times a second
     if (checks.current % 10 === 0 && shown.current) shown.current.visible = drawnFor(c.x, c.z, camera.position.x, camera.position.z, slots);
@@ -441,6 +472,7 @@ export function Cat({ slots }: { slots: number[] }) {
       </group>
       <BarMug brain={brain} />
       <Rats warren={rats} cat={brain} slots={slots} />
+      <Spiders nest={spiders} cat={brain} slots={slots} />
     </>
   );
 }

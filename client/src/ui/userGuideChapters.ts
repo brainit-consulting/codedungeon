@@ -269,6 +269,9 @@ export const CHAPTERS: GuideChapter[] = [
       p(
         'Rats get in now and then, never more than three at a time. When she spots one she creeps up on it, pounces, and carries the kill to her pile beside the hearth. Twelve is all there are: once the pile is full, no more come until the dungeon is reloaded.',
       ),
+      p(
+        "Spiders are another matter. A big black one with red eyes sometimes climbs out of the chest of spoils, never more than three about at once. They creep, freeze, and rear up at you if you get too close. The cat only bothers with one now and then, and when she catches it she eats it on the spot. An old spider slips away once you're well clear of it.",
+      ),
     ],
   },
   {

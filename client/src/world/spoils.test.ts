@@ -1,6 +1,6 @@
 // Run with `npm test` (Vitest).
 import { describe, expect, it } from 'vitest';
-import { RAT_CHANCE, chestOpening, spoilsList } from './spoils';
+import { SPIDER_SHARE, SURPRISE_CHANCE, chestOpening, spoilsList } from './spoils';
 
 const pull = (number: number, mergedAt: string | null, title = `PR ${number}`, headRefName = `swarm/issue-${number}-x`) => ({
   number,
@@ -44,27 +44,43 @@ describe('spoilsList', () => {
 });
 
 describe('chestOpening', () => {
-  it('snaps at you the very first time, and lets no rat out then', () => {
-    expect(chestOpening({ mimicDone: false, opens: 0, ratOut: false, roll: 0 })).toEqual({ mimic: true, rat: false });
+  const room = { rat: true, spider: true };
+  const base = { mimicDone: true, opens: 1, surpriseOut: false, roll: 0, pick: 0.99, room };
+
+  it('snaps at you the very first time, and nothing comes out then', () => {
+    expect(chestOpening({ ...base, mimicDone: false, opens: 0 })).toEqual({ mimic: true, surprise: null });
   });
 
   it('opens plainly once the mimic has had its joke', () => {
-    expect(chestOpening({ mimicDone: true, opens: 0, ratOut: false, roll: 0.99 })).toEqual({ mimic: false, rat: false });
+    expect(chestOpening({ ...base, opens: 0, roll: 0.99 })).toEqual({ mimic: false, surprise: null });
   });
 
-  it('lets a rat out now and then, from the second opening of a visit', () => {
-    expect(chestOpening({ mimicDone: true, opens: 0, ratOut: false, roll: 0 }).rat).toBe(false);
-    expect(chestOpening({ mimicDone: true, opens: 1, ratOut: false, roll: RAT_CHANCE - 0.01 }).rat).toBe(true);
-    expect(chestOpening({ mimicDone: true, opens: 1, ratOut: false, roll: RAT_CHANCE + 0.01 }).rat).toBe(false);
+  it('lets something out now and then, from the second opening of a visit', () => {
+    expect(chestOpening({ ...base, opens: 0 }).surprise).toBeNull();
+    expect(chestOpening({ ...base, roll: SURPRISE_CHANCE - 0.01 }).surprise).not.toBeNull();
+    expect(chestOpening({ ...base, roll: SURPRISE_CHANCE + 0.01 }).surprise).toBeNull();
   });
 
-  it('only one rat a visit', () => {
-    expect(chestOpening({ mimicDone: true, opens: 5, ratOut: true, roll: 0 }).rat).toBe(false);
-  });
-});
-
-describe('chestOpening, the surprise', () => {
   it('lets one out by the third opening of a visit at the latest, however the dice fall', () => {
-    expect(chestOpening({ mimicDone: true, opens: 2, ratOut: false, roll: 0.99 }).rat).toBe(true);
+    expect(chestOpening({ ...base, opens: 2, roll: 0.99 }).surprise).not.toBeNull();
+  });
+
+  it('only one a visit', () => {
+    expect(chestOpening({ ...base, opens: 5, surpriseOut: true }).surprise).toBeNull();
+  });
+
+  it('is mostly a rat, and now and then a spider', () => {
+    expect(chestOpening({ ...base, pick: SPIDER_SHARE + 0.01 }).surprise).toBe('rat');
+    expect(chestOpening({ ...base, pick: SPIDER_SHARE - 0.01 }).surprise).toBe('spider');
+    expect(SPIDER_SHARE).toBeLessThan(0.5);
+  });
+
+  it('is a spider when there is no room for another rat, and a rat when there is none for another spider', () => {
+    expect(chestOpening({ ...base, pick: 0.99, room: { rat: false, spider: true } }).surprise).toBe('spider');
+    expect(chestOpening({ ...base, pick: 0, room: { rat: true, spider: false } }).surprise).toBe('rat');
+  });
+
+  it('lets nothing out when there is room for neither, and keeps the surprise for a later opening', () => {
+    expect(chestOpening({ ...base, opens: 2, room: { rat: false, spider: false } }).surprise).toBeNull();
   });
 });

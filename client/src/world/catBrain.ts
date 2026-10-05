@@ -10,7 +10,8 @@ import { openLine, planPath, type Nav, type Pt } from './nav';
 //
 // And she hunts rats (ratBrain.ts). A rat within a few metres that she can see on the grid gets her up from any
 // idle stay (never out of a leap mid-air, and not while she's answering the Overlord's call): she stalks it low and
-// slow, pounces from close, and carries her kill in her mouth to her pile by the hearth.
+// slow, pounces from close, and carries her kill in her mouth to her pile by the hearth. The chest's spiders
+// (spiderBrain.ts) she goes for only now and then, and eats one where she catches it.
 
 export type CatAction =
   | 'walk'
@@ -41,12 +42,14 @@ export interface CatSpot {
   weight: number;
 }
 
-/** A rat, as far as the cat is concerned (ratBrain's Rat fits). She sets `dead` when she catches it. */
+/** A rat, as far as the cat is concerned (ratBrain's Rat fits), or a spider. She sets `dead` when she catches it. */
 export interface Prey {
   id: number;
   x: number;
   z: number;
   dead: boolean;
+  /** A spider (spiderBrain's Spider fits): she goes for one only now and then, and eats it where she catches it. */
+  kind?: 'rat' | 'spider';
 }
 
 export interface Cat {
@@ -83,6 +86,8 @@ export interface Cat {
   /** Rats killed this session, and how many of them she's laid on her pile. */
   kills: number;
   dropped: number;
+  /** Spiders she has caught and eaten this session. */
+  ate: number;
   /** Pounces that missed the rat she's after. */
   misses: number;
   /** Cat clock time when she gives up stalking the current rat. */
@@ -141,8 +146,10 @@ export const CAT = {
   stalkFor: 25,
   misses: 3,
   lose: 9,
-  /** How long she lets be a rat that got away. */
+  /** How long she lets be a rat that got away (or a spider she passed over). */
   spareFor: 20,
+  /** How often a spider she notices is worth the bother. */
+  spiderChance: 0.3,
   carry: 0.9,
   /** The wash she gives herself after laying a rat on the pile. */
   proud: [4, 8] as [number, number],
@@ -188,6 +195,7 @@ export function createCat(seed: number, at: Pt): Cat {
     carrying: null,
     kills: 0,
     dropped: 0,
+    ate: 0,
     misses: 0,
     huntUntil: 0,
     spared: {},
@@ -306,7 +314,10 @@ function chooseNext(c: Cat, env: CatEnv) {
 
 // ---------- hunting ----------
 
-/** The nearest rat she can see within range (from up on something, she looks from where she jumped up). */
+/**
+ * The nearest rat (or spider) she can see within range (from up on something, she looks from where she jumped up). A
+ * spider she mostly passes over, and then lets be a while.
+ */
 function noticeRat(c: Cat, env: CatEnv): Prey | null {
   if (!env.rats || !env.pile || c.carrying !== null) return null;
   const eye = c.y > 0 ? (c.goal?.approach ?? c) : c;
@@ -318,6 +329,10 @@ function noticeRat(c: Cat, env: CatEnv): Prey | null {
     if (d > bestD || !openLine(env.nav, eye, r, SIGHT_MARGIN)) continue;
     best = r;
     bestD = d;
+  }
+  if (best?.kind === 'spider' && next(c) >= CAT.spiderChance) {
+    c.spared[best.id] = c.clock + CAT.spareFor;
+    return null;
   }
   return best;
 }
@@ -343,9 +358,18 @@ function giveUp(c: Cat, env: CatEnv, r: Prey | null) {
 
 function caught(c: Cat, env: CatEnv, r: Prey) {
   r.dead = true;
+  c.prey = null;
+  if (r.kind === 'spider') {
+    // eaten where she caught it, then a wash
+    c.ate++;
+    c.path = [];
+    c.goal = null;
+    c.action = 'wash';
+    c.left = between(c, CAT.proud);
+    return;
+  }
   c.carrying = r.id;
   c.kills++;
-  c.prey = null;
   const path = planPath(env.nav, c, env.pile!);
   if (!path) {
     // no way to the pile from here (never so in the dungeon): it's laid there all the same

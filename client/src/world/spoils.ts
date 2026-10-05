@@ -52,15 +52,30 @@ export function spoilsList(repos: RepoLike[], agents: AgentLike[], limit = 8): S
     .map(({ at: _at, ...s }) => s);
 }
 
-/** About one opening in five lets a rat out. */
-export const RAT_CHANCE = 0.2;
+/** About one opening in five lets something out. */
+export const SURPRISE_CHANCE = 0.2;
+/** Of what comes out, about one in three is a spider; the rest are rats. */
+export const SPIDER_SHARE = 0.35;
+
+export type Surprise = 'rat' | 'spider';
 
 /**
  * What happens when the chest is opened. The very first time ever it's a mimic and snaps at you (then opens).
- * After that, from the second opening of a visit, now and then a rat bolts out, but only one a visit.
+ * After that, from the second opening of a visit, now and then something comes out, only one a visit: mostly a rat,
+ * sometimes a spider, and a spider whenever there's no room for another rat (and the other way round).
  */
-export function chestOpening(s: { mimicDone: boolean; opens: number; ratOut: boolean; roll: number }): { mimic: boolean; rat: boolean } {
-  if (!s.mimicDone) return { mimic: true, rat: false };
+export function chestOpening(s: {
+  mimicDone: boolean;
+  opens: number;
+  surpriseOut: boolean;
+  roll: number;
+  pick: number;
+  room: { rat: boolean; spider: boolean };
+}): { mimic: boolean; surprise: Surprise | null } {
+  if (!s.mimicDone) return { mimic: true, surprise: null };
   // one in five from the second opening, and the third has one for sure if none has come yet this visit
-  return { mimic: false, rat: !s.ratOut && s.opens >= 1 && (s.roll < RAT_CHANCE || s.opens >= 2) };
+  const due = !s.surpriseOut && s.opens >= 1 && (s.roll < SURPRISE_CHANCE || s.opens >= 2);
+  if (!due) return { mimic: false, surprise: null };
+  if (s.room.spider && (!s.room.rat || s.pick < SPIDER_SHARE)) return { mimic: false, surprise: 'spider' };
+  return { mimic: false, surprise: s.room.rat ? 'rat' : null };
 }
