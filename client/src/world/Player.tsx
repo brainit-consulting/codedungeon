@@ -12,7 +12,7 @@ import { footstepsFollow, getAudioPrefs, toggleMusic, toggleMute } from '../ui/s
 import { callTheCat } from './Cat';
 import { collectDarts, dropHeld, startCharge, throwHeld } from './toys/hands';
 import { watchLookLock } from './lookLock';
-import { fallsBackToDrag, hushesAfterUse, viewPointer } from './lookLockRules';
+import { fallsBackToDrag, hushesAfterUse, lockAllowed, viewPointer } from './lookLockRules';
 import { pokeToy } from './toys/poke';
 import { auditProps, verdict } from './propAudit';
 
@@ -34,7 +34,7 @@ const hushMouse = () => {
 /** Grab the mouse for looking around. Must be called from a click handler. */
 export function requestLook() {
   const s = useStore.getState();
-  if (!canvasEl || s.overlay || !s.started || isConfirmOpen()) return;
+  if (!canvasEl || !lockAllowed({ started: s.started, overlay: !!s.overlay, confirm: isConfirmOpen(), focused: document.hasFocus() })) return;
   const el = canvasEl;
   if (s.dragLook) return;
   // No capture after a moment, on a page that has never had one (the browser refused without saying so): look by dragging.
@@ -216,6 +216,11 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
     const onLockChange = () => {
       resetLookFilter(lookFilter);
       const locked = document.pointerLockElement === gl.domElement;
+      const s = useStore.getState();
+      if (locked && !lockAllowed({ started: s.started, overlay: !!s.overlay, confirm: isConfirmOpen(), focused: document.hasFocus() })) {
+        document.exitPointerLock(); // a capture at the wrong moment (lockAllowed): let go before it can freeze the arrow
+        return;
+      }
       if (locked) everLocked = true;
       if (!locked) dropHeld(); // Esc: you've stepped away, so the darts go back on the ledge
       useStore.getState().setLocked(locked);

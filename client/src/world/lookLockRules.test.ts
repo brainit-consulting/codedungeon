@@ -1,6 +1,6 @@
 // Run with `npm test` (Vitest).
 import { describe, expect, it } from 'vitest';
-import { fallsBackToDrag, hushesAfterUse, shouldGrabLook, viewPointer, viewUncovered, type Covering } from './lookLockRules';
+import { fallsBackToDrag, hushesAfterUse, shouldGrabLook, viewPointer, viewUncovered, type Covering, lockAllowed } from './lookLockRules';
 
 const c = (overlay: boolean, confirm = false): Covering => ({ overlay, confirm });
 const on = { started: true, enabled: true };
@@ -103,5 +103,18 @@ describe('viewPointer', () => {
         const arrowShows = !locked && !p.hideArrow;
         expect(p.crosshair && arrowShows).toBe(false);
       }
+  });
+});
+
+describe('lockAllowed', () => {
+  it('lets the mouse be captured only for looking round the dungeon, in the focused window', () => {
+    expect(lockAllowed({ started: true, overlay: false, confirm: false, focused: true })).toBe(true);
+  });
+
+  it('never while a panel or a question is open, before entering, or with another window in front', () => {
+    expect(lockAllowed({ started: true, overlay: true, confirm: false, focused: true })).toBe(false);
+    expect(lockAllowed({ started: true, overlay: false, confirm: true, focused: true })).toBe(false);
+    expect(lockAllowed({ started: false, overlay: false, confirm: false, focused: true })).toBe(false);
+    expect(lockAllowed({ started: true, overlay: false, confirm: false, focused: false })).toBe(false);
   });
 });

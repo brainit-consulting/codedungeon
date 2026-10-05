@@ -45,3 +45,12 @@ export function viewPointer(s: { started: boolean; overlay: boolean; locked: boo
     hideArrow: open && s.dragLook,
   };
 }
+
+/**
+ * Whether the mouse may be captured now: only to look round the dungeon in the window in front. A capture at any
+ * other time (a panel or question open, another window focused) is let go of at once: on Windows a capture that
+ * starts like that can leave the arrow frozen on screen until you switch apps.
+ */
+export function lockAllowed(s: { started: boolean; overlay: boolean; confirm: boolean; focused: boolean }): boolean {
+  return s.started && !s.overlay && !s.confirm && s.focused;
+}

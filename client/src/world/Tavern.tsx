@@ -6,11 +6,33 @@ import { useStore, type Agent } from '../store';
 import { theCat } from './Cat';
 import { SANS, roundRect, wrap } from './draw';
 import { useCanvasTexture, useInteractable } from './interact';
-import { BACK_BAR, RECEPTION } from './layout';
+import { RECEPTION } from './layout';
 import { Model } from './models';
 import { HandPose } from './handPose';
 import { RIGGED, SEAT, useRiggedBody } from './RiggedCharacter';
-import { GREETINGS, TAPSTER, TAVERN_SEATS, assignSeats, chatter, drinkAt, drinkSeed, offDuty, type ChatterContext, type Seat } from './tavernRules';
+import {
+  COUNTER_TOP,
+  GREETINGS,
+  TAP,
+  TAPSTER,
+  TAPSTER_BUILD,
+  TAPSTER_PAUSE,
+  TAVERN_SEATS,
+  WIPE_HAND_Y,
+  WIPE_LEAN,
+  WIPE_S,
+  assignSeats,
+  chatter,
+  drinkAt,
+  drinkSeed,
+  offDuty,
+  tapsterGesture,
+  wipeAt,
+  type ChatterContext,
+  type Seat,
+  type TapsterGesture,
+} from './tavernRules';
+import { findArm, keepHandAbove, leanForward, type ArmBones } from './barReach';
 import { onPoke } from './toys/poke';
 import { closeFingers, facePalm, findHand, reachWith } from './twoBoneIk';
 
@@ -200,46 +222,117 @@ function Talkable({ id, label, at, h }: { id: string; label: string; at: [number
 
 // ---------- the tapster ----------
 
-const TAP = { x: RECEPTION.x - 0.7, z: (RECEPTION.z - RECEPTION.d / 2 + BACK_BAR.z + BACK_BAR.d / 2) / 2 };
 // a big man with a big red beard (the ranger's body, which has one, without his hood and pauldron), broad and tall
 const TAPSTER_LOOK = { id: 'wystan-the-tapster', look: 'masculine' as const, role: 'dev' as const, hair: '#a04a22' };
-const TAPSTER_BUILD: [number, number, number] = [1.22, 1.12, 1.2];
 const NOT_ON_A_TAPSTER = /hood|pauldron/i;
 
-function Tapster() {
+const RAG = new THREE.MeshStandardMaterial({ color: '#8f7d62', roughness: 1 });
+
+/**
+ * Wystan: idle behind the bar, and every few seconds a gesture: a reach over the bar, a wipe of it with a rag (leaning
+ * over from the waist), or a word with his hands; he talks with them too whenever the Overlord speaks to him. His
+ * hands rest on the counter rather than sinking into it (barReach.ts), at his size.
+ */
+function Tapster({ talking }: { talking: boolean }) {
   const { scene, mixer, clips } = useRiggedBody(TAPSTER_LOOK, 'Male_Ranger');
   useEffect(() => {
     scene.traverse((o) => {
       if (NOT_ON_A_TAPSTER.test(o.name)) o.visible = false;
     });
   }, [scene]);
-  useEffect(() => {
-    const idle = clips.find((c) => c.name === 'Idle_Loop');
-    const serve = clips.find((c) => c.name === 'Interact');
-    if (!idle) return;
-    const idleA = mixer.clipAction(idle).play();
-    if (!serve) return;
-    // now and then he reaches over the bar: wiping it, setting a mug down
-    const serveA = mixer.clipAction(serve);
-    serveA.setLoop(THREE.LoopOnce, 1);
-    serveA.clampWhenFinished = false;
-    const back = () => {
-      idleA.reset().fadeIn(0.4).play();
-      serveA.fadeOut(0.4);
-    };
-    mixer.addEventListener('finished', back);
-    const every = window.setInterval(() => {
-      serveA.reset().fadeIn(0.3).play();
-      idleA.fadeOut(0.3);
-    }, 11_000);
-    return () => {
-      window.clearInterval(every);
-      mixer.removeEventListener('finished', back);
-    };
+  const rig = useMemo(
+    () => ({ arms: [findArm(scene, 'l'), findArm(scene, 'r')].filter((a): a is ArmBones => !!a), right: findArm(scene, 'r'), hand: findHand(scene, 'r'), waist: scene.getObjectByName('spine_01') ?? null }),
+    [scene],
+  );
+  const acts = useMemo(() => {
+    const clip = (name: string) => clips.find((c) => c.name === name);
+    const [idle, serve, talk] = [clip('Idle_Loop'), clip('Interact'), clip('Idle_Talking_Loop')].map((c) => (c ? mixer.clipAction(c) : null));
+    idle?.play();
+    if (serve) {
+      serve.setLoop(THREE.LoopOnce, 1);
+      serve.clampWhenFinished = false;
+    }
+    return { idle, serve, talk };
   }, [clips, mixer]);
-  useFrame((_, dt) => mixer.update(Math.min(dt, 0.1)));
+  const rag = useRef<THREE.Mesh>(null);
+  const now = useRef<{ gesture: TapsterGesture | null; since: number; until: number; nextAt: number; wipe: number }>({ gesture: null, since: 0, until: 0, nextAt: 6, wipe: 0 });
+  const target = useMemo(() => new THREE.Vector3(), []);
+  const pole = useMemo(() => new THREE.Vector3(), []);
+  // window.__tapster('wipe' | 'serve' | 'talk', seconds?): a gesture on demand, for checking them (development only)
+  const forced = useRef<TapsterGesture | null>(null);
+  const forcedFor = useRef<number | null>(null);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const w = window as unknown as Record<string, unknown>;
+    w.__tapster = (next?: TapsterGesture, seconds?: number) => {
+      forcedFor.current = seconds ?? null;
+      if (next) Object.assign(now.current, { nextAt: 0, until: 0 }, (forced.current = next) && {});
+      return { ...now.current };
+    };
+    return () => void delete w.__tapster;
+  }, []);
+
+  useFrame(({ clock }, rawDt) => {
+    const dt = Math.min(rawDt, 0.1);
+    const t = clock.elapsedTime;
+    const g = now.current;
+    const { idle, serve, talk } = acts;
+    const to = (from: THREE.AnimationAction | null, next: THREE.AnimationAction | null) => {
+      if (!next || !from) return;
+      next.reset().fadeIn(0.35).play();
+      from.fadeOut(0.35);
+    };
+    // what he's doing: the Overlord talking to him comes first, then whatever's due
+    if (talking && g.gesture !== 'talk' && talk) {
+      if (g.gesture === 'serve') to(serve, idle);
+      to(idle, talk);
+      Object.assign(g, { gesture: 'talk', since: t, until: t + 4 });
+    } else if (g.gesture && t >= g.until && !(g.gesture === 'talk' && talking)) {
+      if (g.gesture === 'serve') to(serve, idle);
+      if (g.gesture === 'talk') to(talk, idle);
+      Object.assign(g, { gesture: null, nextAt: forced.current ? t : t + TAPSTER_PAUSE[0] + Math.random() * (TAPSTER_PAUSE[1] - TAPSTER_PAUSE[0]) });
+    } else if (!g.gesture && t >= g.nextAt) {
+      const next = forced.current ?? tapsterGesture(Math.random());
+      forced.current = null;
+      if (next === 'serve' && serve) to(idle, serve);
+      if (next === 'talk' && talk) to(idle, talk);
+      const long = forcedFor.current ?? (next === 'serve' ? (serve?.getClip().duration ?? 2) - 0.35 : next === 'talk' ? (talk?.getClip().duration ?? 3) * 2 : WIPE_S);
+      forcedFor.current = null;
+      Object.assign(g, { gesture: next, since: t, until: t + long });
+    }
+    mixer.update(dt);
+    scene.updateMatrixWorld(true);
+
+    // wiping: lean over from the waist and scrub along the counter's near edge, palm down on the rag
+    g.wipe += ((g.gesture === 'wipe' ? 1 : 0) - g.wipe) * (1 - Math.exp(-dt * 4));
+    const arm = rig.right;
+    if (g.wipe > 0.002 && arm && rig.waist) {
+      leanForward(rig.waist, WIPE_LEAN * g.wipe);
+      const p = wipeAt(t - g.since);
+      target.set(p.x, COUNTER_TOP.top + WIPE_HAND_Y, p.z);
+      arm.lower.getWorldPosition(pole);
+      pole.x -= 0.3; // the elbow out to his right
+      reachWith(arm.upper, arm.lower, arm.hand, target, pole, g.wipe);
+      if (rig.hand) facePalm(rig.hand, DOWN, g.wipe);
+    }
+    // whatever the clip and the wipe did, his hands rest on the wood rather than in it
+    for (const a of rig.arms) keepHandAbove(a, COUNTER_TOP);
+    const r = rag.current;
+    if (r && arm) {
+      r.visible = g.wipe > 0.5;
+      arm.hand.getWorldPosition(r.position);
+      r.position.y = COUNTER_TOP.top + 0.006;
+    }
+  });
   // the models face +Z: he faces the room, over the bar
-  return <primitive object={scene} position={[TAP.x, 0, TAP.z]} scale={TAPSTER_BUILD} />;
+  return (
+    <>
+      <primitive object={scene} position={[TAP.x, 0, TAP.z]} scale={TAPSTER_BUILD} />
+      <mesh ref={rag} material={RAG} visible={false} rotation={[0, 0.4, 0]}>
+        <boxGeometry args={[0.16, 0.012, 0.11]} />
+      </mesh>
+    </>
+  );
 }
 
 // ---------- the tavern ----------
@@ -310,7 +403,7 @@ export function Tavern() {
   if (!RIGGED) return null;
   return (
     <Suspense fallback={null}>
-      <Tapster />
+      <Tapster talking={say?.who === 'tapster'} />
       <Talkable id="tapster" label={`Talk to ${TAPSTER.name}`} at={[TAP.x, 0, TAP.z]} h={1.8} />
       {sitters.map(([id, s]) => {
         const seat = TAVERN_SEATS[s];

@@ -33,7 +33,7 @@ VARIANTS = [
     ('Female_Peasant', 'Superhero_Female', 'Hair_Buns', 'Eyebrows_Female'),
     ('Female_Ranger', 'Superhero_Female', 'Hair_Long', 'Eyebrows_Female'),
 ]
-CLIPS = ['Sitting_Idle_Loop', 'Sitting_Talking_Loop', 'Idle_Loop', 'Walk_Loop', 'Interact']
+CLIPS = ['Sitting_Idle_Loop', 'Sitting_Talking_Loop', 'Idle_Loop', 'Walk_Loop', 'Interact', 'Idle_Talking_Loop']
 HEAD_BONES = {'Head', 'neck_01'}
 
 

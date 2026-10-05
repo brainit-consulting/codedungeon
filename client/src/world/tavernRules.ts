@@ -1,5 +1,5 @@
 import { hashId } from './appearance';
-import { BAR_STOOLS, FEAST_TABLES, RECEPTION } from './layout';
+import { BACK_BAR, BAR_STOOLS, FEAST_TABLES, RECEPTION } from './layout';
 
 // The great hall's tavern after hours: guild members with nothing to do sit at the bar or the feasting tables with a
 // mug, talk among themselves and now and then drink. Pure, so it can be tested; Tavern.tsx draws it.
@@ -154,6 +154,39 @@ export const GREETINGS = [
   "Put something on the board and I'm yours.",
   'Just the one, then back to the bench.',
 ];
+
+/**
+ * Where Wystan stands, facing the room: between the bar counter and the back bar, a little nearer the counter so he can
+ * lean over it to wipe it (measured: from the middle, his hand couldn't reach the wood). And his build: big and broad.
+ */
+export const TAP = { x: RECEPTION.x - 0.7, z: (RECEPTION.z - RECEPTION.d / 2 + BACK_BAR.z + BACK_BAR.d / 2) / 2 + 0.12 };
+export const TAPSTER_BUILD: [number, number, number] = [1.22, 1.12, 1.2];
+
+/** The bar counter's oak top (GreatHall.tsx): 6 cm wider than the counter all round, 1.105 m up. */
+export const COUNTER_TOP = {
+  minX: RECEPTION.x - RECEPTION.w / 2 - 0.06,
+  maxX: RECEPTION.x + RECEPTION.w / 2 + 0.06,
+  minZ: RECEPTION.z - RECEPTION.d / 2 - 0.06,
+  maxZ: RECEPTION.z + RECEPTION.d / 2 + 0.06,
+  top: 1.105,
+};
+
+export type TapsterGesture = 'serve' | 'talk' | 'wipe';
+/** What Wystan does next, from a roll in [0, 1): a reach over the bar, a wipe of it, or a word with whoever's there. */
+export function tapsterGesture(roll: number): TapsterGesture {
+  return roll < 0.4 ? 'serve' : roll < 0.75 ? 'wipe' : 'talk';
+}
+/** Seconds between his gestures, and how long a wipe lasts. */
+export const TAPSTER_PAUSE: [number, number] = [7, 13];
+export const WIPE_S = 5;
+/** Leaning over the bar to wipe it (radians), and how high his wrist rides over the wood. */
+export const WIPE_LEAN = 0.3;
+export const WIPE_HAND_Y = 0.05;
+
+/** Where his right hand is, `s` seconds into a wipe: a scrub to and fro along the near edge of the counter. */
+export function wipeAt(s: number): { x: number; z: number } {
+  return { x: TAP.x - 0.2 + Math.sin(s * 2.4) * 0.14, z: COUNTER_TOP.minZ + 0.07 + Math.sin(s * 4.8) * 0.025 };
+}
 
 /** Wystan the Tapster, behind the bar. */
 export const TAPSTER = {
