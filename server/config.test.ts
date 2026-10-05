@@ -22,3 +22,11 @@ describe('defaultProjectsDir', () => {
     expect(defaultProjectsDir(installed, tmp)).toBe(path.join(tmp, 'code'));
   });
 });
+
+describe('currentVersion', () => {
+  it("is package.json's version as it is now", async () => {
+    const { currentVersion } = await import('./config.ts');
+    const pkg = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    expect(currentVersion()).toBe(pkg.version);
+  });
+});

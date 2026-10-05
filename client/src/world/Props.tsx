@@ -20,15 +20,15 @@ function FirePoint({ position, look }: { position: P; look: FireLook }) {
   return <group ref={ref} position={position} />;
 }
 
-/** A tall iron candle stand with a lit candle (was: a potted plant). */
-export function Plant({ position, scale = 1 }: { position: P; scale?: number; pot?: string }) {
+/** A tall iron candle stand with a lit candle (was: a potted plant); `look` FIRE.candelabrum lights a room with it. */
+export function Plant({ position, scale = 1, look = FIRE.candle }: { position: P; scale?: number; pot?: string; look?: FireLook }) {
   return (
     <group position={position} scale={scale}>
       <Model name="props/CandleStick_Stand" />
       <group position={[0, 1.33, 0]}>
         <Flame />
       </group>
-      <FirePoint position={[0, 1.42, 0]} look={FIRE.candle} />
+      <FirePoint position={[0, 1.42, 0]} look={look} />
     </group>
   );
 }

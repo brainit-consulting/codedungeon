@@ -5,7 +5,7 @@ import type { WebSocket } from 'ws';
 import type { Backend } from './backend.ts';
 import type { LogEntry, SessionHandle, SessionResult } from './agentRunner.ts';
 import type { PrDetails } from './github.ts';
-import { defaultProjectsDir, HOME_DIR, LOG_BUFFER, SCHEDULER_INTERVAL_MS, STATE_FILE, SYNC_INTERVAL_MS, VERSION, WORKSPACE_ROOT } from './config.ts';
+import { currentVersion, defaultProjectsDir, HOME_DIR, LOG_BUFFER, SCHEDULER_INTERVAL_MS, STATE_FILE, SYNC_INTERVAL_MS, WORKSPACE_ROOT } from './config.ts';
 import { ceoJobPrompt, ceoSystemPrompt, createOfficeTools, dungeonMasterTitle, IssueCap, jobLabel, planRoute, specialtyLabel, specialtySlug, type CeoJob, type OfficeTools } from './ceo.ts';
 import { HttpError } from './httpError.ts';
 import { CHECKS_ALERT_MS, MAX_MERGE_FIXES, MERGE_RETRY_MS, mergeStep } from './mergeGate.ts';
@@ -740,7 +740,7 @@ export class Swarm {
       ghReady: !this.ghError,
       ghError: this.ghError,
       demo: this.backend.demo,
-      version: VERSION,
+      version: currentVersion(),
       workspaceRoot: WORKSPACE_ROOT,
       settings: this.state.settings,
       repos: this.state.repos.map((r) => this.repoView(r)),

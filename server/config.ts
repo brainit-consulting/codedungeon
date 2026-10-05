@@ -5,7 +5,16 @@ import { SERVER_PORT, defaultHome, liveOfficeConflict, localRules } from '../sha
 
 export const PORT = Number(process.env.SWARM_PORT ?? SERVER_PORT);
 // package.json sits one folder up both from server/ and from the published dist-server/.
-export const VERSION: string = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '..', 'package.json'), 'utf8')).version;
+const PACKAGE_JSON = path.resolve(import.meta.dirname, '..', 'package.json');
+export const VERSION: string = JSON.parse(fs.readFileSync(PACKAGE_JSON, 'utf8')).version;
+/** The version as package.json says now: an update that doesn't restart the server (client-only) still shows its number. */
+export function currentVersion(): string {
+  try {
+    return JSON.parse(fs.readFileSync(PACKAGE_JSON, 'utf8')).version ?? VERSION;
+  } catch {
+    return VERSION;
+  }
+}
 
 // Everything the swarm writes lives outside this project so that agents working in
 // cloned repos never pick up this project's CLAUDE.md or settings by walking up the tree.

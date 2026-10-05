@@ -8,9 +8,10 @@ import { Desk } from './Desk';
 import { Bar, FeastTables, Hearth } from './GreatHall';
 import { drawCandidateTag, drawSign, roundRect, SANS, TITLE } from './draw';
 import { useCanvasTexture, useInteractable } from './interact';
-import { CEO_DESK, CEO_ROOM, HALF_D, HALF_W, MANAGER_DESK, MANAGER_ROOM, WAITING, WAITING_ROTATION } from './layout';
+import { CEO_DESK, CEO_ROOM, HALF_D, HALF_W, MANAGER_DESK, MANAGER_ROOM, OFFICE_CANDELABRUM, WAITING, WAITING_ROTATION } from './layout';
 import { Model } from './models';
 import { WallSign } from './OfficeFloor';
+import { FIRE } from './lightPool';
 import { Bookshelf, Couch, CoffeeTable, GlassWall, Plant, Rug, WallClock } from './Props';
 import { Shell, torchesOn } from './Shell';
 
@@ -399,8 +400,10 @@ export function Lobby() {
       />
       <ManagerComputer />
       <Bookshelf position={[-HALF_W + 0.4, 0, -8]} rotationY={Math.PI / 2} />
-      <Plant position={[m.maxX - 0.6, 0, m.minZ + 0.6]} scale={1.1} pot="#8a4b2a" />
-      <Plant position={[m.minX + 0.6, 0, m.maxZ - 0.6]} scale={0.9} />
+      {/* the Overlord's office is lit by candelabra: one by the ledger table and one in each corner */}
+      <Plant position={[OFFICE_CANDELABRUM.x, 0, OFFICE_CANDELABRUM.z]} scale={1.2} look={FIRE.candelabrum} />
+      <Plant position={[m.maxX - 0.6, 0, m.minZ + 0.6]} scale={1.1} pot="#8a4b2a" look={FIRE.candelabrum} />
+      <Plant position={[m.minX + 0.6, 0, m.maxZ - 0.6]} scale={0.9} look={FIRE.candelabrum} />
       <WallSign
         position={[MANAGER_DESK.x, 2.3, -HALF_D + 0.03]}
         rotationY={0}

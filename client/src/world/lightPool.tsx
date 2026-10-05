@@ -15,9 +15,11 @@ export interface FireLook {
   distance: number;
 }
 
-export const FIRE: Record<'torch' | 'candle' | 'chandelier' | 'hearth', FireLook> = {
+export const FIRE: Record<'torch' | 'candle' | 'candelabrum' | 'chandelier' | 'hearth', FireLook> = {
   torch: { color: '#ff9a4a', intensity: 45, distance: 16 },
   candle: { color: '#ffb46b', intensity: 6, distance: 5 },
+  // a standing ring of candles: a room's light where no torch reaches
+  candelabrum: { color: '#ffb060', intensity: 22, distance: 9 },
   chandelier: { color: '#ffa65a', intensity: 60, distance: 14 },
   hearth: { color: '#ff7a2e', intensity: 110, distance: 22 },
 };

@@ -110,6 +110,8 @@ export function officeColliders(): Rect[] {
 
 export const MANAGER_ROOM = { minX: -HALF_W, maxX: -6.5, minZ: -HALF_D, maxZ: -3.5, doorMinX: -11, doorMaxX: -9.2 };
 export const MANAGER_DESK = { x: -11.2, z: -8.6, w: 2.6, d: 1.1 };
+/** The candelabrum by the Overlord's ledger table: off its left end, behind it, clear of the way round to the chair. */
+export const OFFICE_CANDELABRUM = { x: MANAGER_DESK.x - MANAGER_DESK.w / 2 - 0.7, z: MANAGER_DESK.z - 1.0 };
 export const RECEPTION = { x: 3, z: -3.5, w: 5, d: 1.2 };
 // The great hall's tavern: the bar is the old reception desk; behind it (north) the back bar of kegs and bottles,
 // in front of it a row of stools. The hearth fills the middle of the west wall; two feasting tables with benches stand
@@ -150,6 +152,7 @@ export function lobbyColliders(): Rect[] {
   for (const z of WAITING.seats) out.push(rect(WAITING.x, z, 0.7, 0.7, SOLID_H.seated));
   out.push(rect(MANAGER_DESK.x, MANAGER_DESK.z, MANAGER_DESK.w, MANAGER_DESK.d, SOLID_H.desk));
   out.push(rect(MANAGER_DESK.x, MANAGER_DESK.z - 1.1, 0.8, 0.8, SOLID_H.seated)); // manager chair
+  out.push(rect(OFFICE_CANDELABRUM.x, OFFICE_CANDELABRUM.z, 0.5, 0.5, SOLID_H.cooler)); // the candelabrum
   out.push(rect(-HALF_W + 0.4, -8, 0.8, 5, SOLID_H.bookshelf)); // bookshelf
   out.push(rect(RECEPTION.x, RECEPTION.z, RECEPTION.w, RECEPTION.d, SOLID_H.reception)); // the bar
   out.push(rect(BACK_BAR.x, BACK_BAR.z, BACK_BAR.w, BACK_BAR.d, 1.4)); // kegs and bottles behind it
