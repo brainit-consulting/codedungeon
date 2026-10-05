@@ -218,7 +218,7 @@ function Leftovers({ seed, qa }: { seed: number; qa: boolean }) {
           <Model name="props/Table_Knife" position={[0.02, 0.015, 0.02]} rotation={[0, 0.5, 0]} />
         </group>
       )}
-      {extra === 3 && <Model name="props/Scroll_1" position={[0.64, 0.75, -0.2]} rotation={[0, turn, 0]} />}
+      {extra === 3 && <Model name="props/Scroll_1" position={[0.64, 0.737, -0.2]} rotation={[0, turn, 0]} />}
       {extra === 4 && !qa && <Model name="props/SmallBottle" position={[-0.6, 0.74, 0.22]} />}
     </group>
   );

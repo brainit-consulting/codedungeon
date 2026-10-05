@@ -66,7 +66,7 @@ export function galleryEnd(slots: number[]): number {
 
 /** The gallery's walls: both sides, with a doorway into every chamber in use, and its far end. */
 export function galleryColliders(slots: number[]): Rect[] {
-  const start = HALF_D;
+  const start = HALF_D + 0.02; // just inside the hall wall: an end face level with its face would flicker
   const end = galleryEnd(slots);
   const { half, wall } = GALLERY;
   const out: Rect[] = [{ minX: -half - wall, maxX: half + wall, minZ: end, maxZ: end + wall }];

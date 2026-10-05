@@ -38,7 +38,7 @@ export function WaterCooler({ position }: { position: P }) {
   return (
     <group position={position}>
       <Model name="props/Barrel" />
-      <Model name="props/Bucket_Wooden_1" position={[-0.05, 0.9, 0]} rotation={[0, 0.6, 0]} />
+      <Model name="props/Bucket_Wooden_1" position={[-0.05, 0.862, 0]} rotation={[0, 0.6, 0]} />
     </group>
   );
 }
@@ -57,12 +57,13 @@ export function CoffeeTable({ position, rotationY = 0 }: { position: P; rotation
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <Model name="props/Crate_Wooden" scale={[0.9, 0.45, 0.7]} />
-      <Model name="props/Mug" position={[0.25, 0.51, 0.1]} />
-      <Model name="props/CandleStick" position={[-0.2, 0.51, -0.05]} />
-      <group position={[-0.24, 0.66, -0.05]}>
+      {/* on the squashed crate's lid, 0.383 m up (measured with propAudit.ts) */}
+      <Model name="props/Mug" position={[0.25, 0.388, 0.1]} />
+      <Model name="props/CandleStick" position={[-0.2, 0.382, -0.05]} />
+      <group position={[-0.24, 0.532, -0.05]}>
         <Flame size={0.6} />
       </group>
-      <FirePoint position={[-0.24, 0.72, -0.05]} look={FIRE.candle} />
+      <FirePoint position={[-0.24, 0.592, -0.05]} look={FIRE.candle} />
     </group>
   );
 }

@@ -59,8 +59,10 @@ export function useModel(name: ModelName): THREE.Object3D {
       prepare(gltf.scene);
       gltf.scene.userData.prepared = true;
     }
-    return gltf.scene.clone(true);
-  }, [gltf]);
+    const copy = gltf.scene.clone(true);
+    copy.userData.model = name; // which model it is, for checks like propAudit.ts
+    return copy;
+  }, [gltf, name]);
 }
 
 /** Load models ahead of time, e.g. everything a room uses, so they don't pop in one by one. */

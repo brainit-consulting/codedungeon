@@ -14,6 +14,7 @@ import { collectDarts, dropHeld, startCharge, throwHeld } from './toys/hands';
 import { watchLookLock } from './lookLock';
 import { fallsBackToDrag, hushesAfterUse, viewPointer } from './lookLockRules';
 import { pokeToy } from './toys/poke';
+import { auditProps, verdict } from './propAudit';
 
 let canvasEl: HTMLCanvasElement | null = null;
 // Set once the mouse has been captured on this page: the browser can do it, so a later refusal is only its pause after Esc.
@@ -104,7 +105,7 @@ const isTyping = (e: KeyboardEvent) => {
 };
 
 export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[] }) {
-  const { camera, gl } = useThree();
+  const { camera, gl, scene } = useThree();
   const keys = useRef(new Set<string>());
   const look = useRef({ yaw: SPAWN.yaw, pitch: -0.05 });
   const bob = useRef(0);
@@ -152,7 +153,20 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
       camera.position.set(x, EYE_HEIGHT, z);
       look.current = { yaw: (yawDeg * Math.PI) / 180, pitch: (pitchDeg * Math.PI) / 180 };
     };
-  }, [camera]);
+    // and a check that no placed prop floats or sinks: __propAudit() lists the ones that do (propAudit.ts)
+    (window as unknown as Record<string, unknown>).__propAudit = () => auditProps(scene).filter((p) => verdict(p.gap) !== 'ok');
+    // and what's under a point of the screen (x, y from -1 to 1): every mesh along that line, nearest first
+    (window as unknown as Record<string, unknown>).__pick = (x: number, y: number) => {
+      const ray = new THREE.Raycaster();
+      ray.setFromCamera(new THREE.Vector2(x, y), camera);
+      return ray.intersectObjects(scene.children, true).slice(0, 6).map((h) => {
+        const b = new THREE.Box3().setFromObject(h.object);
+        const chain: string[] = [];
+        for (let o: THREE.Object3D | null = h.object; o && chain.length < 5; o = o.parent) chain.push(o.userData.model ?? o.name ?? o.type);
+        return { at: h.distance.toFixed(3), chain: chain.join(' < '), min: b.min.toArray().map((v) => +v.toFixed(3)), max: b.max.toArray().map((v) => +v.toFixed(3)) };
+      });
+    };
+  }, [camera, scene]);
 
   useEffect(() => {
     canvasEl = gl.domElement;
