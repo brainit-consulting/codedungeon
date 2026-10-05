@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
 import { isBusy, kanbanFor, agentsOnRepo, useStore } from '../store';
-import { CARRY_ON, canCarryOn } from './carryOn';
+import { carryOnPlan } from '../../../shared/carryOn';
 import { confirmDialog } from './Confirm';
 import { Icon } from './Icon';
 import { LiveTerminal } from './LiveTerminal';
@@ -83,7 +83,10 @@ export function TerminalView({ agentId }: { agentId: string }) {
   const cli = agent.role === 'ceo' ? 'claude' : agent.cli || settings.defaultCli;
   const cliName = clis.find((c) => c.id === cli)?.label ?? cli;
   const issueUrl = agent.issueNumber ? `https://github.com/${repo.fullName}/issues/${agent.issueNumber}` : null;
-  const canMessage = working || (!isQa && !!agent.branch && agent.status !== 'idle');
+  // Carry on: back to the same work after a Stop, an Esc, a crash or a restart (the server decides the same way)
+  const carry = carryOnPlan(agent, { others: agentsOnRepo(allAgents, repo.id), pulls: repo.pulls, qa: agent.prNumber ? (qaRecords[`${repo.id}#${agent.prNumber}`] ?? null) : null });
+  const carryWhat = agent.task === 'qa' ? `the test of PR #${agent.prNumber}` : agent.task === 'fix' ? `the fix for PR #${agent.prNumber}` : `#${agent.issueNumber}`;
+  const canMessage = working || carry.kind !== 'none' || (agent.task !== 'qa' && !isQa && !!agent.branch && agent.status !== 'idle');
   const qaRec = agent.prNumber ? qaRecords[`${repo.id}#${agent.prNumber}`] : undefined;
 
   return (
@@ -222,12 +225,16 @@ export function TerminalView({ agentId }: { agentId: string }) {
           </button>
         ) : (
           <>
-            {canCarryOn(agent) && (
+            {carry.kind !== 'none' && (
               <button
                 className="btn btn-good"
                 disabled={busy}
-                title={`Resumes ${agent.name}'s session on ${agent.branch}, where it stopped`}
-                onClick={() => run(() => api.message(agent.id, CARRY_ON))}
+                title={
+                  carry.kind === 'resume'
+                    ? `Picks ${agent.name}'s session back up on ${carryWhat}, where it stopped`
+                    : `${agent.name} has no session to pick up, so this starts ${carryWhat} again from the top`
+                }
+                onClick={() => run(() => api.carryOn(agent.id))}
               >
                 ▶ Carry on
               </button>

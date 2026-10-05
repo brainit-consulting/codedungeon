@@ -86,6 +86,7 @@ export const api = {
   stop: (id: string) => call('POST', `/api/agents/${id}/stop`),
   reset: (id: string) => call('POST', `/api/agents/${id}/reset`),
   message: (id: string, text: string) => call('POST', `/api/agents/${id}/message`, { text }),
+  carryOn: (id: string) => call('POST', `/api/agents/${id}/carry-on`),
   updateSettings: (patch: Partial<SwarmSettings>) => call('PATCH', '/api/settings', patch),
   updateOffice: async (action: 'now' | 'later') => {
     const u = await call<OfficeUpdateView>('POST', '/api/office/update', { action });

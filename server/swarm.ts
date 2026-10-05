@@ -17,6 +17,7 @@ import { drainDecision, lastUpdateMessage, POSTPONE_MS, type DrainInput, type La
 import { clampPacingSessions, DEFAULT_PACING_SESSIONS, mayStart, PACING_MS, pacingMessage, usageLabel, usageView, type UsageWarning, type WorkKind } from './pacing.ts';
 import { isCli } from './clis.ts';
 import { AgentTerminal } from './terminal.ts';
+import { CARRY_ON, carryOnPlan, type CarryAgent } from '../shared/carryOn.ts';
 import { nextChamber } from '../shared/chambers.ts';
 import { blockers, holdUps, issueSpecialty } from '../shared/issues.ts';
 import { effectiveModel } from '../shared/models.ts';
@@ -613,10 +614,10 @@ export class Swarm {
     setTimeout(() => this.schedule(), 1000);
   }
 
-  /** Agents cut off by a server restart pick their Claude Code session back up (QA and demo agents start over). */
+  /** Agents cut off by a server restart pick their session back up (Carry on); demo agents, and anyone who can't, start over. */
   private recover(agents: PersistedAgent[]) {
     for (const a of agents) {
-      if (a.task === 'qa' || this.backend.demo || !a.sessionId || !a.branch) {
+      if (this.backend.demo || this.carryOnFor(a).kind !== 'resume') {
         this.appendLog(a, [{ kind: 'system', text: '↺ The dungeon server restarted. Starting over from the queue.' }]);
         const rec = a.task === 'qa' ? this.state.qa.find((q) => q.qaAgentId === a.id && q.status === 'testing') : undefined;
         if (rec) this.setQa(rec, { status: 'queued' });
@@ -625,10 +626,12 @@ export class Swarm {
         this.clearTask(a);
         continue;
       }
-      if (this.slotsFull()) continue; // stays 'stopped'; the manager can resume it later
-      void this.message(a.id, 'The dungeon server restarted while you were working. Check the state of your worktree and continue where you left off.').catch((err) =>
-        console.warn(`could not resume ${a.name}`, err),
-      );
+      if (this.slotsFull()) continue; // stays 'stopped'; the manager can resume it later (Carry on)
+      const text =
+        a.task === 'qa'
+          ? 'The dungeon server restarted while you were testing. Check where you got to and finish the test.'
+          : 'The dungeon server restarted while you were working. Check the state of your worktree and continue where you left off.';
+      void this.carryOn(a.id, text).catch((err) => console.warn(`could not resume ${a.name}`, err));
     }
   }
 
@@ -703,6 +706,7 @@ export class Swarm {
       hasScreenshot: !!rt.screenshot,
       screenshotAt: rt.screenshot?.at ?? null,
       lastError: a.lastError,
+      resumable: !!a.sessionId && !!a.branch,
       log: withLog ? rt.log : [],
     };
   }
@@ -2203,7 +2207,7 @@ export class Swarm {
   }
 
   /** A message for an agent: sent into their running session, or a follow-up that resumes it. typed: the manager typed it at their CLI's prompt, where it's already running. */
-  async message(id: string, text: string, typed = false) {
+  async message(id: string, text: string, typed = false): Promise<void> {
     const a = this.agent(id);
     if (a.role === 'ceo') return this.messageCeo(text);
     const repo = this.repo(a.repoId);
@@ -2214,6 +2218,7 @@ export class Swarm {
       if (!typed) rt.session.send(text);
       return;
     }
+    if (a.task === 'qa' && a.status !== 'done') return this.carryOn(id, text); // a halted test, picked back up
     if (a.role === 'qa') throw new HttpError(409, `${a.name} isn't testing anything right now. Send a PR to QA from the notice board.`);
     if (a.status === 'preparing') throw new HttpError(409, `${a.name} is still setting up; try again in a moment`);
     if (!a.sessionId || !a.branch || a.task === 'qa') throw new HttpError(409, `${a.name} has no session to continue. Assign an issue instead.`);
@@ -2225,6 +2230,77 @@ export class Swarm {
     if (a.task === null) a.task = 'issue';
     const fixing = a.task === 'fix' && a.prNumber ? { pr: a.prNumber, headRef: a.branch } : undefined;
     this.startAgentSession(a, repo, cwd, text, this.buildSystemAppend(a, repo, cwd, a.branch, fixing), a.sessionId, undefined, typed ? 'typed' : null);
+  }
+
+  /** What Carry on would do for this agent now (shared/carryOn.ts). */
+  private carryOnFor(a: PersistedAgent) {
+    const asCarry = (x: PersistedAgent): CarryAgent => ({
+      id: x.id,
+      role: x.role,
+      task: x.task,
+      status: x.status,
+      branch: x.branch,
+      issueNumber: x.issueNumber,
+      prNumber: x.prNumber,
+      resumable: !!x.sessionId && !!x.branch,
+    });
+    const qa = a.prNumber ? this.state.qa.find((q) => q.repoId === a.repoId && q.prNumber === a.prNumber) : undefined;
+    return carryOnPlan(asCarry(a), {
+      others: this.state.agents.filter((x) => x.repoId === a.repoId).map(asCarry),
+      pulls: this.repoRt.get(a.repoId)?.pulls ?? [],
+      qa: qa ?? null,
+    });
+  }
+
+  /**
+   * Carry on: a halted coder or tester (stopped, interrupted, failed, crashed, cut off by a restart) goes back to the
+   * same work. Their session is picked up where it stopped, or, with none to pick up, the task starts from the top.
+   */
+  async carryOn(id: string, text = CARRY_ON): Promise<void> {
+    const a = this.agent(id);
+    const repo = this.repo(a.repoId);
+    const plan = this.carryOnFor(a);
+    if (plan.kind === 'none') throw new HttpError(409, `${a.name} can't carry on: ${plan.why}.`);
+    this.ensureSlot();
+    if (a.task === 'qa') return this.carryOnTest(a, repo, plan.kind, text);
+    const rec = a.task === 'fix' ? this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === a.prNumber) : undefined;
+    if (plan.kind === 'resume') {
+      if (rec && rec.status !== 'fixing') this.setQa(rec, { status: 'fixing', devAgentId: a.id });
+      return this.message(id, text);
+    }
+    if (rec) return void this.runFix(a, repo, rec);
+    const issue = this.repoRt.get(repo.id)?.issues.find((i) => i.number === a.issueNumber);
+    if (!issue) throw new HttpError(409, `${a.name} can't carry on: #${a.issueNumber} isn't open any more.`);
+    void this.runTask(a, repo, issue);
+  }
+
+  /** A test picked back up: the pull request goes back to this tester, in the same round. */
+  private async carryOnTest(a: PersistedAgent, repo: PersistedRepo, kind: 'resume' | 'restart', text: string) {
+    const rec = this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === a.prNumber)!;
+    if (kind === 'restart') return void this.runQa(a, repo, rec);
+    // claimed before anything is awaited, so neither the PR nor the tester is handed out meanwhile
+    this.setQa(rec, { status: 'testing', qaAgentId: a.id });
+    Object.assign(a, { status: 'preparing', lastError: null, startedAt: Date.now() });
+    this.appendLog(a, [{ kind: 'manager', text: `▶ Overlord: ${text}` }]);
+    this.emitAgent(a);
+    let pr: PrDetails;
+    try {
+      pr = await this.backend.prDetails(repo.fullName, rec.prNumber);
+    } catch (err) {
+      Object.assign(a, { status: 'error', endedAt: Date.now(), lastError: (err as Error).message });
+      this.appendLog(a, [{ kind: 'error', text: `✗ ${a.lastError}` }]);
+      this.setQa(rec, { status: 'queued', qaAgentId: null });
+      this.emitAgent(a);
+      return;
+    }
+    if (a.status !== 'preparing') {
+      // stopped again while the pull request loaded
+      if (rec.status === 'testing' && rec.qaAgentId === a.id) this.setQa(rec, { status: 'needs-human', qaAgentId: null, summary: 'QA was stopped by the Overlord.' });
+      return;
+    }
+    rec.testedSha = pr.headSha;
+    const cwd = this.backend.deskDir(repo.fullName, this.agentSlug(a));
+    this.startAgentSession(a, repo, cwd, `${text}\nFinish the test and end with your QA report.`, this.buildQaSystemAppend(a, repo, cwd, a.branch!, pr), a.sessionId!, QA_SCHEMA);
   }
 
   updateSettings(patch: Partial<SwarmSettings>) {

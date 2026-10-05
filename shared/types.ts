@@ -196,6 +196,7 @@ export interface AgentView {
   hasScreenshot: boolean;
   screenshotAt: number | null;
   lastError: string | null;
+  resumable: boolean; // their last session can be picked up again (Carry on: shared/carryOn.ts)
   log: LogLine[]; // tail of the terminal log (full buffer on snapshot)
 }
 
