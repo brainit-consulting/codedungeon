@@ -305,6 +305,17 @@ export function interruptions(screen: string): number {
   return screen.split('\n').filter((l) => /\binterrupted\b/i.test(l)).length;
 }
 
+/**
+ * Whether the CLI says, under the turn it just finished, that background work it started is still going, e.g.
+ * "✻ Brewed for 1h 26m · done 10:11 PM · 1 shell, 1 monitor still running". Claude Code wakes the agent when that work
+ * finishes, so the session isn't over yet. Only the last few lines count, and only that count-then-kind wording, so an
+ * agent saying "the server is still running" doesn't keep a session open.
+ */
+export function backgroundRunning(screen: string): boolean {
+  const tail = screen.split('\n').filter((l) => l.trim()).slice(-6);
+  return tail.some((l) => /\b\d+ (?:shell|monitor|task|agent|bash|process)(?:e?s)?(?:, \d+ \w+)* still running\b/i.test(l));
+}
+
 // ---------- helper scripts the CLIs run ----------
 
 /** Claude Code's status line: posts its data (cost, usage limits) to the office and shows the office's line. */

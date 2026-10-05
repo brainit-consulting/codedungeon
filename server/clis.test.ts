@@ -3,6 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CODEX_HOOK_EVENTS, codexHookCommand, hookReviewKey, interruptions, launchArgs, oneAtATime, trustKey, unwrapCmdShim, type LaunchContext } from './clis.ts';
+import { backgroundRunning } from './clis.ts';
 import { describeTool, newScreenshots, screenshotFile, summariseResult } from './agentRunner.ts';
 
 const dir = path.join(os.tmpdir(), 'npm-global');
@@ -198,5 +199,35 @@ describe('newScreenshots', () => {
     expect(newScreenshots(dir, seen, later).map((s) => s.name)).toEqual(['page-2026-09-29T10-00-02-000Z.jpeg']);
     expect(newScreenshots(path.join(dir, 'missing'), seen, later)).toEqual([]);
     fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe('backgroundRunning', () => {
+  // Gerard's screen when his QA turn ended on 2026-10-04 with the 23-minute playtest still going in the background
+  const gerard = [
+    '● The playtest is running and the monitor will report when it finishes.',
+    '',
+    '✻ Brewed for 1h 26m 42s · done 10:11 PM · 1 shell, 1 monitor still running',
+    '─────────────────────────────── Gerard the Assayer · QA · PR #12 ─',
+    '❯ ',
+  ].join('\n');
+
+  it('sees the background work Claude Code lists under a finished turn', () => {
+    expect(backgroundRunning(gerard)).toBe(true);
+    expect(backgroundRunning('✻ Worked for 3m · 2 shells still running\n❯ ')).toBe(true);
+    expect(backgroundRunning('✻ Cooked for 40s · 1 monitor still running\n❯ ')).toBe(true);
+  });
+
+  it('is false when the turn ended with nothing left running', () => {
+    expect(backgroundRunning('✻ Brewed for 12m 3s · done 9:02 PM\n❯ ')).toBe(false);
+  });
+
+  it("ignores an agent's own words about something still running", () => {
+    expect(backgroundRunning('● The dev server is still running on port 5173.\n\n✻ Brewed for 2m\n❯ ')).toBe(false);
+  });
+
+  it('only reads the bottom of the screen, not an old footer far above', () => {
+    const old = ['✻ Brewed for 5m · 1 shell still running', ...Array.from({ length: 20 }, (_, i) => `line ${i}`), '✻ Brewed for 1m · done', '❯ '].join('\n');
+    expect(backgroundRunning(old)).toBe(false);
   });
 });

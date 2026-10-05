@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 import type { Request, Response } from 'express';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { HOME_DIR } from './config.ts';
-import { cliLabel, CODEX_HOOK_SOURCE, codexThread, commandFor, hookReviewKey, interruptions, isCli, launchArgs, NOTIFY_SOURCE, OPENCODE_PLUGIN_SOURCE, STATUSLINE_SOURCE, trustKey } from './clis.ts';
+import { backgroundRunning, cliLabel, CODEX_HOOK_SOURCE, codexThread, commandFor, hookReviewKey, interruptions, isCli, launchArgs, NOTIFY_SOURCE, OPENCODE_PLUGIN_SOURCE, STATUSLINE_SOURCE, trustKey } from './clis.ts';
 import { adoptPty, discardPty, hooksReady, keeperHookUrl, keeperPid, leaveKeeper, spawnPty, startKeeper, terminalsAvailable, type Pty } from './ptyClient.ts';
 import {
   clip,
@@ -43,6 +43,9 @@ const SESSIONS_DIR = path.join(HOME_DIR, 'sessions');
 const BIN_DIR = path.join(HOME_DIR, 'bin');
 /** After a turn ends the CLI may still pick up a queued message: only an idle prompt this long means it's done. */
 const FINISH_GRACE_MS = 3000;
+// A turn that ends with background work still running waits for it (re-checking the screen), but never past this.
+const BACKGROUND_WAIT_MS = 90 * 60_000;
+const BACKGROUND_RECHECK_MS = 30_000;
 /** Starting up: how long before the office says the CLI seems to be waiting on something. */
 const BOOT_MS = 60_000;
 /** Claude's usage warning, the way the SDK's allowed_warning is used: pace new work from here. */
@@ -417,15 +420,34 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
     cb.finished({ ...r, costUsd, turns });
   };
 
-  /** A turn ended: finished, unless the CLI picks up another prompt within the grace period. */
+  /**
+   * A turn ended: finished, unless the CLI picks up another prompt within the grace period, or says background work
+   * it started is still running (a long playtest under a monitor, say). Claude Code wakes the agent when that work is
+   * done, so the session waits for the next turn instead of ending without its report, up to BACKGROUND_WAIT_MS.
+   */
   const turnEnded = (text: string) => {
     lastText = text;
     cb.tool(null);
     clearTimeout(finishTimer);
-    finishTimer = setTimeout(() => finish({ ok: !turnError, text: lastText, errors: turnError ? [turnError] : [] }, true), FINISH_GRACE_MS);
+    finishTimer = setTimeout(endOfTurn, FINISH_GRACE_MS);
+  };
+  let waitingSince = 0;
+  const endOfTurn = () => {
+    if (backgroundRunning(term.screen())) {
+      if (!waitingSince) {
+        waitingSince = Date.now();
+        log([{ kind: 'system', text: '⏳ Its background work is still running; waiting for it to finish the turn.' }]);
+      }
+      if (Date.now() - waitingSince < BACKGROUND_WAIT_MS) {
+        finishTimer = setTimeout(endOfTurn, BACKGROUND_RECHECK_MS);
+        return;
+      }
+    }
+    finish({ ok: !turnError, text: lastText, errors: turnError ? [turnError] : [] }, true);
   };
   const busy = () => {
     begun = true;
+    waitingSince = 0;
     clearTimeout(finishTimer);
   };
 

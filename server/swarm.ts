@@ -1947,7 +1947,7 @@ export class Swarm {
         : '4. Exercise the changed behaviour directly (run the program, call the API, write a quick script).',
       '5. You may write throwaway scripts to probe behaviour, but do not commit them.',
       '',
-      'Rules: do not modify the code under test, do not commit, push, comment on, review or merge anything on GitHub. Never deploy, promote or roll back anything. The dungeon posts your report on the pull request. Finish with the structured QA report: verdict, summary, the checks you performed, the commands you ran and one caption per screenshot.',
+      'Rules: do not modify the code under test, do not commit, push, comment on, review or merge anything on GitHub. Never deploy, promote or roll back anything. The dungeon posts your report on the pull request. Finish with the structured QA report: verdict, summary, the checks you performed, the commands you ran and one caption per screenshot. If you run something long in the background, wait for it to finish before your final message; the report must be in that message.',
     ].join('\n');
   }
 
