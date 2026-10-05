@@ -41,15 +41,17 @@ export function sinkBelow(points: THREE.Vector3[], s: Top, clear = 0.008): numbe
 const q = new THREE.Quaternion();
 const qWorld = new THREE.Quaternion();
 const qParent = new THREE.Quaternion();
-const RIGHT = new THREE.Vector3(1, 0, 0);
+const PLUS_Z = new THREE.Vector3(0, 0, 1);
+const UP = new THREE.Vector3(0, 1, 0);
+const axis = new THREE.Vector3();
 
 /**
- * Lean a body forward from this spine bone by `angle` (radians) on top of the clip's pose, for a character facing +Z
- * (the rigged models do): a turn about the world X axis tips the bone's top toward +Z.
+ * Lean a body forward from this spine bone by `angle` (radians) on top of the clip's pose, toward `facing` (world, level;
+ * +Z by default, the way the rigged models face): a turn about the axis square to both up and the facing.
  */
-export function leanForward(spine: THREE.Object3D, angle: number) {
+export function leanForward(spine: THREE.Object3D, angle: number, facing: THREE.Vector3 = PLUS_Z) {
   if (angle === 0) return;
-  q.setFromAxisAngle(RIGHT, angle);
+  q.setFromAxisAngle(axis.crossVectors(UP, facing).normalize(), angle);
   spine.getWorldQuaternion(qWorld).premultiply(q);
   if (spine.parent) qWorld.premultiply(spine.parent.getWorldQuaternion(qParent).invert());
   spine.quaternion.copy(qWorld);

@@ -46,6 +46,28 @@ export const TAVERN_SEATS: Seat[] = [
   ),
 ];
 
+/**
+ * How far a drinker leans in from the waist (radians): sat upright, measured, their shoulders are too far back for
+ * their arms to rest on the bar or table without going straight.
+ */
+export function leanFor(seat: Seat): number {
+  return seat.kind === 'stool' ? 0.45 : 0.4;
+}
+
+/**
+ * Where a drinker's hands go at rest (world): the left flat on the wood beside the mug, the right's wrist just behind
+ * the mug's handle (the handle on their right).
+ */
+export function restTargets(seat: Seat): { left: { x: number; y: number; z: number }; wrist: { x: number; y: number; z: number } } {
+  const fwd = { x: -Math.sin(seat.yaw), z: -Math.cos(seat.yaw) };
+  const right = { x: -fwd.z, z: fwd.x };
+  const { x, y, z } = seat.mug;
+  return {
+    left: { x: x - right.x * 0.26 - fwd.x * 0.02, y: y + 0.03, z: z - right.z * 0.26 - fwd.z * 0.02 },
+    wrist: { x: x + right.x * 0.13 - fwd.x * 0.06, y: y + 0.085, z: z + right.z * 0.13 - fwd.z * 0.06 },
+  };
+}
+
 /** Who goes to the tavern: coders and testers with nothing on. Anyone working, stuck or stopped stays at their bench. */
 export function offDuty(a: { role: string; status: string }): boolean {
   return a.role !== 'ceo' && (a.status === 'idle' || a.status === 'done');

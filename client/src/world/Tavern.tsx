@@ -25,7 +25,9 @@ import {
   chatter,
   drinkAt,
   drinkSeed,
+  leanFor,
   offDuty,
+  restTargets,
   tapsterGesture,
   wipeAt,
   type ChatterContext,
@@ -124,13 +126,17 @@ function Patron({ agent, seat, talking, drinks }: { agent: Agent; seat: Seat; ta
   const { scene, mixer, clips } = useRiggedBody(agent);
   const bones = useMemo(() => {
     const get = (n: string) => scene.getObjectByName(n);
-    const [upperL, lowerL, upperR, lowerR, head] = ['upperarm_l', 'lowerarm_l', 'upperarm_r', 'lowerarm_r', 'Head'].map(get);
+    const [upperL, lowerL, upperR, lowerR, head, waist] = ['upperarm_l', 'lowerarm_l', 'upperarm_r', 'lowerarm_r', 'Head', 'spine_01'].map(get);
     const left = findHand(scene, 'l');
     const right = findHand(scene, 'r');
-    return upperL && lowerL && upperR && lowerR && head && left && right ? { upperL, lowerL, upperR, lowerR, head, left, right } : null;
+    return upperL && lowerL && upperR && lowerR && head && waist && left && right ? { upperL, lowerL, upperR, lowerR, head, waist, left, right } : null;
   }, [scene]);
-  // everything the arms and hands move by hand, put back to the clip's pose before each frame's mixer update
-  const pose = useMemo(() => new HandPose(bones ? [bones.upperL, bones.lowerL, bones.upperR, bones.lowerR, ...bones.left.bones, ...bones.right.bones] : []), [bones]);
+  // everything moved by hand (the lean, the arms, the hands), put back to the clip's pose before each frame's mixer update
+  const pose = useMemo(
+    () => new HandPose(bones ? [bones.waist, bones.upperL, bones.lowerL, bones.upperR, bones.lowerR, ...bones.left.bones, ...bones.right.bones] : []),
+    [bones],
+  );
+  const rest = useMemo(() => restTargets(seat), [seat]);
   const settled = useRef(0);
   const mug = useRef<THREE.Group>(null);
   const seed = useMemo(() => drinkSeed(agent.id), [agent.id]);
@@ -169,9 +175,12 @@ function Patron({ agent, seat, talking, drinks }: { agent: Agent; seat: Seat; ta
     const w = settled.current;
     const d = drinks ? drinkAt(clock.elapsedTime, seed) : { weight: 0, toMouth: 0, holding: false, tilt: 0 };
 
+    // They lean in on the bar or the table from the waist: sat upright, their arms would have to go straight to reach it.
+    leanForward(bones.waist, leanFor(seat) * w, fwd);
+
     // The left forearm rests on the bar or the table, hand flat, beside the mug.
     bones.upperL.getWorldPosition(tmp.shoulder);
-    tmp.target.set(seat.mug.x, seat.mug.y + 0.03, seat.mug.z).addScaledVector(right, -0.26).addScaledVector(fwd, -0.02);
+    tmp.target.set(rest.left.x, rest.left.y, rest.left.z);
     tmp.pole.copy(tmp.shoulder).addScaledVector(UP, -1).addScaledVector(right, -0.6).addScaledVector(fwd, -0.3);
     reachWith(bones.upperL, bones.lowerL, bones.left.hand, tmp.target, tmp.pole, w);
     facePalm(bones.left, DOWN, w);

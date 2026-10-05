@@ -155,6 +155,8 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
     };
     // and a check that no placed prop floats or sinks: __propAudit() lists the ones that do (propAudit.ts)
     (window as unknown as Record<string, unknown>).__propAudit = () => auditProps(scene).filter((p) => verdict(p.gap) !== 'ok');
+    // the scene itself, for measuring things in the console
+    (window as unknown as Record<string, unknown>).__swarmScene = scene;
     // and what's under a point of the screen (x, y from -1 to 1): every mesh along that line, nearest first
     (window as unknown as Record<string, unknown>).__pick = (x: number, y: number) => {
       const ray = new THREE.Raycaster();
