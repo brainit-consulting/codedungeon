@@ -164,15 +164,23 @@ function fixScript(pr: number): Step[] {
   ];
 }
 
+/** What each fake session was first asked, by its id: a follow-up that resumes one carries on with the same work. */
+const askedOf = new Map<string, string>();
+
 function fakeSession(opts: SessionOptions, cb: SessionCallbacks, fullName: string): SessionHandle {
   const timers: NodeJS.Timeout[] = [];
   let stopped = false;
-  const kind = opts.role === 'qa' ? 'qa' : /FAILED|taking over pull request|git push origin HEAD:/.test(opts.prompt) ? 'fix' : 'issue';
-  const prMatch = opts.prompt.match(/pull request #(\d+)(?::\s*(.+))?/);
-  const issueMatch = opts.prompt.match(/#(\d+):\s*(.+)/);
+  // like Claude Code, it says which session it is; resumed, it's the same one, on the same task
+  const id = opts.resumeSessionId ?? `demo-${crypto.randomUUID()}`;
+  const asked = (opts.resumeSessionId && askedOf.get(opts.resumeSessionId)) || opts.prompt;
+  askedOf.set(id, asked);
+  cb.sessionId(id);
+  const kind = opts.role === 'qa' ? 'qa' : /FAILED|taking over pull request|git push origin HEAD:/.test(asked) ? 'fix' : 'issue';
+  const prMatch = asked.match(/pull request #(\d+)(?::\s*(.+))?/);
+  const issueMatch = asked.match(/#(\d+):\s*(.+)/);
   const number = Number((kind === 'issue' ? issueMatch?.[1] : prMatch?.[1]) ?? 0);
   const title = (kind === 'issue' ? issueMatch?.[2] : prMatch?.[2])?.trim() ?? 'follow-up';
-  const round = Number(opts.prompt.match(/QA round (\d+)/)?.[1] ?? 1);
+  const round = Number(asked.match(/QA round (\d+)/)?.[1] ?? 1);
 
   const header: Step = [
     { kind: 'system', text: `✻ Claude Code (demo) · ${opts.model} · ${opts.effort} effort` },

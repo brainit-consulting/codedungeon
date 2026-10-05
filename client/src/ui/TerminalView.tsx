@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
 import { isBusy, kanbanFor, agentsOnRepo, useStore } from '../store';
+import { CARRY_ON, canCarryOn } from './carryOn';
 import { confirmDialog } from './Confirm';
 import { Icon } from './Icon';
 import { LiveTerminal } from './LiveTerminal';
@@ -221,6 +222,16 @@ export function TerminalView({ agentId }: { agentId: string }) {
           </button>
         ) : (
           <>
+            {canCarryOn(agent) && (
+              <button
+                className="btn btn-good"
+                disabled={busy}
+                title={`Resumes ${agent.name}'s session on ${agent.branch}, where it stopped`}
+                onClick={() => run(() => api.message(agent.id, CARRY_ON))}
+              >
+                ▶ Carry on
+              </button>
+            )}
             <select value={issue} onChange={(e) => setIssue(e.target.value)}>
               <option value="">{isQa ? 'Pick a pull request to test…' : 'Pick an issue from the backlog…'}</option>
               {choices.map((c) => (

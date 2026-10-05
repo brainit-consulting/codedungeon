@@ -169,7 +169,7 @@ export const CHAPTERS: GuideChapter[] = [
       list(
         'click into the terminal and type, as if it were your own (while it has focus, [[Esc]] goes to the agent and interrupts its turn);',
         'use the message box underneath: [[Enter]] sends, [[Shift]] + [[Enter]] starts a new line. While they work it is typed into their session; afterwards it resumes it as a follow-up;',
-        'press **Stop**, hand them an issue from the backlog, or **Clear bench** when they are done.',
+        'press **Stop** to halt them, and **▶ Carry on** to set them going again where they stopped (on the same branch, with everything they knew); or hand them an issue from the backlog, or **Clear bench** when they are done.',
       ),
       h("Who's working"),
       p(
@@ -326,7 +326,7 @@ export const CHAPTERS: GuideChapter[] = [
       list(
         'Open their terminal ([[E]] on their bench) and read the last few lines. They may be waiting on a question or a slow command.',
         'Tell them what to do: type in the message box, or straight into the terminal.',
-        'Press **Stop**, then hand the issue to them again or to someone else. **Clear bench** resets a finished or failed bench.',
+        'Press **Stop**. **▶ Carry on** then sets them going again where they stopped, or hand the issue to them again or to someone else. **Clear bench** resets a finished or failed bench.',
         'A failed session puts its issue back on the board; the coder gets new work after a two-minute rest. An issue that fails twice waits for you to assign it by hand.',
       ),
       h('A chamber says its main branch is not on GitHub yet'),
