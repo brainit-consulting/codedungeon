@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import * as THREE from 'three';
 import { BACK_BAR, BAR_STOOLS, FEAST_TABLES, HALF_W, HEARTH, RECEPTION, WALL_H } from './layout';
+import { STOOL_SCALE } from './tavernRules';
 import { FIRE, Flame, useFireLight } from './lightPool';
 import { Model } from './models';
 import { Chandelier } from './Props';
@@ -50,7 +51,7 @@ export function Bar() {
       </group>
 
       {BAR_STOOLS.map((s) => (
-        <Model key={s.x} name="props/Stool" position={[s.x, 0, s.z]} rotation={[0, s.x, 0]} />
+        <Model key={s.x} name="props/Stool" position={[s.x, 0, s.z]} rotation={[0, s.x, 0]} scale={[1, STOOL_SCALE, 1]} />
       ))}
     </group>
   );

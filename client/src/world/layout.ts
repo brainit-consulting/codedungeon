@@ -153,7 +153,7 @@ export function lobbyColliders(): Rect[] {
   out.push(rect(-HALF_W + 0.4, -8, 0.8, 5, SOLID_H.bookshelf)); // bookshelf
   out.push(rect(RECEPTION.x, RECEPTION.z, RECEPTION.w, RECEPTION.d, SOLID_H.reception)); // the bar
   out.push(rect(BACK_BAR.x, BACK_BAR.z, BACK_BAR.w, BACK_BAR.d, 1.4)); // kegs and bottles behind it
-  for (const s of BAR_STOOLS) out.push(rect(s.x, s.z, 0.42, 0.42, 0.6));
+  for (const s of BAR_STOOLS) out.push(rect(s.x, s.z, 0.42, 0.42, 0.8)); // tall bar stools (tavernRules STOOL_SEAT)
   out.push(rect(-HALF_W + HEARTH.d / 2, HEARTH.z, HEARTH.d, HEARTH.w)); // the hearth's chimney breast
   out.push(WOLF_SOLID); // the wolf asleep in front of it
   for (const t of FEAST_TABLES) {

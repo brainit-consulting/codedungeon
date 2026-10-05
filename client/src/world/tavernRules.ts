@@ -6,7 +6,10 @@ import { BAR_STOOLS, FEAST_TABLES, RECEPTION } from './layout';
 
 /** Where the chairs the sitting clips were made for put the seat (RiggedCharacter's SEAT); stools and benches sit higher. */
 const CHAIR_SEAT = 0.479;
-const STOOL_SEAT = 0.582; // Stool.gltf's top, measured
+const STOOL_MODEL_SEAT = 0.582; // Stool.gltf's top, measured
+/** Bar stools stand taller than the model (a real one is about 0.8 m), so elbows come up to the bar top. */
+export const STOOL_SEAT = 0.8;
+export const STOOL_SCALE = STOOL_SEAT / STOOL_MODEL_SEAT;
 const BENCH_SEAT = 0.526; // Bench.gltf's top
 const BAR_TOP = 1.105; // the bar's top board
 const TABLE_TOP = 0.815; // Table_Large.gltf's top
@@ -27,7 +30,7 @@ const barFront = RECEPTION.z + RECEPTION.d / 2;
 
 export const TAVERN_SEATS: Seat[] = [
   // at the bar: facing it (north), a little back from the stool's middle so their knees clear the bar's front
-  ...BAR_STOOLS.map((s) => ({ kind: 'stool' as const, x: s.x, z: s.z + 0.08, yaw: 0, lift: STOOL_SEAT - CHAIR_SEAT, mug: { x: s.x, y: BAR_TOP, z: barFront - 0.05 } })),
+  ...BAR_STOOLS.map((s) => ({ kind: 'stool' as const, x: s.x, z: s.z + 0.12, yaw: 0, lift: STOOL_SEAT - CHAIR_SEAT, mug: { x: s.x, y: BAR_TOP, z: barFront - 0.05 } })),
   // at the feasting tables: three to a bench, each side facing the table
   ...FEAST_TABLES.flatMap((t) =>
     [-1, 1].flatMap((side) =>

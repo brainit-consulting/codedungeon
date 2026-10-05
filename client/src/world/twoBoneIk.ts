@@ -72,3 +72,98 @@ export function reachWith(upper: THREE.Object3D, lower: THREE.Object3D, hand: TH
     upper.updateMatrixWorld(true);
   }
 }
+
+// ---------- the hand: which way the palm faces, turning it, closing the fingers ----------
+
+export interface HandBones {
+  hand: THREE.Object3D;
+  /** index, middle, ring, pinky: three joints each, then the tip. */
+  fingers: THREE.Object3D[][];
+  /** The thumb's three joints (its tip is the third's child). */
+  thumb: THREE.Object3D[];
+  /** Every bone the hand moves, for putting the clip's pose back each frame (HandPose). */
+  bones: THREE.Object3D[];
+}
+
+/** The rig's hand by side ('l' or 'r'): hand_r, index_01_r … pinky_04_leaf_r, thumb_01_r …. */
+export function findHand(root: THREE.Object3D, side: 'l' | 'r'): HandBones | null {
+  const get = (n: string) => root.getObjectByName(`${n}_${side}`);
+  const hand = get('hand');
+  const chain = (f: string) => ['01', '02', '03', '04_leaf'].map((i) => get(`${f}_${i}`));
+  const fingers = ['index', 'middle', 'ring', 'pinky'].map(chain);
+  const thumb = chain('thumb');
+  if (!hand || fingers.some((c) => c.some((b) => !b)) || thumb.some((b) => !b)) return null;
+  const f = fingers as THREE.Object3D[][];
+  const t = thumb as THREE.Object3D[];
+  return { hand, fingers: f, thumb: t.slice(0, 3), bones: [hand, ...f.flatMap((c) => c.slice(0, 3)), ...t.slice(0, 3)] };
+}
+
+const P1 = new THREE.Vector3();
+const P2 = new THREE.Vector3();
+const P3 = new THREE.Vector3();
+const F = new THREE.Vector3();
+const axis = new THREE.Vector3();
+
+/** Out of the palm, the way the fingers close: the side the thumb is on, square to the fingers. */
+export function palmNormal(h: HandBones, out: THREE.Vector3): THREE.Vector3 {
+  h.hand.getWorldPosition(P1);
+  h.fingers[0][0].getWorldPosition(P2);
+  h.fingers[3][0].getWorldPosition(P3);
+  P2.sub(P3); // across the knuckles, index to pinky
+  h.fingers[1][0].getWorldPosition(P3);
+  F.subVectors(P3, P1).normalize(); // along the hand
+  out.crossVectors(P2, F).normalize();
+  h.thumb[2].getWorldPosition(P3);
+  if (P3.sub(P1).dot(out) < 0) out.negate();
+  return out;
+}
+
+/** Turn the bone about a world axis through its own origin by `angle`, in world space. */
+function turn(bone: THREE.Object3D, worldAxis: THREE.Vector3, angle: number) {
+  q.setFromAxisAngle(worldAxis, angle);
+  bone.getWorldQuaternion(qWorld);
+  qWorld.premultiply(q);
+  if (bone.parent) {
+    bone.parent.getWorldQuaternion(qParent);
+    qWorld.premultiply(qParent.invert());
+  }
+  bone.quaternion.copy(qWorld);
+  bone.updateMatrixWorld(true);
+}
+
+/** Roll the hand about the line of its fingers so the palm faces `want` (world) as nearly as it can, by `weight`. */
+export function facePalm(h: HandBones, want: THREE.Vector3, weight: number) {
+  if (weight <= 0) return;
+  h.hand.updateMatrixWorld(true);
+  h.hand.getWorldPosition(P1);
+  h.fingers[1][0].getWorldPosition(F);
+  F.sub(P1).normalize();
+  palmNormal(h, P2);
+  P3.copy(want).addScaledVector(F, -want.dot(F));
+  if (P3.lengthSq() < 1e-8) return;
+  P3.normalize();
+  axis.crossVectors(P2, P3);
+  const angle = Math.atan2(axis.dot(F), P2.dot(P3));
+  turn(h.hand, F, angle * weight);
+}
+
+/** Close the fingers by `amount` radians at each joint (the thumb by `thumbAmount`), each bending towards the palm. */
+export function closeFingers(h: HandBones, amount: number, thumbAmount: number) {
+  if (amount <= 0 && thumbAmount <= 0) return;
+  h.hand.updateMatrixWorld(true);
+  const n = palmNormal(h, new THREE.Vector3());
+  const bend = (chain: THREE.Object3D[], tip: THREE.Object3D, a: number) => {
+    for (let i = 0; i < chain.length; i++) {
+      const next = i + 1 < chain.length ? chain[i + 1] : tip;
+      chain[i].getWorldPosition(P1);
+      next.getWorldPosition(F);
+      F.sub(P1).normalize();
+      axis.crossVectors(F, n);
+      if (axis.lengthSq() < 1e-8) continue;
+      turn(chain[i], axis.normalize(), a);
+    }
+  };
+  for (const f of h.fingers) bend(f.slice(0, 3), f[3], amount);
+  const thumbTip = h.thumb[2].children[0] ?? h.thumb[2];
+  bend(h.thumb, thumbTip, thumbAmount);
+}

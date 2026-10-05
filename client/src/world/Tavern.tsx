@@ -12,7 +12,7 @@ import { HandPose } from './handPose';
 import { RIGGED, SEAT, useRiggedBody } from './RiggedCharacter';
 import { GREETINGS, TAPSTER, TAVERN_SEATS, assignSeats, chatter, drinkAt, drinkSeed, offDuty, type ChatterContext, type Seat } from './tavernRules';
 import { onPoke } from './toys/poke';
-import { reachWith } from './twoBoneIk';
+import { closeFingers, facePalm, findHand, reachWith } from './twoBoneIk';
 
 // The tavern after hours: guild members with nothing on sit at the bar and the feasting tables with a mug, talk, and
 // now and then drink, until work calls them back to their benches (Desk.tsx leaves their chair empty meanwhile). Wystan
@@ -95,20 +95,25 @@ function Bubble({ text, at }: { text: string; at: [number, number, number] }) {
 // ---------- a drinker ----------
 
 const UP = new THREE.Vector3(0, 1, 0);
+const DOWN = new THREE.Vector3(0, -1, 0);
 const v = () => new THREE.Vector3();
 
 function Patron({ agent, seat, talking, drinks }: { agent: Agent; seat: Seat; talking: boolean; drinks: boolean }) {
   const { scene, mixer, clips } = useRiggedBody(agent);
   const bones = useMemo(() => {
     const get = (n: string) => scene.getObjectByName(n);
-    const [upper, lower, hand, head] = ['upperarm_r', 'lowerarm_r', 'hand_r', 'Head'].map(get);
-    return upper && lower && hand && head ? { upper, lower, hand, head } : null;
+    const [upperL, lowerL, upperR, lowerR, head] = ['upperarm_l', 'lowerarm_l', 'upperarm_r', 'lowerarm_r', 'Head'].map(get);
+    const left = findHand(scene, 'l');
+    const right = findHand(scene, 'r');
+    return upperL && lowerL && upperR && lowerR && head && left && right ? { upperL, lowerL, upperR, lowerR, head, left, right } : null;
   }, [scene]);
-  const pose = useMemo(() => new HandPose(bones ? [bones.upper, bones.lower] : []), [bones]);
+  // everything the arms and hands move by hand, put back to the clip's pose before each frame's mixer update
+  const pose = useMemo(() => new HandPose(bones ? [bones.upperL, bones.lowerL, bones.upperR, bones.lowerR, ...bones.left.bones, ...bones.right.bones] : []), [bones]);
+  const settled = useRef(0);
   const mug = useRef<THREE.Group>(null);
   const seed = useMemo(() => drinkSeed(agent.id), [agent.id]);
   const playing = useRef<{ name: string; action: THREE.AnimationAction } | null>(null);
-  const tmp = useMemo(() => ({ target: v(), pole: v(), shoulder: v(), mouth: v(), rest: v(), hand: v(), fwd: v(), right: v() }), []);
+  const tmp = useMemo(() => ({ target: v(), pole: v(), shoulder: v(), mouth: v(), rest: v(), mug: v(), palm: v() }), []);
 
   // which way they face, and their right, in the world
   const fwd = useMemo(() => new THREE.Vector3(-Math.sin(seat.yaw), 0, -Math.cos(seat.yaw)), [seat.yaw]);
@@ -137,24 +142,37 @@ function Patron({ agent, seat, talking, drinks }: { agent: Agent; seat: Seat; ta
     scene.updateMatrixWorld(true);
     const m = mug.current;
     if (!bones || !m) return;
+    // the arms settle onto the bar or table as they sit down
+    settled.current = Math.min(1, settled.current + dt / 0.6);
+    const w = settled.current;
     const d = drinks ? drinkAt(clock.elapsedTime, seed) : { weight: 0, toMouth: 0, holding: false, tilt: 0 };
-    // The mug leads and the hand follows: the mug goes from its place to just under the lips (its base, rim at the
-    // mouth), and the right hand reaches for its handle, wherever the mug is.
+
+    // The left forearm rests on the bar or the table, hand flat, beside the mug.
+    bones.upperL.getWorldPosition(tmp.shoulder);
+    tmp.target.set(seat.mug.x, seat.mug.y + 0.03, seat.mug.z).addScaledVector(right, -0.26).addScaledVector(fwd, -0.02);
+    tmp.pole.copy(tmp.shoulder).addScaledVector(UP, -1).addScaledVector(right, -0.6).addScaledVector(fwd, -0.3);
+    reachWith(bones.upperL, bones.lowerL, bones.left.hand, tmp.target, tmp.pole, w);
+    facePalm(bones.left, DOWN, w);
+    closeFingers(bones.left, 0.12 * w, 0.05 * w);
+
+    // The right hand keeps hold of the mug's handle: the mug goes from its place to just under the lips (its base, rim
+    // at the mouth) and back, and the hand goes with it, palm to the mug and fingers closed round the handle.
     tmp.rest.set(seat.mug.x, seat.mug.y, seat.mug.z);
-    tmp.target.copy(tmp.rest);
+    tmp.mug.copy(tmp.rest);
     if (d.toMouth > 0) {
       bones.head.getWorldPosition(tmp.mouth).addScaledVector(fwd, 0.18).addScaledVector(UP, -0.17);
-      tmp.target.lerp(tmp.mouth, d.toMouth);
+      tmp.mug.lerp(tmp.mouth, d.toMouth);
     }
-    if (d.weight > 0) {
-      bones.upper.getWorldPosition(tmp.shoulder);
-      tmp.hand.copy(tmp.target).addScaledVector(UP, 0.02).addScaledVector(right, 0.15); // the wrist, low beside the handle so the fingers come up round it
-      // elbow down and out to their right, a little back
-      tmp.pole.copy(tmp.shoulder).addScaledVector(UP, -1).addScaledVector(right, 0.6).addScaledVector(fwd, -0.3);
-      reachWith(bones.upper, bones.lower, bones.hand, tmp.hand, tmp.pole, d.weight);
-    }
-    m.position.copy(d.holding ? tmp.target : tmp.rest);
-    m.rotation.set(d.holding ? d.tilt * 1.1 : 0, mugYaw, 0, 'YXZ'); // tipped back towards them for the sip
+    bones.upperR.getWorldPosition(tmp.shoulder);
+    tmp.target.copy(tmp.mug).addScaledVector(UP, 0.085).addScaledVector(right, 0.13).addScaledVector(fwd, -0.06); // the wrist, just behind the handle
+    tmp.pole.copy(tmp.shoulder).addScaledVector(UP, -1).addScaledVector(right, 0.6).addScaledVector(fwd, -0.3);
+    reachWith(bones.upperR, bones.lowerR, bones.right.hand, tmp.target, tmp.pole, w);
+    tmp.palm.copy(right).negate(); // towards the mug
+    facePalm(bones.right, tmp.palm, w);
+    closeFingers(bones.right, 0.85 * w, 0.45 * w);
+
+    m.position.copy(tmp.mug);
+    m.rotation.set(d.tilt * 1.1, mugYaw, 0, 'YXZ'); // tipped back towards them for the sip
   });
 
   return (
