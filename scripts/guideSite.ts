@@ -128,7 +128,7 @@ const PROLOGUE = [
 ];
 
 /** The contents column: every chapter, the one being read marked and opened out to its sections; the text size buttons. */
-function toc(chapters: readonly GuideChapter[], current: string | null): string {
+function toc(chapters: readonly GuideChapter[], current: string | null, version: string): string {
   const here = (yes: boolean) => (yes ? ' aria-current="page"' : '');
   const items = chapters
     .map((c, i) => {
@@ -146,7 +146,7 @@ function toc(chapters: readonly GuideChapter[], current: string | null): string 
 <div class="paper" aria-hidden="true"></div>
 <details class="toc-fold" open>
 <summary>Contents</summary>
-<p class="toc-title"><a${here(current === null)} href="/">Code Dungeon<span>The User Guide</span></a></p>
+<p class="toc-title"><a${here(current === null)} href="/">Code Dungeon<span>The User Guide${version ? ` · v${esc(version)}` : ''}</span></a></p>
 <ol class="chapters">${items}</ol>
 <div class="textsize" role="group" aria-label="Text size">
 <button type="button" data-size="-1" aria-label="Smaller text">A−</button>
@@ -164,13 +164,14 @@ function chapterBody(c: GuideChapter): string {
   return c.blocks.map((b, k) => blockHtml(b, k === 0, b.kind === 'h' ? ids[h++] : undefined)).join('\n');
 }
 
-export function buildSite(chapters: readonly GuideChapter[]): Record<string, string> {
+/** The site's pages. `version` (package.json's) is shown in the contents box, so the hand-out says what it describes. */
+export function buildSite(chapters: readonly GuideChapter[], version = ''): Record<string, string> {
   const files: Record<string, string> = {};
   files['index.html'] = page({
     title: SITE.title,
     description: SITE.description,
     path: '/',
-    toc: toc(chapters, null),
+    toc: toc(chapters, null, version),
     body: `<header class="title-page">
 <p class="kicker">Being a true account of</p>
 <h1>Code Dungeon</h1>
@@ -193,7 +194,7 @@ ${PROLOGUE.map((t, i) => `<p${i === 0 ? ' class="opening"' : ''}>${inlineHtml(t)
       title: `${c.title} · ${SITE.title}`,
       description: `Chapter ${roman(i + 1)} of the Code Dungeon User Guide: ${c.title}.`,
       path: `/${c.id}`,
-      toc: toc(chapters, c.id),
+      toc: toc(chapters, c.id, version),
       body: `${running}
 <article>
 <header class="chapter-head"><p class="chapter-num">Chapter ${roman(i + 1)}</p><h1>${esc(c.title)}</h1></header>

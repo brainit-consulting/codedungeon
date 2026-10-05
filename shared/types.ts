@@ -56,6 +56,7 @@ export interface RepoView {
   description: string;
   url: string;
   defaultBranch: string;
+  private: boolean; // GitHub shows its pages only to accounts with access to it
   floor: number; // 1-based floor number in the building
   color: string; // accent color for the floor
   autoAssign: boolean;
@@ -197,6 +198,7 @@ export interface AgentView {
   screenshotAt: number | null;
   lastError: string | null;
   resumable: boolean; // their last session can be picked up again (Carry on: shared/carryOn.ts)
+  asks: string | null; // what they're waiting on the Overlord for (server/overlordAsk.ts), until they're answered
   log: LogLine[]; // tail of the terminal log (full buffer on snapshot)
 }
 
@@ -302,6 +304,7 @@ export interface PhoneMessage {
   text: string;
   at: number;
   requestId?: string; // a hire / let-go proposal this message is about
+  agentId?: string; // a coder or tester who needs the Overlord (their panel answers them)
 }
 
 export type CeoJobKind = 'onboard' | 'plan' | 'review' | 'chat';
@@ -318,6 +321,7 @@ export interface WorldSnapshot {
   ghReady: boolean;
   ghError?: string;
   demo: boolean;
+  version: string; // package.json: the third digit for fixes, the middle one for new features
   workspaceRoot: string;
   settings: SwarmSettings;
   repos: RepoView[];

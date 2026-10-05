@@ -5,7 +5,7 @@ import type { WebSocket } from 'ws';
 import type { Backend } from './backend.ts';
 import type { LogEntry, SessionHandle, SessionResult } from './agentRunner.ts';
 import type { PrDetails } from './github.ts';
-import { defaultProjectsDir, HOME_DIR, LOG_BUFFER, SCHEDULER_INTERVAL_MS, STATE_FILE, SYNC_INTERVAL_MS, WORKSPACE_ROOT } from './config.ts';
+import { defaultProjectsDir, HOME_DIR, LOG_BUFFER, SCHEDULER_INTERVAL_MS, STATE_FILE, SYNC_INTERVAL_MS, VERSION, WORKSPACE_ROOT } from './config.ts';
 import { ceoJobPrompt, ceoSystemPrompt, createOfficeTools, dungeonMasterTitle, IssueCap, jobLabel, planRoute, specialtyLabel, specialtySlug, type CeoJob, type OfficeTools } from './ceo.ts';
 import { HttpError } from './httpError.ts';
 import { CHECKS_ALERT_MS, MAX_MERGE_FIXES, MERGE_RETRY_MS, mergeStep } from './mergeGate.ts';
@@ -18,6 +18,7 @@ import { clampPacingSessions, DEFAULT_PACING_SESSIONS, mayStart, PACING_MS, paci
 import { isCli } from './clis.ts';
 import { AgentTerminal } from './terminal.ts';
 import { CARRY_ON, carryOnPlan, type CarryAgent } from '../shared/carryOn.ts';
+import { ASK_RULE, overlordAsk } from './overlordAsk.ts';
 import { nextChamber } from '../shared/chambers.ts';
 import { blockers, holdUps, issueSpecialty } from '../shared/issues.ts';
 import { effectiveModel } from '../shared/models.ts';
@@ -58,6 +59,8 @@ interface PersistedRepo {
   fullName: string;
   description: string;
   url: string;
+  /** Private on GitHub (read when connected; chambers from before are read on their first sync). */
+  private?: boolean;
   defaultBranch: string;
   floor: number;
   color: string;
@@ -105,6 +108,8 @@ interface PersistedAgent {
   sessionId: string | null;
   sessionCli: AgentCli | null; // the CLI whose session sessionId is: only it can resume it
   lastError: string | null;
+  /** What they're waiting on the Overlord for (overlordAsk), until answered or carried on. */
+  asks?: string | null;
   logTail: LogLine[];
 }
 
@@ -644,6 +649,7 @@ export class Swarm {
       fullName: r.fullName,
       description: r.description,
       url: r.url,
+      private: !!r.private,
       defaultBranch: r.defaultBranch,
       floor: r.floor,
       color: r.color,
@@ -707,6 +713,7 @@ export class Swarm {
       screenshotAt: rt.screenshot?.at ?? null,
       lastError: a.lastError,
       resumable: !!a.sessionId && !!a.branch,
+      asks: a.asks ?? null,
       log: withLog ? rt.log : [],
     };
   }
@@ -733,6 +740,7 @@ export class Swarm {
       ghReady: !this.ghError,
       ghError: this.ghError,
       demo: this.backend.demo,
+      version: VERSION,
       workspaceRoot: WORKSPACE_ROOT,
       settings: this.state.settings,
       repos: this.state.repos.map((r) => this.repoView(r)),
@@ -867,7 +875,7 @@ export class Swarm {
   }
 
   private clearTask(a: PersistedAgent) {
-    Object.assign(a, { status: 'idle', task: null, issueNumber: null, issueTitle: null, branch: null, prNumber: null, prUrl: null, lastError: null });
+    Object.assign(a, { status: 'idle', task: null, issueNumber: null, issueTitle: null, branch: null, prNumber: null, prUrl: null, lastError: null, asks: null });
     this.emitAgent(a);
   }
 
@@ -892,6 +900,7 @@ export class Swarm {
       fullName: meta.nameWithOwner,
       description: meta.description,
       url: meta.url,
+      private: meta.private,
       defaultBranch: meta.defaultBranch,
       floor,
       color: CHAMBER_DYES[(floor - 1) % CHAMBER_DYES.length],
@@ -1254,6 +1263,17 @@ export class Swarm {
       void this.advanceMerges(repo);
       void this.shipyard.refresh(repo);
       if (rt.noMain !== null) void this.checkMain(repo);
+      // a chamber connected before the dungeon kept this: read it once
+      if (repo.private === undefined) {
+        void this.backend
+          .repoMeta(repo.fullName)
+          .then((m) => {
+            repo.private = m.private;
+            this.emitRepo(repo);
+            this.save();
+          })
+          .catch(() => undefined);
+      }
     } catch (err) {
       rt.syncError = (err as Error).message;
     } finally {
@@ -1649,6 +1669,7 @@ export class Swarm {
       fixing ? '' : '7. End your final message with the pull request URL on its own line.',
       '',
       'Rules: never push to the default branch, never force-push, never merge pull requests yourself (the dungeon merges them once QA and the checks pass), and never edit files outside your worktree. Never deploy, promote or roll back on Vercel or anywhere else: the Overlord ships from the dungeon. If you cannot finish, open a draft PR (gh pr create --draft) explaining what is left and why.',
+      ASK_RULE,
     ]
       .filter((l) => l !== '')
       .join('\n');
@@ -1663,6 +1684,7 @@ export class Swarm {
       costUsd: 0,
       turns: 0,
       lastError: null,
+      asks: null,
       ...patch,
     });
     rt.screenshot = null;
@@ -1800,7 +1822,10 @@ export class Swarm {
     void this.backend.releaseDesk(repo.fullName, this.agentSlug(a), this.port(a)).catch(() => undefined);
     if (result.interrupted) this.interrupted(a);
 
-    if (a.task === 'qa') await this.onQaFinished(a, repo, result);
+    // blocked on something only the Overlord can give (a tester's real report wins over a stray line)
+    const ask = a.status !== 'stopped' && result.ok ? overlordAsk(result.text) : null;
+    if (ask && !(a.task === 'qa' && parseReport(result))) this.askOverlord(a, repo, ask);
+    else if (a.task === 'qa') await this.onQaFinished(a, repo, result);
     else if (a.task === 'fix') this.onFixFinished(a, repo, result);
     else await this.onIssueFinished(a, repo, result);
 
@@ -1865,6 +1890,23 @@ export class Swarm {
       a.id,
       `You finished without opening a pull request for #${a.issueNumber}. Finish the remaining steps now: commit, push your branch and open the PR with "Closes #${a.issueNumber}". If the issue can't be done, open a draft PR that explains why.`,
     ).catch(() => this.releaseIssue(a, repo));
+  }
+
+  /**
+   * A coder or tester is blocked on something only the Overlord can give. It goes on the scroll, and they're halted with
+   * their work kept for them: an answer in their message box (or Carry on, once it's sorted) picks them back up.
+   */
+  private askOverlord(a: PersistedAgent, repo: PersistedRepo, ask: string) {
+    a.status = 'stopped';
+    a.asks = ask;
+    a.lastError = null;
+    // a test goes back to needing the Overlord; a fix stays theirs ('fixing'), and an issue stays taken
+    const rec = a.task === 'qa' ? this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === a.prNumber) : undefined;
+    if (rec) this.setQa(rec, { status: 'needs-human', qaAgentId: null, summary: `${a.name} needs the Overlord: ${ask}` });
+    const what = a.task === 'qa' ? `testing PR #${a.prNumber}` : a.task === 'fix' ? `fixing PR #${a.prNumber}` : `#${a.issueNumber}`;
+    this.appendLog(a, [{ kind: 'manager', text: `🙋 Waiting on the Overlord: ${ask}` }]);
+    this.postMessage('office', `🙋 ${a.name} (${repo.fullName.split('/').pop()}, ${what}) needs you: ${ask}`, undefined, a.id);
+    this.toast('info', `${a.name} needs you: ${ask.slice(0, 100)}`);
   }
 
   private releaseIssue(a: PersistedAgent, repo: PersistedRepo) {
@@ -1952,6 +1994,7 @@ export class Swarm {
       '5. You may write throwaway scripts to probe behaviour, but do not commit them.',
       '',
       'Rules: do not modify the code under test, do not commit, push, comment on, review or merge anything on GitHub. Never deploy, promote or roll back anything. The dungeon posts your report on the pull request. Finish with the structured QA report: verdict, summary, the checks you performed, the commands you ran and one caption per screenshot. If you run something long in the background, wait for it to finish before your final message; the report must be in that message.',
+      `${ASK_RULE} That line takes the place of the report.`,
     ].join('\n');
   }
 
@@ -2226,6 +2269,7 @@ export class Swarm {
     this.appendLog(a, [{ kind: 'manager', text: `▶ Overlord: ${text}` }]);
     const cwd = this.backend.deskDir(repo.fullName, this.agentSlug(a));
     a.lastError = null;
+    a.asks = null;
     a.startedAt = Date.now();
     if (a.task === null) a.task = 'issue';
     const fixing = a.task === 'fix' && a.prNumber ? { pr: a.prNumber, headRef: a.branch } : undefined;
@@ -2280,7 +2324,7 @@ export class Swarm {
     if (kind === 'restart') return void this.runQa(a, repo, rec);
     // claimed before anything is awaited, so neither the PR nor the tester is handed out meanwhile
     this.setQa(rec, { status: 'testing', qaAgentId: a.id });
-    Object.assign(a, { status: 'preparing', lastError: null, startedAt: Date.now() });
+    Object.assign(a, { status: 'preparing', lastError: null, asks: null, startedAt: Date.now() });
     this.appendLog(a, [{ kind: 'manager', text: `▶ Overlord: ${text}` }]);
     this.emitAgent(a);
     let pr: PrDetails;
@@ -2970,8 +3014,8 @@ export class Swarm {
 
   // ---------- the phone ----------
 
-  private postMessage(from: PhoneMessage['from'], text: string, requestId?: string) {
-    const m: PhoneMessage = { id: this.messageSeq++, from, text: text.trim().slice(0, 6000), at: Date.now(), ...(requestId ? { requestId } : {}) };
+  private postMessage(from: PhoneMessage['from'], text: string, requestId?: string, agentId?: string) {
+    const m: PhoneMessage = { id: this.messageSeq++, from, text: text.trim().slice(0, 6000), at: Date.now(), ...(requestId ? { requestId } : {}), ...(agentId ? { agentId } : {}) };
     this.state.messages.push(m);
     if (this.state.messages.length > KEEP_MESSAGES) this.state.messages.splice(0, this.state.messages.length - KEEP_MESSAGES);
     this.broadcast({ type: 'message', message: m });

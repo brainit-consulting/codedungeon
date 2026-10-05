@@ -20,21 +20,24 @@ export interface RepoMeta {
   description: string;
   url: string;
   defaultBranch: string;
+  /** Private: GitHub shows its pages only to accounts with access (a 404 to anyone else). */
+  private: boolean;
 }
 
 export async function repoMeta(fullName: string): Promise<RepoMeta> {
-  const raw = await ghJson<{ nameWithOwner: string; description: string | null; url: string; defaultBranchRef: { name: string } | null }>([
+  const raw = await ghJson<{ nameWithOwner: string; description: string | null; url: string; defaultBranchRef: { name: string } | null; isPrivate: boolean }>([
     'repo',
     'view',
     fullName,
     '--json',
-    'nameWithOwner,description,url,defaultBranchRef',
+    'nameWithOwner,description,url,defaultBranchRef,isPrivate',
   ]);
   return {
     nameWithOwner: raw.nameWithOwner,
     description: raw.description ?? '',
     url: raw.url,
     defaultBranch: raw.defaultBranchRef?.name || 'main',
+    private: !!raw.isPrivate,
   };
 }
 

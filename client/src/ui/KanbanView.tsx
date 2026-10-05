@@ -170,6 +170,11 @@ export function KanbanView({ repoId }: { repoId: string }) {
           <a className="small" href={repo.url} target="_blank" rel="noreferrer">
             GitHub ↗
           </a>
+          {repo.private && (
+            <span className="small" title="This repository is private: its issues, pull requests and QA reports open only when your browser is signed in to GitHub with an account that has access. Signed in as anyone else, GitHub says the page isn't found.">
+              {' '}🔒 private
+            </span>
+          )}
         </span>
       }
     >

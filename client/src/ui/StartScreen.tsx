@@ -10,7 +10,9 @@ export function StartScreen() {
   const loaded = useStore((s) => s.loaded);
   const connected = useStore((s) => s.connected);
   const demo = useStore((s) => s.demo);
+  const version = useStore((s) => s.version);
   const repos = useStore((s) => s.repos);
+  const user = useStore((s) => s.user);
   const agents = useStore((s) => s.agents);
   const settings = useStore((s) => s.settings);
   const start = useStore((s) => s.start);
@@ -25,6 +27,7 @@ export function StartScreen() {
   };
   const ceo = agents[CEO_ID];
   const staff = Object.values(agents).filter((a) => a.role !== 'ceo').length;
+  const secret = repos.filter((r) => r.private).map((r) => r.fullName.split('/').pop());
 
   return (
     <div className="start">
@@ -45,11 +48,20 @@ export function StartScreen() {
           <li>
             <Icon name="key" /> Press <kbd>E</kbd> (or click) on things to use them. <kbd>H</kbd> for help.
           </li>
+          {secret.length > 0 && (
+            <li>
+              🔒 {secret.join(' and ')} {secret.length > 1 ? 'are' : 'is'} private on GitHub. To open {secret.length > 1 ? 'their' : 'its'} issues and pull requests from here,
+              sign in to GitHub in this browser, on this computer{user ? `, as ${user} or another account with access` : ' with an account that has access'}.
+            </li>
+          )}
         </ul>
         <button className="btn btn-big" onClick={enter} disabled={!loaded}>
           {loaded ? 'Enter the dungeon' : connected ? 'Loading…' : 'Connecting to the dungeon server…'}
         </button>
-        <div className="start-meta">{demo && <span className="pill pill-demo">DEMO MODE: fake repos, fake coders</span>}</div>
+        <div className="start-meta">
+          {demo && <span className="pill pill-demo">DEMO MODE: fake repos, fake coders</span>}
+          {version && <span className="start-version">v{version}</span>}
+        </div>
       </div>
     </div>
   );

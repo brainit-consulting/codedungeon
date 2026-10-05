@@ -317,6 +317,7 @@ function candidateAgent(r: HireRequestView): Agent {
     screenshotAt: null,
     lastError: null,
     resumable: false,
+    asks: null,
   };
 }
 

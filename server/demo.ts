@@ -72,6 +72,9 @@ seed('demo-keep/weather-api', 'Tiny weather REST API', [
   ['OpenAPI spec', 'Publish an OpenAPI 3.1 document at /openapi.json.'],
 ]);
 
+/** One demo repo is private, so what the dungeon says about private chambers can be seen. */
+const demoPrivate = (fullName: string) => fullName.endsWith('/weather-api');
+
 function screenshotSvg(title: string, url: string, hue: number) {
   const safe = (s: string) => s.replace(/[<>&"]/g, '');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
@@ -186,8 +189,10 @@ function fakeSession(opts: SessionOptions, cb: SessionCallbacks, fullName: strin
     { kind: 'system', text: `✻ Claude Code (demo) · ${opts.model} · ${opts.effort} effort` },
     { kind: 'system', text: `  cwd ${opts.cwd}` },
   ];
+  // the rate limiter needs something only the Overlord has: the first time, the coder stops and asks
+  const asking = kind === 'issue' && !opts.resumeSessionId && /rate limit/i.test(title);
   const body = kind === 'qa' ? qaScript(cb, number, title, round) : kind === 'fix' ? fixScript(number) : devScript(opts, cb, number, title);
-  const script = [header, ...body];
+  const script = [header, ...(asking ? body.slice(0, 7) : body)];
 
   const finish = () => {
     const costUsd = 0.3 + Math.random();
@@ -223,6 +228,12 @@ function fakeSession(opts: SessionOptions, cb: SessionCallbacks, fullName: strin
           fixInstructions: pass ? undefined : 'Make the toolbar wrap (flex-wrap: wrap) below 480px so every button stays visible.',
         },
       });
+      return;
+    }
+    if (asking) {
+      const ask = 'The limiter is written, but it needs a shared counter. Overlord: I need a Redis URL for REDIS_URL in .env, or say to keep the counts in memory.';
+      cb.log([{ kind: 'text', text: `● ${ask.replace('. Overlord:', '.\n\nOverlord:')}` }]);
+      cb.finished({ ok: true, text: ask.replace('. Overlord:', '.\n\nOverlord:'), costUsd, turns, errors: [] });
       return;
     }
     if (kind === 'fix') {
@@ -415,11 +426,11 @@ export function createDemoBackend(): Backend {
     demo: true,
     user: async () => 'demo-overlord',
     listMyRepos: async (): Promise<GhRepoSummary[]> =>
-      [...repos.values()].map((r) => ({ nameWithOwner: r.fullName, description: r.description, visibility: 'PUBLIC', updatedAt: now() })),
+      [...repos.values()].map((r) => ({ nameWithOwner: r.fullName, description: r.description, visibility: demoPrivate(r.fullName) ? 'PRIVATE' : 'PUBLIC', updatedAt: now() })),
     repoMeta: async (fullName) => {
       const r = repos.get(fullName);
       if (!r) throw new Error(`Unknown demo repo ${fullName}`);
-      return { nameWithOwner: fullName, description: r.description, url: `https://github.com/${fullName}`, defaultBranch: 'main' };
+      return { nameWithOwner: fullName, description: r.description, url: `https://github.com/${fullName}`, defaultBranch: 'main', private: demoPrivate(fullName) };
     },
     setLocalPath: () => undefined,
     scanProjects: async () => [...folders.values()].sort((a, b) => b.modified - a.modified),

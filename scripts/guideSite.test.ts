@@ -5,6 +5,12 @@ import { buildSite, chapterFile, inlineHtml } from './guideSite.ts';
 describe('the public User Guide site', () => {
   const files = buildSite(CHAPTERS);
 
+  it('says which version of the dungeon it describes, on every page', () => {
+    const versioned = buildSite(CHAPTERS, '9.8.7');
+    for (const html of Object.values(versioned)) expect(html).toContain('The User Guide · v9.8.7');
+    expect(files['index.html']).not.toContain(' · v');
+  });
+
   it('has a title page and one page per chapter of the in-app guide, in order', () => {
     expect(Object.keys(files).sort()).toEqual(['index.html', ...CHAPTERS.map(chapterFile)].sort());
     const index = files['index.html'];

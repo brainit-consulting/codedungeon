@@ -19,6 +19,7 @@ const STATUS_LABEL: Record<string, string> = {
   done: 'done',
   error: 'needs help',
   stopped: 'stopped',
+  asks: 'needs you',
 };
 
 export function StatusPill({ status }: { status: string }) {
@@ -101,7 +102,7 @@ export function TerminalView({ agentId }: { agentId: string }) {
             <Icon name={isQa ? 'lens' : 'anvil'} /> {agent.title || (isQa ? 'QA tester' : 'Coder')}
             {agent.specialty ? <> · <Icon name="target" /> {agent.specialty}</> : ''}
           </span>
-          <StatusPill status={agent.status} />
+          <StatusPill status={agent.asks ? 'asks' : agent.status} />
           {working && agent.currentTool && <span className="muted small">{toolVerb(agent.currentTool)}…</span>}
         </div>
       }
@@ -149,6 +150,12 @@ export function TerminalView({ agentId }: { agentId: string }) {
         {agent.costUsd > 0 && <span className="muted" title="API-equivalent cost reported by the coding agent; subscription usage is billed by plan">≈${agent.costUsd.toFixed(2)}</span>}
       </div>
       {agent.lastError && agent.status !== 'working' && <div className="term-error"><Icon name="warning" /> {agent.lastError}</div>}
+      {agent.asks && (
+        <div className="term-asks">
+          🙋 <strong>{agent.name} needs you:</strong> {agent.asks}
+          <div className="muted small">Answer in the box below and they carry on with your answer. If you've sorted it some other way, press ▶ Carry on.</div>
+        </div>
+      )}
       {agent.brief && (
         <details className="small job-brief">
           <summary>Duties{agent.hiredBy === 'ceo' ? ' (from the DungeonMaster)' : ''}</summary>
@@ -204,7 +211,9 @@ export function TerminalView({ agentId }: { agentId: string }) {
           aria-label={`Message ${agent.name}`}
           title="Enter sends · Shift+Enter adds a new line"
           placeholder={
-            working
+            agent.asks
+              ? `Answer ${agent.name}…`
+              : working
               ? `Tell ${agent.name} something while they work${agent.terminal ? ' (typed into their terminal)' : ''}…`
               : canMessage
                 ? `Ask ${agent.name} for a follow-up (resumes their session)…`

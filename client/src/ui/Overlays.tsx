@@ -116,6 +116,9 @@ function Spoils() {
   const repos = useStore((s) => s.repos);
   const agents = useStore((s) => s.agents);
   const spoils = spoilsList(repos, Object.values(agents));
+  const user = useStore((s) => s.user);
+  // a private repo's pages are a 404 to anyone signed in to GitHub without access, which looks like a broken link
+  const secret = [...new Set(spoils.map((s) => s.chamber))].filter((c) => repos.find((r) => r.fullName.split('/').pop() === c)?.private);
   const when = (iso: string) => new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   return (
     <Panel title="The chest of spoils">
@@ -138,6 +141,12 @@ function Spoils() {
               </li>
             ))}
           </ol>
+        )}
+        {secret.length > 0 && (
+          <p className="muted small">
+            {secret.join(' and ')} {secret.length > 1 ? 'are' : 'is'} private on GitHub: these pages open only when you're signed in to GitHub
+            {user ? ` as ${user} or another account` : ' with an account'} with access to it. Signed in as anyone else, GitHub says the page isn't found.
+          </p>
         )}
       </div>
     </Panel>

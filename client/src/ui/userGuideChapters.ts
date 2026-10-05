@@ -171,6 +171,10 @@ export const CHAPTERS: GuideChapter[] = [
         'use the message box underneath: [[Enter]] sends, [[Shift]] + [[Enter]] starts a new line. While they work it is typed into their session; afterwards it resumes it as a follow-up;',
         'press **Stop** to halt them, and **▶ Carry on** to set them going again on the same work, where they stopped, with everything they knew. It works for coding, fixing and testing, after a Stop, after [[Esc]] in their terminal, and after their session failed or crashed. Or hand them an issue from the backlog, or **Clear bench** when they are done.',
       ),
+      h('When someone needs you'),
+      p(
+        "Now and then a coder or tester can't go on without you: a decision only you can make, a password or key, an account, access. They stop and say exactly what they need. It goes on your scroll with an **Answer** button, their panel shows **needs you**, and the scroll's red badge counts them until they're answered. Answer in their message box and they carry on with your answer. If you sorted it out some other way, press **▶ Carry on**.",
+      ),
       h("Who's working"),
       p(
         'The list at the top right shows everyone working right now, with their latest thought, reply or tool call: everyone in this chamber, or everyone in the dungeon when you are in the great hall. Click a name to open their terminal. [[Tab]] shows or hides the list.',
@@ -324,6 +328,10 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       p(
         'If Claude turns a session away because the limit is reached, the dungeon starts no new work until the time Claude gives, and tells you on your scroll. Sessions already running carry on. To use less at once, set a **Session limit** in the ledger\'s Settings.',
+      ),
+      h('A GitHub link says "Page not found"'),
+      p(
+        "The chamber's repository is private (the board shows 🔒 private next to its GitHub link). GitHub shows a private repository's issues, pull requests and QA reports only to accounts with access, and to everyone else it says the page isn't found, as if it didn't exist. Sign in to GitHub in the browser you use for the dungeon, on the same computer, with the account the dungeon uses (its name is at the top right) or another account you've given access to the repository.",
       ),
       h('A coder is stuck'),
       list(

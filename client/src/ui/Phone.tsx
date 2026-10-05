@@ -158,11 +158,19 @@ const QUICK = ["What's the guild working on?", 'Do we need anyone new?', 'Plan t
 
 function Bubble({ m, ceoName }: { m: PhoneMessage; ceoName: string }) {
   const req = useStore((s) => (m.requestId ? s.requests.find((r) => r.id === m.requestId) : undefined));
+  // a coder or tester who needs you, still waiting: their panel is where you answer
+  const asker = useStore((s) => (m.agentId && s.agents[m.agentId]?.asks ? s.agents[m.agentId] : undefined));
+  const openOverlay = useStore((s) => s.openOverlay);
   if (m.from === 'office')
     return (
       <div className="bubble-office">
         <span>
           <IconText text={m.text} />
+          {asker && (
+            <button className="btn bubble-answer" onClick={() => openOverlay({ kind: 'terminal', agentId: asker.id })}>
+              Answer {asker.name}
+            </button>
+          )}
         </span>
       </div>
     );

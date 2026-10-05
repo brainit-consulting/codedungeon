@@ -44,6 +44,7 @@ interface State {
   ghReady: boolean;
   ghError?: string;
   demo: boolean;
+  version: string;
   workspaceRoot: string;
   settings: SwarmSettings;
   clis: CliView[]; // the coding-agent CLIs installed where the office runs
@@ -132,6 +133,7 @@ export const useStore = create<State>((set, get) => ({
   user: null,
   ghReady: true,
   demo: false,
+  version: '',
   workspaceRoot: '',
   // Until the server's snapshot arrives; setupDone stays true so the wizard doesn't flash while loading.
   settings: {
@@ -198,6 +200,7 @@ export const useStore = create<State>((set, get) => ({
           ghReady: d.ghReady,
           ghError: d.ghError,
           demo: d.demo,
+          version: d.version,
           workspaceRoot: d.workspaceRoot,
           settings: d.settings,
           repos: d.repos.sort((a, b) => a.floor - b.floor),
@@ -374,12 +377,13 @@ export const unreadMessages = (messages: PhoneMessage[], readAt: number) => mess
 
 export const pendingRequests = (requests: HireRequestView[]) => requests.filter((r) => r.status === 'pending');
 
-/** The red dot on the phone: decisions waiting on the manager plus unread messages. */
+/** The red dot on the phone: decisions waiting on the manager, unread messages, and anyone waiting on an answer. */
 export function usePhoneBadge() {
   const requests = useStore((s) => s.requests);
   const messages = useStore((s) => s.messages);
   const readAt = useStore((s) => s.phoneReadAt);
-  return pendingRequests(requests).length + unreadMessages(messages, readAt);
+  const asking = useStore((s) => Object.values(s.agents).filter((a) => a.asks).length);
+  return pendingRequests(requests).length + unreadMessages(messages, readAt) + asking;
 }
 
 export interface KanbanCard {
