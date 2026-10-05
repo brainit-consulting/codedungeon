@@ -29,6 +29,8 @@ export interface Rat {
   rng: number;
   /** Time not yet stepped (a rat far from the player is stepped every few frames, with the time it's owed). */
   owed: number;
+  /** Something that just startled it (the chest it was let out of): its next step runs from there. */
+  startle?: Pt | null;
 }
 
 export interface RatEnv {
@@ -105,8 +107,9 @@ function dash(r: Rat, pick: { to: Pt; heading: number }, speed: number, fleeing:
 export function stepRat(r: Rat, dt: number, env: RatEnv) {
   if (r.dead) return;
   if (!r.fleeing) {
-    let near: Pt | null = null;
-    let nearD = RAT.spook;
+    let near: Pt | null = r.startle ?? null;
+    let nearD = r.startle ? 0 : RAT.spook;
+    r.startle = null;
     for (const t of env.threats) {
       const d = Math.hypot(t.x - r.x, t.z - r.z);
       if (d < nearD) {
@@ -192,6 +195,15 @@ function spawnPoint(w: Warren, env: WarrenEnv): Pt | null {
   return null;
 }
 
+
+/** A rat let out of somewhere (the chest of spoils): it starts right there, and bolts away from `from` if given. */
+export function releaseRat(w: Warren, at: Pt, from?: Pt): Rat {
+  w.spawned++;
+  const r = createRat(w.spawned, Math.floor(next(w) * 2 ** 31), at);
+  r.startle = from ?? null;
+  w.rats.push(r);
+  return r;
+}
 
 const SCRATCH: RatEnv = { nav: null as unknown as RatEnv['nav'], threats: [] };
 export function stepWarren(w: Warren, dt: number, env: WarrenEnv) {

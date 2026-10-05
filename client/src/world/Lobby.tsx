@@ -16,10 +16,14 @@ import { Shell, torchesOn } from './Shell';
 
 // Torches where the walls are clear: not over the bookshelf, the trophy cabinet, the CEO's board, the waiting-room
 // sign, the directory or the dart board.
-const HALL_TORCHES = [...torchesOn.west([-1.2, 9.2]), ...torchesOn.east([1.5]), ...torchesOn.north([-3.2]), ...torchesOn.south([-8, 8])];
+const HALL_TORCHES = [...torchesOn.west([-1.2, 9.2]), ...torchesOn.east([1.5]), ...torchesOn.north([-3.2, 14.7]), ...torchesOn.south([-8, 8])];
 import { Box } from './Toon';
 import { Toys } from './toys';
 import { Wolf } from './Wolf';
+import { SpoilsChest } from './SpoilsChest';
+
+/** The tops of the two trophy shelves above the chest of spoils, four chalices each. */
+const SHELVES = [1.12, 1.5];
 
 const SLATE_FRAME = new THREE.MeshStandardMaterial({ color: '#2e1f14', roughness: 0.85 });
 
@@ -196,14 +200,18 @@ function TrophyCabinet() {
   const cups = Math.min(8, stats.merged);
   return (
     <group position={[12, 0, -HALF_D + 0.55]}>
-      {/* the DungeonMaster's trophies: a weapon stand, a chest of spoils, a chalice per merged PR (up to eight) */}
+      {/* the DungeonMaster's trophies: a weapon stand, the chest of spoils (it opens: SpoilsChest.tsx), and a chalice per
+          merged PR (up to eight) on two shelves on the wall above the chest, where its lid can't knock them off */}
       <Model name="props/WeaponStand" position={[-1.2, 0, 0]} />
-      <Model name="props/Chest_Wood" position={[1.2, 0, 0.05]} />
+      <SpoilsChest position={[1.2, 0, 0.05]} />
+      {SHELVES.map((y) => (
+        <Box key={y} size={[1.32, 0.05, 0.24]} position={[1.2, y - 0.025, -0.43]} color="#3f2816" />
+      ))}
       {Array.from({ length: cups }, (_, i) => (
-        <Model key={i} name="props/Chalice" position={[0.75 + (i % 4) * 0.3, 0.69, -0.15 + Math.floor(i / 4) * 0.3]} />
+        <Model key={i} name="props/Chalice" position={[0.75 + (i % 4) * 0.3, SHELVES[Math.floor(i / 4)], -0.43]} />
       ))}
       <Model name="props/Banner_1" position={[-2.0, 2.6, -0.48]} />
-      <Model name="props/Banner_2" position={[0.4, 2.6, -0.48]} />
+      <Model name="props/Banner_2" position={[-0.6, 2.6, -0.48]} />
       <mesh position={[0, 2.45, 0.02]}>
         <planeGeometry args={[2.4, 0.75]} />
         <meshBasicMaterial map={tex} transparent toneMapped={false} />

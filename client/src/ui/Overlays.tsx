@@ -13,6 +13,7 @@ import { TerminalView } from './TerminalView';
 import { UserGuide } from './UserGuide';
 import { getAudioPrefs, setAudioPrefs, subscribeAudio } from './sfx';
 import { Icon, IconText } from './Icon';
+import { spoilsList } from '../world/spoils';
 
 // Closing a panel grabs the mouse again right away (world/lookLock.ts; "Grab the mouse when panels
 // close" in help turns that off), and mouse presses are swallowed for a moment so a double click on
@@ -107,6 +108,39 @@ function MouseSettings() {
         <input type="checkbox" checked={grabOnClose} onChange={(e) => set({ grabOnClose: e.target.checked })} /> Grab the mouse when panels close
       </label>
     </div>
+  );
+}
+
+/** The chest of spoils (world/SpoilsChest.tsx): the guild's latest merged pull requests. */
+function Spoils() {
+  const repos = useStore((s) => s.repos);
+  const agents = useStore((s) => s.agents);
+  const spoils = spoilsList(repos, Object.values(agents));
+  const when = (iso: string) => new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return (
+    <Panel title="The chest of spoils">
+      <div className="spoils">
+        <p className="muted">Every pull request the guild gets merged ends up in here. The newest are on top.</p>
+        {spoils.length === 0 ? (
+          <p>Empty for now. The first merged pull request goes in here.</p>
+        ) : (
+          <ol className="spoils-list">
+            {spoils.map((s) => (
+              <li key={`${s.chamber}#${s.number}`}>
+                <a href={s.url} target="_blank" rel="noopener noreferrer">
+                  #{s.number} {s.title}
+                </a>
+                <div className="muted small">
+                  {s.chamber}
+                  {s.by ? ` · ${s.by}` : ''}
+                  {s.mergedAt ? ` · ${when(s.mergedAt)}` : ''}
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </Panel>
   );
 }
 
@@ -209,5 +243,7 @@ export function Overlays() {
       return <SystemPanel />;
     case 'ship':
       return <ShipPanel repoId={overlay.repoId} />;
+    case 'spoils':
+      return <Spoils />;
   }
 }

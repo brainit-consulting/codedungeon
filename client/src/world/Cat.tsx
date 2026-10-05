@@ -6,7 +6,7 @@ import { CAT, callCat, createCat, stepCat, type Cat as CatState, type CatAction,
 import { GALLERY, chamber, drawnFor, dungeonColliders, galleryEnd, inDungeon, toWorld } from './dungeon';
 import { CEO_DESK, DESK_ROWS, HALF_D, HALF_W, HEARTH, RECEPTION, deskPosition } from './layout';
 import { makeNav, type Pt } from './nav';
-import { createWarren, stepWarren, type Warren, type WarrenEnv } from './ratBrain';
+import { RAT, createWarren, releaseRat, stepWarren, type Warren, type WarrenEnv } from './ratBrain';
 import { DeadRat, PILE_DROP, Rats } from './Rats';
 
 // The dungeon's black cat, drawn from simple shapes and posed by hand each frame from what her brain (catBrain.ts)
@@ -23,6 +23,13 @@ export const theCat = () => living;
 /** The Overlord calls the cat (C). */
 export function callTheCat() {
   calls++;
+}
+/** A rat bolts out of somewhere (the chest of spoils), away from `from`: one more for her to chase. False before the warren exists. */
+export function letOutRat(at: Pt, from?: Pt): boolean {
+  // the warren's limits hold for chest rats too: never more than RAT.max about, never past her tally's cap
+  if (!warren || warren.rats.length >= RAT.max || (living?.kills ?? 0) + warren.rats.length >= RAT.cap) return false;
+  releaseRat(warren, at, from);
+  return true;
 }
 
 // ---------- where she likes to be ----------

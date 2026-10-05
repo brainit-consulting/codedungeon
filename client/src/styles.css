@@ -2789,3 +2789,19 @@ input.inline:focus {
   flex: none;
   overflow: visible;
 }
+
+/* ---------- the chest of spoils ---------- */
+.spoils {
+  max-width: 560px;
+}
+.spoils-list {
+  margin: 12px 0 0;
+  padding-left: 22px;
+}
+.spoils-list li {
+  padding: 8px 0;
+  border-bottom: 1.5px solid rgba(42, 29, 20, 0.1);
+}
+.spoils-list a {
+  font-weight: 600;
+}

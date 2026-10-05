@@ -243,6 +243,11 @@ export const CHAPTERS: GuideChapter[] = [
       p(
         'Darts stick only in the board. A round is three darts, scored like the real game: doubles, trebles, 25 and the bull. The chalk tally beside the board keeps the best round. Press [[E]] on the board again to collect your darts. The coders are not targets.',
       ),
+      h('The chest of spoils'),
+      p(
+        "Under the DungeonMaster's trophies in the great hall's north-east corner stands the chest of spoils. Press [[E]] on it: the lid lifts and a scroll lists the guild's latest merged pull requests, newest first, each one a link to GitHub. Close the scroll and the lid shuts. On the shelves above it a chalice stands for every pull request merged, up to eight.",
+      ),
+      p('Mind your fingers the first time you open it. And now and then something comes out of it that is not spoils.'),
       h('The wolf by the hearth'),
       p(
         'A wolf sleeps on a hide rug by the great hall\'s fire. He stirs now and then, lifts his head when you come close, and sometimes yawns or gets up to stretch before lying down again. He makes no sound but his breathing, and you can\'t walk through him.',

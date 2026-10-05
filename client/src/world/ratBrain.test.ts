@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Rect } from './layout';
 import { clear, makeNav, type Pt } from './nav';
-import { PILE_MAX, RAT, createRat, createWarren, pileLayout, stepRat, stepWarren, type Rat, type RatEnv, type WarrenEnv } from './ratBrain';
+import { PILE_MAX, RAT, createRat, createWarren, pileLayout, releaseRat, stepRat, stepWarren, type Rat, type RatEnv, type WarrenEnv } from './ratBrain';
 
 // The same 32 x 24 room as the cat's tests: a bar, a hearth on the west wall and two tables.
 const RECTS: Rect[] = [
@@ -160,5 +160,34 @@ describe("the cat's pile", () => {
     const all = pileLayout(12);
     expect(all[11].y).toBeGreaterThan(all[0].y);
     for (const p of all) expect(Math.hypot(p.x, p.z)).toBeLessThan(0.4);
+  });
+});
+
+describe('releaseRat', () => {
+  it('lets a rat out exactly where it is asked, as one more of the warren', () => {
+    const w = createWarren(7);
+    const r = releaseRat(w, { x: 12.2, z: -9.4 });
+    expect(w.rats).toContain(r);
+    expect([r.x, r.z]).toEqual([12.2, -9.4]);
+    expect(w.spawned).toBe(1);
+    expect(releaseRat(w, { x: 0, z: 0 }).id).toBe(2);
+  });
+});
+
+describe('a rat let out of the chest', () => {
+  it('bolts straight away from where it came out, with nobody near', () => {
+    const w = createWarren(3);
+    const chest = { x: 0, z: -8 };
+    const r = releaseRat(w, { x: 0, z: -7.3 }, chest);
+    stepRat(r, DT, quiet);
+    expect(r.action).toBe('dash');
+    expect(r.fleeing).toBe(true);
+    expect(r.to!.z).toBeGreaterThan(-7.3); // away from the chest, into the room
+  });
+
+  it('just pauses like any rat when nothing startled it', () => {
+    const r = releaseRat(createWarren(3), { x: 0, z: -7.3 });
+    stepRat(r, DT, quiet);
+    expect(r.action).toBe('pause');
   });
 });
