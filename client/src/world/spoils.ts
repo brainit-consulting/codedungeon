@@ -61,5 +61,6 @@ export const RAT_CHANCE = 0.2;
  */
 export function chestOpening(s: { mimicDone: boolean; opens: number; ratOut: boolean; roll: number }): { mimic: boolean; rat: boolean } {
   if (!s.mimicDone) return { mimic: true, rat: false };
-  return { mimic: false, rat: !s.ratOut && s.opens >= 1 && s.roll < RAT_CHANCE };
+  // one in five from the second opening, and the third has one for sure if none has come yet this visit
+  return { mimic: false, rat: !s.ratOut && s.opens >= 1 && (s.roll < RAT_CHANCE || s.opens >= 2) };
 }

@@ -62,3 +62,9 @@ describe('chestOpening', () => {
     expect(chestOpening({ mimicDone: true, opens: 5, ratOut: true, roll: 0 }).rat).toBe(false);
   });
 });
+
+describe('chestOpening, the surprise', () => {
+  it('lets one out by the third opening of a visit at the latest, however the dice fall', () => {
+    expect(chestOpening({ mimicDone: true, opens: 2, ratOut: false, roll: 0.99 }).rat).toBe(true);
+  });
+});

@@ -204,7 +204,7 @@ function TrophyCabinet() {
       {/* the DungeonMaster's trophies: a weapon stand, the chest of spoils (it opens: SpoilsChest.tsx), and a chalice per
           merged PR (up to eight) on two shelves on the wall above the chest, where its lid can't knock them off */}
       <Model name="props/WeaponStand" position={[-1.2, 0, 0]} />
-      <SpoilsChest position={[1.2, 0, 0.05]} />
+      <SpoilsChest position={[1.2, 0, 0.45]} />
       {SHELVES.map((y) => (
         <Box key={y} size={[1.32, 0.05, 0.24]} position={[1.2, y - 0.025, -0.43]} color="#3f2816" />
       ))}

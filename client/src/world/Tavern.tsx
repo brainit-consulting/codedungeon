@@ -183,10 +183,18 @@ function Talkable({ id, label, at, h }: { id: string; label: string; at: [number
 // ---------- the tapster ----------
 
 const TAP = { x: RECEPTION.x - 0.7, z: (RECEPTION.z - RECEPTION.d / 2 + BACK_BAR.z + BACK_BAR.d / 2) / 2 };
-const TAPSTER_LOOK = { id: 'wystan-the-tapster', look: 'masculine' as const, role: 'dev' as const, hair: '#4a3020' };
+// a big man with a big red beard (the ranger's body, which has one, without his hood and pauldron), broad and tall
+const TAPSTER_LOOK = { id: 'wystan-the-tapster', look: 'masculine' as const, role: 'dev' as const, hair: '#a04a22' };
+const TAPSTER_BUILD: [number, number, number] = [1.22, 1.12, 1.2];
+const NOT_ON_A_TAPSTER = /hood|pauldron/i;
 
 function Tapster() {
-  const { scene, mixer, clips } = useRiggedBody(TAPSTER_LOOK, 'Male_Peasant');
+  const { scene, mixer, clips } = useRiggedBody(TAPSTER_LOOK, 'Male_Ranger');
+  useEffect(() => {
+    scene.traverse((o) => {
+      if (NOT_ON_A_TAPSTER.test(o.name)) o.visible = false;
+    });
+  }, [scene]);
   useEffect(() => {
     const idle = clips.find((c) => c.name === 'Idle_Loop');
     const serve = clips.find((c) => c.name === 'Interact');
@@ -213,7 +221,7 @@ function Tapster() {
   }, [clips, mixer]);
   useFrame((_, dt) => mixer.update(Math.min(dt, 0.1)));
   // the models face +Z: he faces the room, over the bar
-  return <primitive object={scene} position={[TAP.x, 0, TAP.z]} />;
+  return <primitive object={scene} position={[TAP.x, 0, TAP.z]} scale={TAPSTER_BUILD} />;
 }
 
 // ---------- the tavern ----------
@@ -273,7 +281,7 @@ export function Tavern() {
   });
 
   const bubbleAt = (who: string): [number, number, number] | null => {
-    if (who === 'tapster') return [TAP.x, 2.25, TAP.z];
+    if (who === 'tapster') return [TAP.x, 2.45, TAP.z];
     const s = seats.get(who);
     if (s === undefined) return null;
     const seat = TAVERN_SEATS[s];

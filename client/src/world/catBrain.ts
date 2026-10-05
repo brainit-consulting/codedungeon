@@ -268,6 +268,22 @@ function settle(c: Cat, spot: CatSpot) {
   c.goal = spot;
 }
 
+/**
+ * Where she is a fraction `t` through a jump. Like a real cat: jumping down she pushes off out over the edge first and
+ * drops after, jumping up she rises first and comes over the edge after, so either way she clears the lip of the bar
+ * or the table instead of passing through it. (A straight line with a small arc dipped through the bar's front edge.)
+ */
+export function jumpPoint(j: { from: Pt & { y: number }; to: Pt & { y: number } }, t: number): Pt & { y: number } {
+  const down = j.to.y < j.from.y;
+  const across = down ? 1 - (1 - t) * (1 - t) : t * t;
+  const rise = down ? t * t : 1 - (1 - t) * (1 - t);
+  return {
+    x: j.from.x + (j.to.x - j.from.x) * across,
+    z: j.from.z + (j.to.z - j.from.z) * across,
+    y: j.from.y + (j.to.y - j.from.y) * rise + (t > 0 && t < 1 ? Math.sin(t * Math.PI) * 0.25 : 0),
+  };
+}
+
 /** Jump down from what she's on, to where she jumped up from. */
 function comeDown(c: Cat) {
   const to = c.goal?.approach ?? { x: c.x, z: c.z + 0.6 };
@@ -457,10 +473,10 @@ export function stepCat(c: Cat, dt: number, env: CatEnv) {
     case 'jumpDown': {
       const j = c.jump!;
       j.t = Math.min(1, j.t + dt / CAT.jumpS);
-      c.x = j.from.x + (j.to.x - j.from.x) * j.t;
-      c.z = j.from.z + (j.to.z - j.from.z) * j.t;
-      // a little arc over the lip
-      c.y = j.from.y + (j.to.y - j.from.y) * j.t + Math.sin(j.t * Math.PI) * 0.25;
+      const at = jumpPoint(j, j.t);
+      c.x = at.x;
+      c.z = at.z;
+      c.y = at.y;
       turnToward(c, Math.atan2(-(j.to.x - j.from.x), -(j.to.z - j.from.z)), dt);
       if (j.t < 1) return;
       c.y = j.to.y;

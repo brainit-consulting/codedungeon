@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CAT, callCat, createCat, stepCat, type Cat, type CatEnv, type CatSpot, type Prey } from './catBrain';
+import { jumpPoint } from './catBrain';
 import type { Rect } from './layout';
 import { clear, makeNav } from './nav';
 import { RAT, createWarren, stepWarren } from './ratBrain';
@@ -316,5 +317,33 @@ describe('the cat and the rats', () => {
     expect(warren.spawned).toBe(RAT.cap);
     expect(warren.rats).toEqual([]);
     expect(cat.kills).toBe(RAT.cap);
+  });
+});
+
+describe('jumpPoint', () => {
+  // off the bar: from its top (1.1 m) to the floor 1.75 m out; the bar's front edge is 0.66 m from where she sat
+  const down = { from: { x: 0, z: 0, y: 1.1 }, to: { x: 0, z: 1.75, y: 0 } };
+  const up = { from: { x: 0, z: 1.75, y: 0 }, to: { x: 0, z: 0, y: 1.1 } };
+  const heightAt = (j: typeof down, z: number) => {
+    let best = { dz: Infinity, y: 0 };
+    for (let t = 0; t <= 1; t += 0.001) {
+      const p = jumpPoint(j, t);
+      if (Math.abs(p.z - z) < best.dz) best = { dz: Math.abs(p.z - z), y: p.y };
+    }
+    return best.y;
+  };
+
+  it('clears the edge of what she jumps down from', () => {
+    expect(heightAt(down, 0.66)).toBeGreaterThan(1.1);
+  });
+
+  it('is over the edge before she lands on top when she jumps up', () => {
+    expect(heightAt(up, 0.66)).toBeGreaterThan(1.1);
+  });
+
+  it('starts and ends where it should', () => {
+    expect(jumpPoint(down, 0)).toEqual({ x: 0, z: 0, y: 1.1 });
+    const end = jumpPoint(down, 1);
+    expect([end.x, end.z, end.y]).toEqual([0, 1.75, 0]);
   });
 });
