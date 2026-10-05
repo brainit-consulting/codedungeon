@@ -492,6 +492,8 @@ export function createDemoBackend(): Backend {
     commentPull: async (fullName, number) => `https://github.com/${fullName}/pull/${number}#issuecomment-${Date.now()}`,
     uploadEvidence: async (fullName, filePath) => `https://github.com/${fullName}/raw/swarm-qa-evidence/${filePath}`,
     ensureClone: async () => new Promise((r) => setTimeout(r, 400)),
+    remoteBranchState: async (fullName) =>
+      process.env.SWARM_DEMO_NO_MAIN === fullName ? { onGitHub: false, localHead: 'b4f895c' } : { onGitHub: true, localHead: null },
     syncMain: async (fullName, _branch, { touch }) => {
       const behind = mergedSinceSync.get(fullName) ?? 0;
       if (behind === 0) return { status: 'in sync', behind: 0, updatable: false };

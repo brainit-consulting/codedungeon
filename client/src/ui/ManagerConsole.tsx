@@ -132,6 +132,7 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
           </div>
           {repo.cloneError && <div className="term-error small">clone failed: {repo.cloneError}</div>}
           {repo.syncError && <div className="term-error small">sync failed: {repo.syncError}</div>}
+          {repo.noMain && <div className="term-error small"><Icon name="warning" /> {repo.noMain}</div>}
         </div>
         <span className="dyes" role="radiogroup" aria-label="Chamber dye">
           {CHAMBER_DYES.map((c, i) => (

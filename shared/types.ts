@@ -74,6 +74,8 @@ export interface RepoView {
   pulls: PullInfo[]; // open + recently merged PRs
   lastSync: number | null;
   syncError?: string;
+  /** GitHub has no default branch yet: what to do about it. Auto-assign waits until the branch is there. */
+  noMain?: string;
   previewConfig: PreviewConfig;
   preview: PreviewView;
   ship: ShipView; // SHIP IT: what's live on Vercel, what's waiting, and how this chamber ships

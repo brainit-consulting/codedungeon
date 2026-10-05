@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { WORKSPACE_ROOT } from './config.ts';
 import { gh, git, run } from './exec.ts';
+import { noMainNotice } from './emptyRepo.ts';
 
 // Layout on disk:
 //   <your projects folder>/<repo>                    the floor's main checkout: your own folder, only fetched and fast-forwarded (syncMain)
@@ -242,6 +243,22 @@ export async function createProject(root: string, name: string, opts: { visibili
   return { fullName, path: dir };
 }
 
+/**
+ * Whether GitHub has the floor's default branch yet, and if not, the branch's head in the floor's folder (a first
+ * push that never finished). Null while there is no checkout to ask from.
+ */
+export async function remoteBranchState(fullName: string, branch: string): Promise<{ onGitHub: boolean; localHead: string | null } | null> {
+  const dir = mainDir(fullName);
+  if (!(await exists(path.join(dir, '.git')))) return null;
+  const heads = await git(['ls-remote', '--heads', 'origin', `refs/heads/${branch}`], { cwd: dir, timeoutMs: 60_000 });
+  if (heads.trim()) return { onGitHub: true, localHead: null };
+  const localHead = await git(['rev-parse', '--short', '--verify', `refs/heads/${branch}`], { cwd: dir }).then(
+    (s) => s.trim() || null,
+    () => null,
+  );
+  return { onGitHub: false, localHead };
+}
+
 export interface DeskBase {
   defaultBranch: string;
   /** Start from a pull request's head instead of the default branch (QA testing, fixes after QA). */
@@ -283,11 +300,12 @@ export function prepareDesk(fullName: string, base: DeskBase, agentSlug: string,
     try {
       await git(['rev-parse', '--verify', ref], { cwd: main });
     } catch {
-      throw new Error(
-        base.pr
-          ? `Could not fetch pull request #${base.pr} of ${fullName}.`
-          : `${fullName} has no ${base.defaultBranch} branch yet. Push an initial commit (or create the repo with a README) before assigning work.`,
+      if (base.pr) throw new Error(`Could not fetch pull request #${base.pr} of ${fullName}.`);
+      const localHead = await git(['rev-parse', '--short', '--verify', `refs/heads/${base.defaultBranch}`], { cwd: main }).then(
+        (s) => s.trim() || null,
+        () => null,
       );
+      throw new Error(noMainNotice({ fullName, branch: base.defaultBranch, onGitHub: false, localHead, localPath: localHead ? main : null })!);
     }
 
     const wt = deskDir(fullName, agentSlug);

@@ -195,6 +195,7 @@ export function KanbanView({ repoId }: { repoId: string }) {
         </button>
       </div>
       {repo.syncError && <div className="term-error"><Icon name="warning" /> {repo.syncError}</div>}
+      {repo.noMain && <div className="term-error"><Icon name="warning" /> {repo.noMain}</div>}
       {showForm && <IssueForm repoId={repo.id} agents={devs} onDone={() => setShowForm(false)} />}
 
       <div className="kanban kanban-5">

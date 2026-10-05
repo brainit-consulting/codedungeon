@@ -32,6 +32,8 @@ export interface Backend {
   ensureClone(fullName: string): Promise<void>;
   /** Fast-forward the floor's main checkout to GitHub when that is safe; returns how it stands. */
   syncMain(fullName: string, defaultBranch: string, opts: { touch: boolean }): Promise<workspace.MainSync | null>;
+  /** Whether GitHub has the floor's default branch, and its head in the floor's folder when only the folder has it. */
+  remoteBranchState(fullName: string, branch: string): Promise<{ onGitHub: boolean; localHead: string | null } | null>;
   /** Point a floor at the user's own project folder (null: a clone the office manages). */
   setLocalPath(fullName: string, dir: string | null): void;
   scanProjects(root: string): Promise<workspace.LocalFolder[]>;
@@ -90,6 +92,7 @@ export const realBackend: Backend = {
   uploadEvidence: github.uploadEvidence,
   ensureClone: workspace.ensureClone,
   syncMain: workspace.syncMain,
+  remoteBranchState: workspace.remoteBranchState,
   setLocalPath: workspace.setLocalPath,
   scanProjects: workspace.scanProjects,
   inspectFolder: workspace.inspectFolder,

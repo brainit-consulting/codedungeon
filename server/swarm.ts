@@ -22,6 +22,7 @@ import { blockers, holdUps, issueSpecialty } from '../shared/issues.ts';
 import { effectiveModel } from '../shared/models.ts';
 import { CHAMBER_DYES, COAT_DYES, periodColor } from '../shared/palette.ts';
 import { CEO_ID } from '../shared/types.ts';
+import { noMainNotice } from './emptyRepo.ts';
 import type {
   AgentCli,
   AgentLook,
@@ -176,6 +177,8 @@ interface RepoRuntime {
   lastMergedAt: string | null; // newest merge seen: a newer one means the folder needs a sync
   folderSync: string | null;
   merging: boolean;
+  /** GitHub has no default branch yet (the notice to show), null when it has; undefined until first checked. */
+  noMain?: string | null;
 }
 
 interface QaReport {
@@ -657,6 +660,7 @@ export class Swarm {
       pulls: rt.pulls,
       lastSync: rt.lastSync,
       syncError: rt.syncError,
+      noMain: rt.noMain ?? undefined,
       previewConfig: r.preview,
       preview: this.previews.view(r),
       ship: this.shipyard.view(r),
@@ -1245,12 +1249,32 @@ export class Swarm {
       }
       void this.advanceMerges(repo);
       void this.shipyard.refresh(repo);
+      if (rt.noMain !== null) void this.checkMain(repo);
     } catch (err) {
       rt.syncError = (err as Error).message;
     } finally {
       rt.syncing = false;
     }
     if (this.repoRt.has(id)) this.emitRepo(repo);
+  }
+
+  /**
+   * Whether GitHub has the floor's default branch yet. Asked on each sync until it has: without it every start fails,
+   * so auto-assign waits and the chamber shows one notice instead of each coder failing every few minutes.
+   */
+  private async checkMain(repo: PersistedRepo) {
+    const rt = this.repoRt.get(repo.id);
+    if (!rt || rt.cloneStatus !== 'ready') return;
+    const state = await this.backend.remoteBranchState(repo.fullName, repo.defaultBranch).catch(() => null);
+    if (!state || !this.repoRt.has(repo.id)) return;
+    const notice = noMainNotice({ fullName: repo.fullName, branch: repo.defaultBranch, ...state, localPath: repo.localPath });
+    const before = rt.noMain;
+    rt.noMain = notice;
+    if (notice === before) return;
+    this.emitRepo(repo);
+    const name = repo.fullName.split('/').pop();
+    if (notice && !before) this.toast('error', notice); // once, when it's found; the chamber keeps showing it
+    else if (!notice && before) this.toast('success', `${name}'s ${repo.defaultBranch} is on GitHub now. The guild can start.`);
   }
 
   /** Keep agents and QA records in step with what happened to PRs on GitHub. */
@@ -2343,6 +2367,7 @@ export class Swarm {
    */
   private startIssueWork(repo: PersistedRepo): boolean {
     if (!repo.autoAssign || !this.mayStart('issue')) return false;
+    if (this.repoRt.get(repo.id)?.noMain) return false; // nothing can start before GitHub has the branch (checkMain)
     const free = this.available(repo, 'dev');
     const ready = free.length ? this.readyIssues(repo) : [];
     if (ready.length === 0) return false;

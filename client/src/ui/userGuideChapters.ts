@@ -317,13 +317,17 @@ export const CHAPTERS: GuideChapter[] = [
         'Press **Stop**, then hand the issue to them again or to someone else. **Clear bench** resets a finished or failed bench.',
         'A failed session puts its issue back on the board; the coder gets new work after a two-minute rest. An issue that fails twice waits for you to assign it by hand.',
       ),
+      h('A chamber says its main branch is not on GitHub yet'),
+      p(
+        'Coders start from the main branch on GitHub, so nothing can start until it is there. The chamber and its board say what to do, and the guild waits instead of failing. Usually the first push never finished: in your project folder run `git push -u origin main` (with large files it can take a while). Within a minute of it arriving the notice goes and the guild starts on its own.',
+      ),
       h('A pull request will not merge'),
       p(
         'If GitHub refuses the merge (for example, branch protection wants an approving review), your scroll gets a message and the dungeon tries again every 10 minutes. Checks still running after 30 minutes also get a message. Pull requests marked **needs you** have failed QA or their fixes three times: read the QA comment on GitHub and decide.',
       ),
       h('The view or the mouse misbehaves'),
       list(
-        'Can\'t look around: click the view once. If the mouse still won\'t lock, drag with the left button held.',
+        'Can\'t look around: click the view once. Straight after [[Esc]] the browser refuses for about a second, so if the first click does nothing, click again. Where the mouse can never be captured, drag with the left button held.',
         'In a narrow window (a browser pane beside a chat, say) the line of keys along the bottom steps aside to leave room; the help ([[H]]) and chapter X list them all.',
         'The status pill says **reconnecting**: the dungeon\'s server is restarting or has stopped. Agents\' terminals keep working through a restart.',
         'No sound: press [[M]], and check the volume in the help ([[H]]). No music: press [[N]], and check its own volume there too.',
