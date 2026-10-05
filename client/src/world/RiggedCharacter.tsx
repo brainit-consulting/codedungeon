@@ -34,6 +34,9 @@ export const SEAT = { forward: 0.3, lift: -0.015 };
 export const RIGGED_CHAIR = 0.95;
 const GRIME = new THREE.Color('#8a7c6e');
 
+/** The variants: the coders' and testers' outfits, by look. */
+export type Variant = (typeof VARIANTS)[keyof typeof VARIANTS][number];
+
 function variantFor(agent: Agent): string {
   const pool = VARIANTS[agent.look] ?? VARIANTS.masculine;
   // testers and the DungeonMaster wear the ranger's leathers; coders either, by their id
@@ -61,22 +64,33 @@ function prepare(scene: THREE.Object3D, hair: string) {
   });
 }
 
-function Rigged({ agent }: { agent: Agent }) {
-  const gltf = useGLTF(url(variantFor(agent)));
+/**
+ * A rigged person's body: their outfit (by look, or the one given), hair tinted, and a mixer for the shared clips
+ * (Sitting_Idle_Loop, Sitting_Talking_Loop, Sitting_Writing_Loop, Idle_Loop, Walk_Loop, Interact). Must be inside a
+ * Suspense boundary.
+ */
+export function useRiggedBody(who: { id: string; look: Agent['look']; role: Agent['role']; hair: string }, variant?: Variant) {
+  const gltf = useGLTF(url(variant ?? variantFor(who as Agent)));
   const anims = useGLTF(url('animations'));
   const scene = useMemo(() => {
     const s = cloneSkinned(gltf.scene);
-    prepare(s, agent.hair);
+    prepare(s, who.hair);
     return s;
-  }, [gltf, agent.hair]);
+  }, [gltf, who.hair]);
   const mixer = useMemo(() => new THREE.AnimationMixer(scene), [scene]);
+  useEffect(() => () => void mixer.stopAllAction(), [mixer]);
+  return { scene, mixer, clips: anims.animations };
+}
+
+function Rigged({ agent }: { agent: Agent }) {
+  const { scene, mixer, clips } = useRiggedBody(agent);
   const playing = useRef<THREE.AnimationAction | null>(null);
   const busy = agent.status === 'working' || agent.status === 'preparing';
 
   useEffect(() => {
     // working: leaning in, writing in the ledger; otherwise sat back, hands in the lap
     const name = busy ? 'Sitting_Writing_Loop' : 'Sitting_Idle_Loop';
-    const clip = anims.animations.find((a) => a.name === name);
+    const clip = clips.find((a) => a.name === name);
     if (!clip) return;
     const next = mixer.clipAction(clip);
     // start each person at a different point in the loop, so a room doesn't move in step
@@ -85,8 +99,7 @@ function Rigged({ agent }: { agent: Agent }) {
     next.fadeIn(0.4).play();
     playing.current?.fadeOut(0.4);
     playing.current = next;
-  }, [busy, anims, mixer, agent.id]);
-  useEffect(() => () => void mixer.stopAllAction(), [mixer]);
+  }, [busy, clips, mixer, agent.id]);
 
   useFrame((_, dt) => mixer.update(Math.min(dt, 0.1)));
   // the models face +Z; the coders' chairs face -Z (towards the bench)

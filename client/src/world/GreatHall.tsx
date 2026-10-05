@@ -31,8 +31,7 @@ export function Bar() {
           <cylinderGeometry args={[0.025, 0.025, w - 0.2, 8]} />
           <meshStandardMaterial color="#2d2a26" roughness={0.5} metalness={0.7} />
         </mesh>
-        <Model name="props/Mug" position={[-1.6, 1.1, 0.25]} />
-        <Model name="props/Mug" position={[-0.4, 1.1, 0.3]} rotation={[0, 2, 0]} />
+        {/* the drinkers bring their own mugs (Tavern.tsx); this one stands between two stools */}
         <Model name="props/Mug" position={[1.3, 1.1, 0.2]} rotation={[0, 0.7, 0]} />
         <Model name="props/Bottle_1" position={[0.5, 1.1, -0.2]} />
         <Model name="props/Chalice" position={[2.0, 1.1, -0.1]} />
@@ -119,8 +118,6 @@ export function FeastTables() {
           <Model name="props/Bench" position={[0, 0, -0.85]} />
           <Model name="props/Bench" position={[0, 0, 0.85]} rotation={[0, Math.PI, 0]} />
           <Model name="props/CandleStick_Triple" position={[0, 0.81, 0]} />
-          <Model name="props/Mug" position={[-0.9, 0.81, 0.25]} />
-          <Model name="props/Mug" position={[0.7, 0.81, -0.3]} rotation={[0, 1.5, 0]} />
           <Model name="props/Table_Plate" position={[-0.4, 0.815, -0.25]} />
           <TableCandles />
         </group>

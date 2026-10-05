@@ -7,6 +7,7 @@ import { FIRE, Flame, useFireLight } from './lightPool';
 import { Model } from './models';
 import { Character } from './Character';
 import { RIGGED, RIGGED_CHAIR, RIGGED_FULL, RiggedCharacter } from './RiggedCharacter';
+import { useTavernSeats } from './Tavern';
 import { drawSign, drawTag, drawTerminal } from './draw';
 import { useCanvasTexture, useInteractable } from './interact';
 import { glow, toon } from './materials';
@@ -255,6 +256,7 @@ export function Desk({
   rotationY?: number;
 }) {
   const qa = role === 'qa';
+  const seated = useTavernSeats();
   const ref = useInteractable<THREE.Group>(
     agent
       ? {
@@ -302,7 +304,8 @@ export function Desk({
       {/* chair */}
       <group position={[0, 0, agent || RIGGED_FULL ? (RIGGED ? RIGGED_CHAIR : 0.8) : 0.6]}>
         <Model name="props/Chair_1" rotation={[0, Math.PI, 0]} />
-        {agent && <Character agent={agent} />}
+        {/* off duty with a seat at the tavern (Tavern.tsx): the chair stands empty until work calls them back */}
+        {agent && !seated.has(agent.id) && <Character agent={agent} />}
         {/* ?rigged=full: a stand-in at every empty bench, to measure a full chamber */}
         {!agent && RIGGED_FULL && <RiggedCharacter agent={standIn(`${repoId}-${role}-${position.join()}`)} />}
       </group>

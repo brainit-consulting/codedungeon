@@ -18,7 +18,7 @@ export function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w
   ctx.roundRect(x, y, w, h, r);
 }
 
-function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxLines: number): string[] {
+export function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxLines: number): string[] {
   const words = text.split(/\s+/);
   const lines: string[] = [];
   let cur = '';
@@ -186,7 +186,7 @@ function drawScreensaver(ctx: CanvasRenderingContext2D, x: number, y: number, w:
   ctx.fillText(`${agent.name} is free`, bx, by + 34);
   ctx.fillStyle = TERM.result;
   ctx.font = `18px ${SANS}`;
-  ctx.fillText(agent.role === 'qa' ? 'waiting for a PR to test…' : agent.role === 'ceo' ? 'brooding over the dungeon…' : 'waiting for an issue…', bx, by + 62);
+  ctx.fillText(agent.role === 'qa' ? 'at the tavern until a PR needs testing' : agent.role === 'ceo' ? 'brooding over the dungeon…' : 'at the tavern until an issue comes', bx, by + 62);
   ctx.textAlign = 'left';
 }
 

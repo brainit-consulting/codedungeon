@@ -248,6 +248,13 @@ export const CHAPTERS: GuideChapter[] = [
         "Under the DungeonMaster's trophies in the great hall's north-east corner stands the chest of spoils. Press [[E]] on it: the lid lifts and a scroll lists the guild's latest merged pull requests, newest first, each one a link to GitHub. Close the scroll and the lid shuts. On the shelves above it a chalice stands for every pull request merged, up to eight.",
       ),
       p('Mind your fingers the first time you open it. And now and then something comes out of it that is not spoils.'),
+      h('The tavern'),
+      p(
+        "Coders and testers with nothing to do don't sit at their benches: they go to the great hall's bar and feasting tables, where Wystan the Tapster keeps the ale coming. They talk, drink and wait for work. When an issue or a pull request comes for them they're back at their bench at once; while they're away, their slate says where they went.",
+      ),
+      p(
+        "Stand near the bar and you'll hear some of what they say, in speech bubbles, and some of it is about the guild's real work. Press [[E]] on any of them, or on Wystan, for a word of your own.",
+      ),
       h('The wolf by the hearth'),
       p(
         'A wolf sleeps on a hide rug by the great hall\'s fire. He stirs now and then, lifts his head when you come close, and sometimes yawns or gets up to stretch before lying down again. He makes no sound but his breathing, and you can\'t walk through him.',

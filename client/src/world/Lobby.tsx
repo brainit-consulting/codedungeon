@@ -21,6 +21,7 @@ import { Box } from './Toon';
 import { Toys } from './toys';
 import { Wolf } from './Wolf';
 import { SpoilsChest } from './SpoilsChest';
+import { Tavern } from './Tavern';
 
 /** The tops of the two trophy shelves above the chest of spoils, four chalices each. */
 const SHELVES = [1.12, 1.5];
@@ -418,6 +419,7 @@ export function Lobby() {
       <Hearth />
       <Wolf />
       <FeastTables />
+      <Tavern />
       <WallSign
         position={[3, 2.25, -HALF_D + 0.03]}
         rotationY={0}
