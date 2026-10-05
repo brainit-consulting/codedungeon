@@ -136,3 +136,27 @@ export const useLookPrefs = create<LookPrefs & { set: (p: Partial<LookPrefs>) =>
     }
   },
 }));
+
+// ---------- spyglass zoom ----------
+
+/** One wheel notch zooms in (or out) by this factor. */
+export const ZOOM_STEP = 1.25;
+/** The closest look: enough to read a terminal slate or a notice from across a chamber. */
+export const ZOOM_MAX = 3;
+
+/** The zoom after one wheel event: up (negative deltaY) zooms in, down zooms out, clamped to 1×–ZOOM_MAX. */
+export function nextZoom(zoom: number, deltaY: number): number {
+  if (!deltaY) return zoom;
+  const z = deltaY < 0 ? zoom * ZOOM_STEP : zoom / ZOOM_STEP;
+  return Math.min(ZOOM_MAX, Math.max(1, Math.abs(z - 1) < 1e-6 ? 1 : z));
+}
+
+/** The camera's vertical field of view in degrees at a zoom: the view's half-height shrinks by the zoom factor. */
+export function zoomedFov(baseDeg: number, zoom: number): number {
+  return (2 * Math.atan(Math.tan((baseDeg * Math.PI) / 360) / zoom) * 180) / Math.PI;
+}
+
+/** Mouse look is slowed by the zoom, so the same hand movement covers the same part of the view. */
+export function lookScale(zoom: number): number {
+  return 1 / zoom;
+}

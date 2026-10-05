@@ -54,12 +54,13 @@ export const CHAPTERS: GuideChapter[] = [
     title: 'Moving about',
     blocks: [
       p(
-        'Click the view once to grab the mouse. From then on the mouse turns your head, and the small cross in the middle of the screen is what you are pointing at. That first click only grabs the mouse; it never presses anything.',
+        'Click the view once to grab the mouse. From then on the arrow is gone: the mouse turns your head, and the small cross in the middle of the screen is what you are pointing at. That first click only grabs the mouse; it never presses anything. After [[Esc]] the arrow comes back and the cross goes away until you click the view again.',
       ),
       keys(
         ['W A S D or the arrow keys', 'Walk'],
         ['Shift', 'Hold to run'],
         ['Mouse', 'Look around'],
+        ['Mouse wheel', "Zoom in for a closer look, at a notice board or a coder's slate; roll back or click the middle button to zoom out"],
         ['E or left click', 'Use whatever the cross is on: a bench, the notice board, the Roll of Chambers, your table'],
         ['Esc', 'Let go of the mouse, or close the panel that is open'],
       ),
@@ -68,7 +69,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('When the mouse cannot be grabbed'),
       p(
-        'Some browsers and embedded browser panes refuse to capture the mouse. The dungeon notices within a moment and switches to drag to look: hold the left button and drag the way you want to look (drag left to turn left, up to look up), and a click without a drag uses whatever the cross is on. Everything else works the same.',
+        'Some browsers and embedded browser panes refuse to capture the mouse. The dungeon notices within a moment and switches to drag to look: the arrow hides over the view, you hold the left button and drag the way you want to look (drag left to turn left, up to look up), and a click without a drag uses whatever the cross is on. Everything else works the same.',
       ),
       h('Mouse settings'),
       p('The help ([[H]]) has a sensitivity slider and an Invert Y switch. Both are saved in this browser.'),
@@ -338,6 +339,7 @@ export const CHAPTERS: GuideChapter[] = [
         ['W A S D or arrows', 'Walk'],
         ['Shift', 'Run'],
         ['Mouse', 'Look around (click the view first)'],
+        ['Mouse wheel', 'Zoom in and out; middle click to zoom back out'],
         ['E or left click', 'Use what the cross is on'],
         ['Esc', 'Free the mouse, or close a panel'],
         ['P', 'Your scroll'],

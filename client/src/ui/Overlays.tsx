@@ -125,7 +125,7 @@ function Help() {
           <kbd>W</kbd>
           <kbd>A</kbd>
           <kbd>S</kbd>
-          <kbd>D</kbd> walk · <kbd>Shift</kbd> run · mouse to look · <kbd>E</kbd> or left click interacts with whatever the crosshair is on (the first click only grabs the mouse) · <kbd>Esc</kbd> frees the mouse. Closing a panel grabs it again.
+          <kbd>D</kbd> walk · <kbd>Shift</kbd> run · mouse to look · mouse wheel zooms in for a closer look (middle click to zoom back out) · <kbd>E</kbd> or left click interacts with whatever the crosshair is on (the first click only grabs the mouse) · <kbd>Esc</kbd> frees the mouse. Closing a panel grabs it again.
         </p>
         <MouseSettings />
         <h3>The wolf</h3>

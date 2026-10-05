@@ -1,6 +1,6 @@
 // Run with `npm test` (Vitest).
 import { describe, expect, it } from 'vitest';
-import { hushesAfterUse, shouldGrabLook, viewUncovered, type Covering } from './lookLockRules';
+import { fallsBackToDrag, hushesAfterUse, shouldGrabLook, viewPointer, viewUncovered, type Covering } from './lookLockRules';
 
 const c = (overlay: boolean, confirm = false): Covering => ({ overlay, confirm });
 const on = { started: true, enabled: true };
@@ -60,5 +60,48 @@ describe('hushesAfterUse', () => {
 
   it('leaves the mouse alone after E, so a quick click on the panel that opened still counts', () => {
     expect(hushesAfterUse('key')).toBe(false);
+  });
+});
+
+describe('fallsBackToDrag', () => {
+  it('drags to look when this page has never captured the mouse (the browser refuses it outright)', () => {
+    expect(fallsBackToDrag(false)).toBe(true);
+  });
+
+  it("keeps trying after a capture has worked: a refusal then is only the browser's pause after Esc", () => {
+    // measured 2026-10-04: a click 200 or 600 ms after a real Esc is refused with SecurityError, at 1500 ms it is granted
+    expect(fallsBackToDrag(true)).toBe(false);
+  });
+});
+
+describe('viewPointer', () => {
+  const v = (locked: boolean, dragLook: boolean, overlay = false, started = true) => viewPointer({ started, overlay, locked, dragLook });
+
+  it('shows only the crosshair while the mouse is captured', () => {
+    expect(v(true, false)).toEqual({ crosshair: true, resumeHint: false, hideArrow: false });
+  });
+
+  it('shows only the arrow and the hint while the mouse is free', () => {
+    expect(v(false, false)).toEqual({ crosshair: false, resumeHint: true, hideArrow: false });
+  });
+
+  it('hides the arrow over the view when looking by dragging, so the crosshair is the one pointer', () => {
+    expect(v(false, true)).toEqual({ crosshair: true, resumeHint: false, hideArrow: true });
+  });
+
+  it('shows neither over an open panel or before entering', () => {
+    const none = { crosshair: false, resumeHint: false, hideArrow: false };
+    expect(v(true, false, true)).toEqual(none);
+    expect(v(false, true, true)).toEqual(none);
+    expect(v(false, false, false, false)).toEqual(none);
+  });
+
+  it('never shows the crosshair and the arrow together', () => {
+    for (const locked of [true, false])
+      for (const dragLook of [true, false]) {
+        const p = v(locked, dragLook);
+        const arrowShows = !locked && !p.hideArrow;
+        expect(p.crosshair && arrowShows).toBe(false);
+      }
   });
 });

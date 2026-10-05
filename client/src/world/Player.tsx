@@ -6,16 +6,20 @@ import { api } from '../api';
 import { inDungeon, roomAt, visitSpot } from './dungeon';
 import { EYE_HEIGHT, SPAWN, collide, type Rect } from './layout';
 import { interactables } from './interact';
-import { LOOK_RADIANS_PER_PX, createLookFilter, filterLookDelta, resetLookFilter, useLookPrefs } from './look';
+import { LOOK_RADIANS_PER_PX, createLookFilter, filterLookDelta, lookScale, nextZoom, resetLookFilter, useLookPrefs, zoomedFov } from './look';
 import { confirmDialog, isConfirmOpen } from '../ui/Confirm';
 import { footstepsFollow, getAudioPrefs, toggleMusic, toggleMute } from '../ui/sfx';
 import { callTheCat } from './Cat';
 import { collectDarts, dropHeld, startCharge, throwHeld } from './toys/hands';
 import { watchLookLock } from './lookLock';
-import { hushesAfterUse } from './lookLockRules';
+import { fallsBackToDrag, hushesAfterUse, viewPointer } from './lookLockRules';
 import { pokeToy } from './toys/poke';
 
 let canvasEl: HTMLCanvasElement | null = null;
+// Set once the mouse has been captured on this page: the browser can do it, so a later refusal is only its pause after Esc.
+let everLocked = false;
+// The spyglass: the wheel sets the target, each frame eases the camera's field of view toward it.
+const zoom = { target: 1, now: 1 };
 
 // After a click on the world (not E: see hushesAfterUse), mouse presses are swallowed for a moment, so the second
 // half of a double click can't land on the panel's backdrop and close it, or confirm a hire.
@@ -32,16 +36,17 @@ export function requestLook() {
   if (!canvasEl || s.overlay || !s.started || isConfirmOpen()) return;
   const el = canvasEl;
   if (s.dragLook) return;
-  // No capture after a moment (the browser refused without saying so): switch to looking by dragging.
+  // No capture after a moment, on a page that has never had one (the browser refused without saying so): look by dragging.
   setTimeout(() => {
-    if (document.pointerLockElement !== el) useStore.getState().setDragLook(true);
+    if (document.pointerLockElement !== el && fallsBackToDrag(everLocked)) useStore.getState().setDragLook(true);
   }, 600);
   // Raw (unadjusted) input skips the OS mouse path that produces bogus spikes on Windows.
   // Browsers that can't do it reject with NotSupportedError (Firefox ignores the option).
   lockPointer(el, { unadjustedMovement: true })?.catch?.((err: unknown) => {
     if (err instanceof DOMException && err.name === 'NotSupportedError') lockPointer(el)?.catch?.(() => undefined);
     // refused outright (e.g. the browser panel inside the Claude app disables pointer lock): drag to look at once
-    else if (err instanceof DOMException && err.name === 'SecurityError') useStore.getState().setDragLook(true);
+    // (after Esc, Chrome and Edge refuse with the same error for about a second; then the next click captures it)
+    else if (err instanceof DOMException && err.name === 'SecurityError' && fallsBackToDrag(everLocked)) useStore.getState().setDragLook(true);
   });
 }
 
@@ -107,6 +112,7 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
   const center = useMemo(() => new THREE.Vector2(0, 0), []);
   const frame = useRef(0);
   const lookFilter = useMemo(createLookFilter, []);
+  const baseFov = useRef((camera as THREE.PerspectiveCamera).fov);
 
   // After a page reload, return to the remembered spot if it is still somewhere you can stand; otherwise the hall.
   // Wait for the server's first list of projects: until then no chamber exists, and a spot in one would look invalid.
@@ -156,6 +162,11 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
     // Drag-to-look (when the mouse can't be captured): a drag turns the view, a click without a drag acts.
     const drag = { down: false, moved: 0 };
     const onMouseDown = (e: MouseEvent) => {
+      if (e.button === 1) {
+        e.preventDefault(); // the middle button puts the spyglass down (and doesn't start the browser's autoscroll)
+        zoom.target = 1;
+        return;
+      }
       if (e.button !== 0) return;
       if (useStore.getState().dragLook) {
         drag.down = true;
@@ -191,6 +202,7 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
     const onLockChange = () => {
       resetLookFilter(lookFilter);
       const locked = document.pointerLockElement === gl.domElement;
+      if (locked) everLocked = true;
       if (!locked) dropHeld(); // Esc: you've stepped away, so the darts go back on the ledge
       useStore.getState().setLocked(locked);
     };
@@ -199,7 +211,7 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
         if (!drag.down || useStore.getState().overlay) return;
         drag.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
         const { sensitivity, invertY } = useLookPrefs.getState();
-        const k = LOOK_RADIANS_PER_PX * sensitivity * 1.6; // a drag covers less ground than a captured mouse
+        const k = LOOK_RADIANS_PER_PX * sensitivity * 1.6 * lookScale(zoom.now); // a drag covers less ground than a captured mouse
         look.current.yaw -= e.movementX * k; // turn the way you drag, as a captured mouse does
         look.current.pitch = Math.max(-1.35, Math.min(1.35, look.current.pitch - e.movementY * k * (invertY ? -1 : 1)));
         return;
@@ -210,7 +222,7 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
       lookDiag.skipped = lookFilter.skipped;
       if (!d) return;
       const { sensitivity, invertY } = useLookPrefs.getState();
-      const k = LOOK_RADIANS_PER_PX * sensitivity;
+      const k = LOOK_RADIANS_PER_PX * sensitivity * lookScale(zoom.now);
       look.current.yaw -= d[0] * k;
       look.current.pitch = Math.max(-1.35, Math.min(1.35, look.current.pitch - d[1] * k * (invertY ? -1 : 1)));
     };
@@ -248,6 +260,20 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
       keys.current.clear();
       useStore.getState().setCharge(null); // the button's release would be missed
     };
+    const onWheel = (e: WheelEvent) => {
+      const s = useStore.getState();
+      if (!s.started || s.overlay || isConfirmOpen()) return;
+      e.preventDefault();
+      zoom.target = nextZoom(zoom.target, e.deltaY);
+    };
+    // One pointer at a time: while looking by dragging, the arrow is hidden over the view and the crosshair aims.
+    const showPointer = () => {
+      const s = useStore.getState();
+      gl.domElement.style.cursor = viewPointer({ started: s.started, overlay: !!s.overlay, locked: s.locked, dragLook: s.dragLook }).hideArrow ? 'none' : '';
+    };
+    showPointer();
+    const offPointer = useStore.subscribe(showPointer);
+    gl.domElement.addEventListener('wheel', onWheel, { passive: false });
     gl.domElement.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mouseup', onMouseUp);
     for (const type of QUIET_EVENTS) window.addEventListener(type, onQuietMouse, true);
@@ -259,6 +285,8 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
     const stopLookLock = watchLookLock(requestLook, hushMouse);
     return () => {
       stopLookLock();
+      offPointer();
+      gl.domElement.removeEventListener('wheel', onWheel);
       gl.domElement.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mouseup', onMouseUp);
       for (const type of QUIET_EVENTS) window.removeEventListener(type, onQuietMouse, true);
@@ -274,6 +302,16 @@ export function Player({ colliders, slots }: { colliders: Rect[]; slots: number[
     const dt = Math.min(rawDt, 0.05);
     const s = useStore.getState();
     if (s.overlay || isConfirmOpen()) keys.current.clear();
+    if (s.overlay) zoom.target = 1; // a panel puts the spyglass down: you come back to the normal view
+
+    // the spyglass: ease toward the wheel's zoom
+    if (zoom.now !== zoom.target) {
+      zoom.now += (zoom.target - zoom.now) * Math.min(1, dt * 12);
+      if (Math.abs(zoom.now - zoom.target) < 0.002) zoom.now = zoom.target;
+      const cam = camera as THREE.PerspectiveCamera;
+      cam.fov = zoomedFov(baseFov.current, zoom.now);
+      cam.updateProjectionMatrix();
+    }
 
     // movement
     const k = keys.current;

@@ -1,6 +1,6 @@
 // Run with `npm test` (Vitest).
 import { expect, it } from 'vitest';
-import { SKIP_AFTER_LOCK, createLookFilter, filterLookDelta, type LookFilter } from './look';
+import { SKIP_AFTER_LOCK, ZOOM_MAX, ZOOM_STEP, createLookFilter, filterLookDelta, lookScale, nextZoom, zoomedFov, type LookFilter } from './look';
 
 /** A filter that's past the post-lock skip, with some ordinary motion behind it. */
 function warmFilter(): { f: LookFilter; t: number } {
@@ -93,4 +93,25 @@ it('ignores non-finite deltas', () => {
   const { f, t } = warmFilter();
   expect(filterLookDelta(f, Number.NaN, 0, t + 8)).toBeNull();
   expect(filterLookDelta(f, 0, Infinity, t + 16)).toBeNull();
+});
+
+it('zooms in a step per wheel notch up, out a step per notch down, between 1× and ZOOM_MAX', () => {
+  expect(nextZoom(1, -100)).toBeCloseTo(ZOOM_STEP);
+  expect(nextZoom(ZOOM_STEP, 100)).toBeCloseTo(1);
+  expect(nextZoom(1, 100)).toBe(1);
+  let z = 1;
+  for (let i = 0; i < 20; i++) z = nextZoom(z, -100);
+  expect(z).toBe(ZOOM_MAX);
+  expect(nextZoom(1.5, 0)).toBe(1.5);
+});
+
+it('narrows the field of view like a spyglass: 2× zoom halves the view, 1× leaves it as it is', () => {
+  expect(zoomedFov(72, 1)).toBeCloseTo(72);
+  const half = (deg: number) => Math.tan((deg * Math.PI) / 360);
+  expect(half(zoomedFov(72, 2))).toBeCloseTo(half(72) / 2);
+});
+
+it('turns the view more slowly when zoomed in, so aiming stays steady', () => {
+  expect(lookScale(1)).toBe(1);
+  expect(lookScale(2)).toBeCloseTo(0.5);
 });

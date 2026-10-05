@@ -492,7 +492,6 @@ function TeamTab() {
                       <input
                         key={`s-${a.specialty}`}
                         className="inline"
-                        style={{ width: 96 }}
                         defaultValue={a.specialty}
                         placeholder="specialty"
                         title="Issues labelled swarm:<specialty> go to them first"
@@ -513,7 +512,6 @@ function TeamTab() {
                         <select
                           value={a.cli}
                           title="Their coding agent"
-                          style={{ width: 112 }}
                           onChange={(e) => void attempt(() => api.updateAgent(a.id, { cli: e.target.value as AgentCli | '' }))}
                         >
                           <option value="">{cliName(clis, settings.defaultCli)} (default)</option>
@@ -534,7 +532,7 @@ function TeamTab() {
                       />
                     </td>
                     <td>
-                      <select value={a.effort} title="Their effort" style={{ width: 124 }} onChange={(e) => void attempt(() => api.updateAgent(a.id, { effort: e.target.value }))}>
+                      <select value={a.effort} title="Their effort" onChange={(e) => void attempt(() => api.updateAgent(a.id, { effort: e.target.value }))}>
                         <option value="">default ({settings.defaultEffort})</option>
                         {EFFORTS.map((x) => (
                           <option key={x} value={x}>

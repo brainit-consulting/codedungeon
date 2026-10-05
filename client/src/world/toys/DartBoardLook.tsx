@@ -102,7 +102,8 @@ export function DartBoardLook({ ledge }: { ledge: number }) {
   return (
     <group>
       <Box size={[0.62, 0.7, 0.03]} position={[0, -0.03, -0.035]} color={C.wood} />
-      <mesh position={[0, 0, -0.005]} material={toon(C.ring)}>
+      {/* the dark rim behind the face: a cylinder stands on end by default, so it is turned to face out of the wall */}
+      <mesh position={[0, 0, -0.01]} rotation={[Math.PI / 2, 0, 0]} material={toon(C.ring)}>
         <cylinderGeometry args={[BOARD.radius, BOARD.radius, 0.04, 48]} />
       </mesh>
       <mesh position={[0, 0, 0.0155]} material={face}>

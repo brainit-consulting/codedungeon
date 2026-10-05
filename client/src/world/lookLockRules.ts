@@ -25,3 +25,23 @@ export function shouldGrabLook(prev: Covering, next: Covering, opts: { started: 
 export function hushesAfterUse(via: 'key' | 'click'): boolean {
   return via === 'click';
 }
+
+/**
+ * Whether a refused (or silently ignored) capture means this browser can't capture the mouse at all, so the view is
+ * turned by dragging instead. Only while no capture has ever worked on this page: after one has, a refusal is the
+ * browser's pause after Esc (Chrome and Edge refuse for about a second, measured 2026-10-04), and the next click works.
+ */
+export function fallsBackToDrag(everLocked: boolean): boolean {
+  return !everLocked;
+}
+
+/** What shows over the view. One pointer at a time: the crosshair while looking around, the arrow otherwise. */
+export function viewPointer(s: { started: boolean; overlay: boolean; locked: boolean; dragLook: boolean }) {
+  const open = s.started && !s.overlay;
+  return {
+    crosshair: open && (s.locked || s.dragLook),
+    resumeHint: open && !s.locked && !s.dragLook,
+    /** Looking by dragging: the arrow would sit wherever the drag left it, so it's hidden over the view. */
+    hideArrow: open && s.dragLook,
+  };
+}

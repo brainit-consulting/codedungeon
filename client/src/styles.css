@@ -1698,13 +1698,19 @@ input.inline:focus {
   border-collapse: collapse;
 }
 .team td {
-  padding: 4px 6px;
+  padding: 4px 3px;
   border-top: 1.5px solid rgba(42, 29, 20, 0.08);
   vertical-align: middle;
 }
 .team select {
   width: auto;
   padding: 4px 6px;
+}
+/* names, titles and specialties as wide as what's in them, so nothing is cut off; the dropdowns size to their longest choice */
+.team input.inline {
+  field-sizing: content;
+  min-width: 7ch;
+  max-width: 18ch;
 }
 .field {
   display: flex;
@@ -2063,6 +2069,16 @@ input.inline:focus {
   flex-direction: column;
   animation: unroll 0.24s ease-out;
   transform-origin: top;
+}
+@media (min-width: 1100px) {
+  .phone {
+    width: min(500px, 100%);
+  }
+}
+@media (min-width: 1600px) {
+  .phone {
+    width: min(560px, 100%);
+  }
 }
 @keyframes unroll {
   from {

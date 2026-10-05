@@ -5,6 +5,7 @@ import { HeldHint } from './HeldHint';
 import { WorkersPanel } from './WorkersPanel';
 import { officeUpdateChip } from '../officeUpdate';
 import { Icon, IconText } from './Icon';
+import { viewPointer } from '../world/lookLockRules';
 
 /** While the office is on its way to updating itself (or restarting to do it); opens the console's Office row. */
 function OfficeUpdateChip() {
@@ -61,6 +62,7 @@ export function HUD() {
   const toasts = useStore((s) => s.toasts);
   const dismiss = useStore((s) => s.dismissToast);
 
+  const pointer = viewPointer({ started, overlay: !!overlay, locked, dragLook });
   const repo = floor === 0 ? null : repoOnFloor(repos, floor);
   const running = useMemo(() => Object.values(agents).filter((a) => a.status === 'working' || a.status === 'preparing').length, [agents]);
   const floorAgents = repo ? Object.values(agents).filter((a) => a.repoId === repo.id) : [];
@@ -101,7 +103,7 @@ export function HUD() {
           <Icon name="warning" /> {ghError}
         </div>}
 
-      {started && !overlay && <div className={`crosshair ${focus ? 'crosshair-hot' : ''}`} />}
+      {pointer.crosshair && <div className={`crosshair ${focus ? 'crosshair-hot' : ''}`} />}
       {started && !overlay && focus && (
         <div className="hud-hint">
           <kbd>E</kbd> {!held && <>/ <kbd>Click</kbd> </>}
@@ -109,10 +111,10 @@ export function HUD() {
         </div>
       )}
       {started && !overlay && <HeldHint />}
-      {started && !overlay && !locked && !dragLook && <div className="hud-resume">Click to look around</div>}
+      {pointer.resumeHint && <div className="hud-resume">Click to look around</div>}
       {started && !(settings.setupDone && settings.tutorialStep >= 0) && (
         <div className="hud-help">
-          <kbd>WASD</kbd> move · <kbd>Shift</kbd> run · <kbd>E</kbd> / <kbd>Click</kbd> interact · <kbd>P</kbd> scroll · <kbd>Tab</kbd> who's working · <kbd>C</kbd> call the cat · <kbd>H</kbd> help · <kbd>B</kbd> guide · <kbd>Esc</kbd> free mouse
+          <kbd>WASD</kbd> move · <kbd>Shift</kbd> run · <kbd>E</kbd> / <kbd>Click</kbd> interact · <kbd>Wheel</kbd> zoom · <kbd>P</kbd> scroll · <kbd>Tab</kbd> who's working · <kbd>C</kbd> call the cat · <kbd>H</kbd> help · <kbd>B</kbd> guide · <kbd>Esc</kbd> free mouse
         </div>
       )}
 
