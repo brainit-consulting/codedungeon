@@ -1,7 +1,7 @@
 // Run with `npm test` (Vitest).
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { closeFingers, facePalm, findHand, palmNormal, reachWith } from './twoBoneIk';
+import { closeFingers, facePalm, findHand, orientHand, palmNormal, reachThumb, reachWith } from './twoBoneIk';
 
 /** A shoulder with an upper arm 0.3 long and a forearm 0.27 long, hanging straight down, under a turned parent. */
 function arm() {
@@ -131,5 +131,55 @@ describe('the hand', () => {
     const open = tip();
     closeFingers(hand, 0.6, 0.3);
     expect(tip()).toBeGreaterThan(open + 0.03);
+  });
+
+  it('closes each finger by its own amount', () => {
+    const { hand } = handRig();
+    const n = palmNormal(hand, new THREE.Vector3());
+    const palm = hand.hand.getWorldPosition(new THREE.Vector3());
+    const tip = (f: number) => hand.fingers[f][3].getWorldPosition(new THREE.Vector3()).sub(palm).dot(n);
+    const open = [0, 1, 2, 3].map(tip);
+    closeFingers(hand, [0, 0.3, 0.6, 0.9], 0);
+    const closed = [0, 1, 2, 3].map((f) => tip(f) - open[f]);
+    expect(closed[0]).toBeCloseTo(0, 6);
+    expect(closed[1]).toBeGreaterThan(0.01);
+    expect(closed[2]).toBeGreaterThan(closed[1]);
+    expect(closed[3]).toBeGreaterThan(closed[2]);
+  });
+
+  it('points the fingers and turns the palm to face given directions', () => {
+    const { hand } = handRig();
+    const fingers = new THREE.Vector3(-0.3, -0.4, -0.9).normalize();
+    const palm = new THREE.Vector3(-0.6, -0.8, 0.1);
+    orientHand(hand, fingers, palm, 1);
+    const at = hand.hand.getWorldPosition(new THREE.Vector3());
+    const along = hand.fingers[1][0].getWorldPosition(new THREE.Vector3()).sub(at).normalize();
+    expect(along.dot(fingers)).toBeGreaterThan(0.9995);
+    const n = palmNormal(hand, new THREE.Vector3());
+    const flat = palm.clone().addScaledVector(fingers, -palm.dot(fingers)).normalize();
+    expect(n.dot(flat)).toBeGreaterThan(0.995);
+  });
+
+  it('turns the hand only part of the way at a lower weight, and not at all at 0', () => {
+    const { hand } = handRig();
+    const q0 = hand.hand.quaternion.clone();
+    const fingers = new THREE.Vector3(0, -1, 0);
+    const palm = new THREE.Vector3(1, 0, 0);
+    orientHand(hand, fingers, palm, 0);
+    expect(hand.hand.quaternion.angleTo(q0)).toBeLessThan(1e-9);
+    orientHand(hand, fingers, palm, 1);
+    const full = hand.hand.quaternion.angleTo(q0);
+    hand.hand.quaternion.copy(q0);
+    orientHand(hand, fingers, palm, 0.5);
+    expect(hand.hand.quaternion.angleTo(q0)).toBeCloseTo(full / 2, 3);
+  });
+
+  it('brings the thumb tip to a point within its reach', () => {
+    const { hand } = handRig();
+    const tip = () => hand.thumb[2].children[0].getWorldPosition(new THREE.Vector3());
+    const index = hand.fingers[0][2].getWorldPosition(new THREE.Vector3());
+    const target = index.clone().lerp(tip(), 0.3);
+    reachThumb(hand, target, hand.thumb[1].getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0, 0.05)));
+    expect(tip().distanceTo(target)).toBeLessThan(0.002);
   });
 });

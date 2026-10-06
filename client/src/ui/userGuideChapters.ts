@@ -39,7 +39,7 @@ export const CHAPTERS: GuideChapter[] = [
       h('Inside a chamber'),
       list(
         '**The notice board** on the far wall, facing you as you come in: the chamber\'s issues and pull requests (chapter IV).',
-        "**The coders' workbenches**, each with a slate on an easel showing that coder's live terminal (chapter V). While they work they write in the ledger on their bench with a quill, dipping it in the inkwell now and then.",
+        "**The coders' workbenches**, each with a slate on an easel showing that coder's live terminal (chapter V). While they work they write in the ledger on their bench, the quill pinched between thumb and forefinger. The ink goes down as they write, laid out like code, they dip in the inkwell now and then, and turn the page when it's full.",
         '**The assay room**: the testers in aprons along the east wall, who check every pull request before it is merged.',
         '**The gauges** on the far wall, right of the SHIP IT sign: how hard this computer is working (processor, memory, disk) and how Claude usage stands. Press [[E]] on them for the full readout, refreshed every five seconds.',
         "**The framed screen** on the left wall: the project's own app. Press [[E]] on it to start the app on the default branch or on any open pull request, and use it right there.",

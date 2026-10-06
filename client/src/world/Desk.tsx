@@ -12,6 +12,7 @@ import { drawSign, drawTag, drawTerminal } from './draw';
 import { useCanvasTexture, useInteractable } from './interact';
 import { glow, toon } from './materials';
 import { hashId } from './appearance';
+import { Ink } from './Ink';
 import { Inkwell, Quill } from './Quill';
 import { INKPOT } from './quillRules';
 
@@ -182,24 +183,28 @@ function VacantMonitor({ accent, qa }: { accent: string; qa: boolean }) {
  * An open ledger, and an inkwell with a quill standing in it, where the agent's hands rest (was: the keyboard and
  * mouse). While a rigged coder writes, the quill is in their hand (RiggedCharacter.tsx), so it's not in the inkwell.
  */
-function Ledger({ writing }: { writing: boolean }) {
+function Ledger({ writing, seed }: { writing: boolean; seed: number }) {
   const z = RIGGED ? 0.31 : 0.27;
   return (
-    <group position={[0, 0.745, z]}>
-      <mesh position={[0, 0.01, 0]} material={LEATHER}>
-        <boxGeometry args={[0.56, 0.02, 0.36]} />
-      </mesh>
-      {[-0.135, 0.135].map((x) => (
-        <mesh key={x} position={[x, 0.024, 0]} rotation={[0, 0, x < 0 ? 0.04 : -0.04]} material={PARCHMENT}>
-          <boxGeometry args={[0.26, 0.012, 0.33]} />
+    <>
+      <group position={[0, 0.745, z]}>
+        <mesh position={[0, 0.01, 0]} material={LEATHER}>
+          <boxGeometry args={[0.56, 0.02, 0.36]} />
         </mesh>
-      ))}
-      {/* the inkwell, near the writing hand (quillRules.ts's INKPOT), and the quill resting in it */}
-      <group position={[INKPOT.x, 0, INKPOT.z - z]}>
-        <Inkwell />
-        <Quill position={[0, 0.035, 0]} rotation={[0.2, 0, -0.3]} visible={!writing} />
+        {[-0.135, 0.135].map((x) => (
+          <mesh key={x} position={[x, 0.024, 0]} rotation={[0, 0, x < 0 ? 0.04 : -0.04]} material={PARCHMENT}>
+            <boxGeometry args={[0.26, 0.012, 0.33]} />
+          </mesh>
+        ))}
+        {/* the inkwell, near the writing hand (quillRules.ts's INKPOT), and the quill resting in it */}
+        <group position={[INKPOT.x, 0, INKPOT.z - z]}>
+          <Inkwell />
+          <Quill position={[0, 0.035, 0]} rotation={[0.2, 0, -0.3]} visible={!writing} />
+        </group>
       </group>
-    </group>
+      {/* what they've written, in step with the quill (Ink.tsx) */}
+      {RIGGED && <Ink seed={seed} writing={writing} ledgerZ={z} />}
+    </>
   );
 }
 
@@ -281,7 +286,7 @@ export function Desk({
       {agent ? (
         <>
           <LiveMonitor agent={agent} accent={accent} />
-          <Ledger writing={RIGGED && (agent.status === 'working' || agent.status === 'preparing')} />
+          <Ledger writing={RIGGED && (agent.status === 'working' || agent.status === 'preparing')} seed={hashId(agent.id)} />
           <Leftovers seed={hashId(agent.id)} qa={qa} />
           <NameTag agent={agent} />
         </>

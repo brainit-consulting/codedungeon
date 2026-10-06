@@ -16,17 +16,19 @@ const SHOULDER = new THREE.CylinderGeometry(0.016, 0.03, 0.012, 18).translate(0,
 const NECK = new THREE.CylinderGeometry(0.017, 0.016, 0.006, 18).translate(0, 0.063, 0);
 const INK_TOP = new THREE.CircleGeometry(0.0145, 16).rotateX(-Math.PI / 2).translate(0, 0.061, 0);
 
-const QUILL_LEN = 0.24;
-const SHAFT_GEO = new THREE.CylinderGeometry(0.0013, 0.0022, QUILL_LEN - 0.012, 6).translate(0, 0.012 + (QUILL_LEN - 0.012) / 2, 0);
-const NIB_GEO = new THREE.ConeGeometry(0.0022, 0.014, 6).rotateX(Math.PI).translate(0, 0.007, 0);
+/** A goose quill as scribes cut them: 30 cm, the bare barrel held near the nib, the feather along the rest. */
+const QUILL_LEN = 0.3;
+const NIB_LEN = 0.018;
+const SHAFT_GEO = new THREE.CylinderGeometry(0.0015, 0.0032, QUILL_LEN - NIB_LEN, 8).translate(0, NIB_LEN + (QUILL_LEN - NIB_LEN) / 2, 0);
+const NIB_GEO = new THREE.ConeGeometry(0.0032, NIB_LEN, 8).rotateX(Math.PI).translate(0, NIB_LEN / 2, 0);
 /** The feather's vane: a long curved leaf along the upper two-thirds of the shaft, wider on one side, as a goose quill is. */
 const VANE_GEO = (() => {
   const s = new THREE.Shape();
-  const from = 0.07;
+  const from = 0.1;
   s.moveTo(0, from);
-  s.bezierCurveTo(-0.016, from + 0.04, -0.02, QUILL_LEN - 0.05, -0.004, QUILL_LEN + 0.01);
-  s.bezierCurveTo(0.006, QUILL_LEN - 0.04, 0.01, from + 0.05, 0, from);
-  return new THREE.ShapeGeometry(s, 12);
+  s.bezierCurveTo(-0.026, from + 0.05, -0.03, QUILL_LEN - 0.06, -0.005, QUILL_LEN + 0.012);
+  s.bezierCurveTo(0.009, QUILL_LEN - 0.05, 0.014, from + 0.06, 0, from);
+  return new THREE.ShapeGeometry(s, 14);
 })();
 
 /** The inkwell, its base at y = 0; its mouth is 0.064 m up. */
