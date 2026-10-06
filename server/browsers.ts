@@ -3,8 +3,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 // Test browsers a chamber's Playwright asked for that this machine doesn't have: read from Playwright's own error,
-// described by a dry run of the project's own Playwright (what it would fetch, and how big), and installed with it, so
-// the build always matches. Only ever into the dungeon's browser folder (PLAYWRIGHT_BROWSERS_PATH, set by the launcher),
+// described by a dry run of the Playwright that asks for that build (the project's own, or npx's: what it would fetch,
+// and how big), and installed with it, so the build always matches. Only ever into the dungeon's browser folder (PLAYWRIGHT_BROWSERS_PATH, set by the launcher),
 // and only when the Overlord presses Install. Nothing is ever deleted.
 
 export interface MissingBrowser {
@@ -69,22 +69,36 @@ async function readJson(file: string): Promise<{ browsers?: { name?: string; rev
   }
 }
 
+/** No Playwright the dungeon can reach asks for the build: the run that did used one from elsewhere. */
+export class NoPlaywrightError extends Error {}
+
 /**
- * The cli.js of the project's own playwright-core that wants this browser build, looking in `root` and its first-level
+ * Where to look for the Playwright that asked for a build: the folder whose run reported it, then the chamber's other
+ * folders (its main checkout and desks), then npx's cache (`npx playwright test` with no install of its own). Each once.
+ */
+export function playwrightRoots(first: string, others: string[], npmCache: string | undefined): string[] {
+  const all = [first, ...others, ...(npmCache ? [path.join(npmCache, '_npx')] : [])];
+  return all.filter((p, i) => all.findIndex((q) => path.resolve(q) === path.resolve(p)) === i);
+}
+
+/**
+ * The cli.js of a playwright-core that wants this browser build, looking in each root in turn and its first-level
  * folders (a game in game2d/), in npm's layout and pnpm's. Null when there's none.
  */
-export async function findPlaywright(root: string, browser: string, revision: string): Promise<string | null> {
-  const subs = await fs.readdir(root, { withFileTypes: true }).catch(() => []);
-  const dirs = [root, ...subs.filter((d) => d.isDirectory() && !d.name.startsWith('.') && d.name !== 'node_modules').map((d) => path.join(root, d.name))];
+export async function findPlaywright(roots: string[], browser: string, revision: string): Promise<string | null> {
   const name = installName(browser);
-  for (const dir of dirs) {
-    const modules = path.join(dir, 'node_modules');
-    const cores = [path.join(modules, 'playwright-core')];
-    const pnpm = await fs.readdir(path.join(modules, '.pnpm')).catch(() => [] as string[]);
-    for (const p of pnpm) if (p.startsWith('playwright-core@')) cores.push(path.join(modules, '.pnpm', p, 'node_modules', 'playwright-core'));
-    for (const core of cores) {
-      const list = (await readJson(path.join(core, 'browsers.json')))?.browsers ?? [];
-      if (list.some((b) => b.name === name && b.revision === revision)) return path.join(core, 'cli.js');
+  for (const root of roots) {
+    const subs = await fs.readdir(root, { withFileTypes: true }).catch(() => []);
+    const dirs = [root, ...subs.filter((d) => d.isDirectory() && !d.name.startsWith('.') && d.name !== 'node_modules').map((d) => path.join(root, d.name))];
+    for (const dir of dirs) {
+      const modules = path.join(dir, 'node_modules');
+      const cores = [path.join(modules, 'playwright-core')];
+      const pnpm = await fs.readdir(path.join(modules, '.pnpm')).catch(() => [] as string[]);
+      for (const p of pnpm) if (p.startsWith('playwright-core@')) cores.push(path.join(modules, '.pnpm', p, 'node_modules', 'playwright-core'));
+      for (const core of cores) {
+        const list = (await readJson(path.join(core, 'browsers.json')))?.browsers ?? [];
+        if (list.some((b) => b.name === name && b.revision === revision)) return path.join(core, 'cli.js');
+      }
     }
   }
   return null;
@@ -117,6 +131,9 @@ const exists = (p: string) =>
     () => false,
   );
 
+/** Whether the browser folder has this build whole: Playwright writes INSTALLATION_COMPLETE last. False with no folder. */
+export const browserInstalled = (folder: string | undefined, key: string) => (folder ? exists(path.join(folder, key, 'INSTALLATION_COMPLETE')) : Promise.resolve(false));
+
 export interface BrowserInfo {
   /** e.g. "WebKit 26.6". */
   name: string;
@@ -124,10 +141,10 @@ export interface BrowserInfo {
   bytes: number | null;
 }
 
-/** What installing this build would fetch, by a dry run of the project's own Playwright under `root`. */
-export async function describeBrowser(root: string, browser: string, revision: string): Promise<BrowserInfo> {
-  const cli = await findPlaywright(root, browser, revision);
-  if (!cli) throw new Error(`no Playwright in ${root} asks for ${browser} build ${revision}`);
+/** What installing this build would fetch, by a dry run of the Playwright under `roots` that asks for it. */
+export async function describeBrowser(roots: string[], browser: string, revision: string): Promise<BrowserInfo> {
+  const cli = await findPlaywright(roots, browser, revision);
+  if (!cli) throw new NoPlaywrightError(`no Playwright here asks for ${browser} build ${revision}`);
   const { code, out } = await runCli(cli, ['install', '--dry-run', installName(browser)]);
   const parts = parseDryRun(out);
   if (code !== 0 || !parts.length) throw new Error(`Playwright's dry run said nothing usable (code ${code})`);
@@ -142,10 +159,10 @@ export async function describeBrowser(root: string, browser: string, revision: s
   return { name: parts[0].title, bytes };
 }
 
-/** Install the build with the project's own Playwright under `root` (no time limit), its download progress in a few words. */
-export async function installBrowser(root: string, browser: string, revision: string, progress: (text: string) => void): Promise<void> {
-  const cli = await findPlaywright(root, browser, revision);
-  if (!cli) throw new Error(`Couldn't find the project's Playwright in ${root} any more. Run "npx playwright install ${installName(browser)}" in the project.`);
+/** Install the build with the Playwright under `roots` that asks for it (no time limit), its download progress in a few words. */
+export async function installBrowser(roots: string[], browser: string, revision: string, progress: (text: string) => void): Promise<void> {
+  const cli = await findPlaywright(roots, browser, revision);
+  if (!cli) throw new NoPlaywrightError(`no Playwright here asks for ${browser} build ${revision}`);
   let last = '';
   const { code, out } = await runCli(cli, ['install', installName(browser)], (line) => {
     const p = installProgress(line);

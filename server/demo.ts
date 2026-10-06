@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import http from 'node:http';
 import path from 'node:path';
 import type { Backend } from './backend.ts';
+import { NoPlaywrightError } from './browsers.ts';
 import type { PreviewBackend } from './previewRunner.ts';
 import { describeOfficeTool, type LogEntry, type SessionCallbacks, type SessionHandle, type SessionOptions } from './agentRunner.ts';
 import { CLIS } from './clis.ts';
@@ -40,9 +41,11 @@ const unpushed = new Set<string>(process.env.SWARM_DEMO_NO_MAIN ? [process.env.S
 const pushFails = new Set<string>(process.env.SWARM_DEMO_PUSH_FAIL ? [process.env.SWARM_DEMO_PUSH_FAIL] : []);
 /**
  * SWARM_DEMO_MISSING_BROWSER=1: testers' test runs hit Playwright's missing-WebKit error (as Playwright 1.63.0 words
- * it) until its fake install has run, so the chamber's Install can be seen.
+ * it) until its fake install has run, so the chamber's Install can be seen. =foreign: the run borrowed a Playwright from
+ * outside the chamber, so the dungeon can't install it and says so.
  */
-const missingBrowser = process.env.SWARM_DEMO_MISSING_BROWSER === '1';
+const missingBrowser = process.env.SWARM_DEMO_MISSING_BROWSER === '1' || process.env.SWARM_DEMO_MISSING_BROWSER === 'foreign';
+const foreignPlaywright = process.env.SWARM_DEMO_MISSING_BROWSER === 'foreign';
 const fakeInstalled = new Set<string>();
 const DEMO_MISSING_WEBKIT = [
   "Error: browserType.launch: Executable doesn't exist at C:\\demo\\ms-playwright\\webkit-2359\\Playwright.exe",
@@ -539,8 +542,11 @@ export function createDemoBackend(): Backend {
     uploadEvidence: async (fullName, filePath) => `https://github.com/${fullName}/raw/swarm-qa-evidence/${filePath}`,
     ensureClone: async () => new Promise((r) => setTimeout(r, 400)),
     remoteBranchState: async (fullName) => (unpushed.has(fullName) ? { onGitHub: false, localHead: headOf(fullName).slice(0, 7) } : { onGitHub: true, localHead: null }),
-    describeBrowser: async () => ({ name: 'WebKit 26.6', bytes: 64_212_518 }),
-    installBrowser: async (_root, browser, revision, progress) => {
+    describeBrowser: async (_roots, browser, revision) => {
+      if (foreignPlaywright) throw new NoPlaywrightError(`no Playwright here asks for ${browser} build ${revision}`);
+      return { name: 'WebKit 26.6', bytes: 64_212_518 };
+    },
+    installBrowser: async (_roots, browser, revision, progress) => {
       for (const pct of [5, 20, 45, 70, 90, 100]) {
         progress(`downloading ${pct}% of 59.8 MiB`);
         await new Promise((r) => setTimeout(r, 800));

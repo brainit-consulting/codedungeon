@@ -350,7 +350,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h("A chamber says its tests need a browser that isn't installed"),
       p(
-        "A project's browser tests can ask for a browser this computer doesn't have yet, such as WebKit (Safari's engine) for iPad tests. When a coder or tester runs into that, the chamber says which one, with **Install** and the download size. Nothing downloads until you press it. It installs the exact build the project's own Playwright asks for, and then every chamber can use it. Until then, coders and testers report those tests as not run, rather than passing them.",
+        "A project's browser tests can ask for a browser this computer doesn't have yet, such as WebKit (Safari's engine) for iPad tests. When a coder or tester runs into that, the chamber says which one, with **Install** and the download size. Nothing downloads until you press it. It installs the exact build the project's own Playwright asks for (or the one npx fetched, when the project has none), and then every chamber can use it. Until then, coders and testers report those tests as not run, rather than passing them. If the build is already there when you press **Install** or **Try again**, the notice just goes. If the coder borrowed a Playwright from outside the project, the dungeon can't install its build: a message says so and the notice goes.",
       ),
       h('A pull request will not merge'),
       p(

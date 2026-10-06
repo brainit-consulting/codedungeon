@@ -25,7 +25,7 @@ import { forTheScroll, letterProblem } from '../shared/letters.ts';
 import { effectiveModel } from '../shared/models.ts';
 import { CHAMBER_DYES, COAT_DYES, periodColor } from '../shared/palette.ts';
 import { CEO_ID } from '../shared/types.ts';
-import { missingBrowsers } from './browsers.ts';
+import { browserInstalled, missingBrowsers, NoPlaywrightError, playwrightRoots } from './browsers.ts';
 import { noMainNotice } from './emptyRepo.ts';
 import { oneAtATime } from './oneAtATime.ts';
 import type {
@@ -196,6 +196,8 @@ interface RepoRuntime {
   uploadEmitted?: number;
   /** Test browser builds its Playwright asked for that aren't installed, by key, with the worktree that asked. */
   browsers?: Map<string, BrowserNeed & { root: string; browser: string; revision: string; emitted?: number }>;
+  /** Builds asked for through a Playwright outside the chamber's folders: the dungeon can't install those, and said so. */
+  foreignBrowsers?: Set<string>;
 }
 
 interface QaReport {
@@ -1396,30 +1398,48 @@ export class Swarm {
     if (!text.includes("Executable doesn't exist")) return;
     const rt = this.repoRt.get(repo.id);
     if (!rt) return;
-    const folder = process.env.PLAYWRIGHT_BROWSERS_PATH;
     for (const m of missingBrowsers(text)) {
       // a run that started before the install can still report it afterwards
-      if (rt.browsers?.has(m.key) || this.installedBrowsers.has(m.key)) continue;
+      if (rt.browsers?.has(m.key) || rt.foreignBrowsers?.has(m.key) || this.installedBrowsers.has(m.key)) continue;
       void (async () => {
-        if (folder && (await fs.stat(path.join(folder, m.key)).then(() => true, () => false))) return; // installed since
+        if (await browserInstalled(process.env.PLAYWRIGHT_BROWSERS_PATH, m.key)) return; // installed since
         if (!this.repoRt.has(repo.id) || rt.browsers?.has(m.key)) return;
         const need = { key: m.key, name: `${m.browser} build ${m.revision}`, sizeMb: null, status: 'missing' as const, progress: null, error: null, root, browser: m.browser, revision: m.revision };
         (rt.browsers ??= new Map()).set(m.key, need);
         this.emitRepo(repo);
-        const info = await this.backend.describeBrowser(root, m.browser, m.revision).catch(() => null);
-        if (info && rt.browsers.get(m.key) === need) {
+        const info = await this.backend.describeBrowser(this.browserRoots(repo, root), m.browser, m.revision).catch((err: Error) => err);
+        if (rt.browsers.get(m.key) !== need) return;
+        if (info instanceof NoPlaywrightError) return this.foreignBrowser(repo, need);
+        if (!(info instanceof Error)) {
           if (info.bytes === 0) rt.browsers.delete(m.key); // nothing left to fetch: it's there after all
           else Object.assign(need, { name: info.name, sizeMb: info.bytes === null ? null : Math.round(info.bytes / 104857.6) / 10 });
           this.emitRepo(repo);
+          if (info.bytes === 0) return;
         }
-        if (rt.browsers.get(m.key) !== need) return;
         const chamber = repo.fullName.split('/').pop();
         this.toast('error', `${chamber}'s tests need ${need.name}, which isn't installed. Install it from the chamber's notice (board or ledger).`);
       })();
     }
   }
 
-  /** Install a browser build a chamber needs, with its own Playwright (Install on the chamber's notice). Returns once started. */
+  /** Where the Playwright that asked for a chamber's browser may be: the folder whose run reported it first (browsers.ts). */
+  private browserRoots(repo: PersistedRepo, root: string) {
+    const desks = this.state.agents.filter((a) => a.repoId === repo.id).map((a) => this.backend.deskDir(repo.fullName, this.agentSlug(a)));
+    return playwrightRoots(root, [this.backend.mainDir(repo.fullName), ...desks], process.env.npm_config_cache);
+  }
+
+  /** The run borrowed a Playwright from outside the chamber: Install can't reach it, so drop the notice and say why, once. */
+  private foreignBrowser(repo: PersistedRepo, need: BrowserNeed) {
+    const rt = this.repoRt.get(repo.id);
+    if (!rt) return;
+    rt.browsers?.delete(need.key);
+    (rt.foreignBrowsers ??= new Set()).add(need.key);
+    this.emitRepo(repo);
+    const chamber = repo.fullName.split('/').pop();
+    this.toast('error', `${chamber}'s tests asked for ${need.name} through a Playwright from outside the chamber, so the dungeon can't install it. If they need it, run that Playwright's own install.`);
+  }
+
+  /** Install a browser build a chamber needs, with the Playwright that asked for it (Install on the chamber's notice). Returns once started. */
   installBrowser(id: string, key: string) {
     const repo = this.repo(id);
     const need = this.repoRt.get(id)?.browsers?.get(key);
@@ -1428,24 +1448,31 @@ export class Swarm {
     Object.assign(need, { status: 'installing', progress: null, error: null });
     this.emitRepo(repo);
     const current = () => this.repoRt.get(id)?.browsers?.get(key) === need;
-    this.backend
-      .installBrowser(need.root, need.browser, need.revision, (progress) => {
-        if (!current()) return;
-        need.progress = progress;
-        if (Date.now() - (need.emitted ?? 0) < 1000) return; // its download bar redraws many times a second
-        need.emitted = Date.now();
-        this.emitRepo(repo);
+    const roots = this.browserRoots(repo, need.root);
+    // Try again on a notice that outlived its install (another chamber's, or by hand) just clears it
+    browserInstalled(process.env.PLAYWRIGHT_BROWSERS_PATH, key)
+      .then(async (already) => {
+        if (already) return true;
+        await this.backend.installBrowser(roots, need.browser, need.revision, (progress) => {
+          if (!current()) return;
+          need.progress = progress;
+          if (Date.now() - (need.emitted ?? 0) < 1000) return; // its download bar redraws many times a second
+          need.emitted = Date.now();
+          this.emitRepo(repo);
+        });
+        return false;
       })
       .then(
-        () => {
+        (already) => {
           if (!current()) return;
           // one browser folder for the whole dungeon: every chamber that needed this build has it now
           this.installedBrowsers.add(key);
           for (const r of this.state.repos) if (this.repoRt.get(r.id)?.browsers?.delete(key)) this.emitRepo(r);
-          this.toast('success', `${need.name} is installed: coders' next test run uses it.`);
+          this.toast('success', `${need.name} is ${already ? 'already ' : ''}installed: coders' next test run uses it.`);
         },
         (err: Error) => {
           if (!current()) return;
+          if (err instanceof NoPlaywrightError) return this.foreignBrowser(repo, need);
           Object.assign(need, { status: 'failed', progress: null, error: err.message });
           this.emitRepo(repo);
           this.toast('error', `${need.name}: ${err.message}`);

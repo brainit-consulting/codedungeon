@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { findPlaywright, installName, installProgress, missingBrowsers, parseDryRun } from './browsers.ts';
+import { browserInstalled, findPlaywright, installName, installProgress, missingBrowsers, parseDryRun, playwrightRoots } from './browsers.ts';
 
 // The messages as Playwright 1.63.0 printed them on Windows (measured 2026-10-06).
 const MISSING = [
@@ -96,14 +96,59 @@ describe('findPlaywright', () => {
     const game = path.join(root, 'pnpm', 'game2d');
     await core(path.join(game, 'node_modules', '.pnpm', 'playwright-core@1.62.0', 'node_modules', 'playwright-core'), '2340');
     await core(path.join(game, 'node_modules', '.pnpm', 'playwright-core@1.63.0', 'node_modules', 'playwright-core'), '2359');
-    expect(await findPlaywright(path.join(root, 'pnpm'), 'webkit', '2359')).toBe(path.join(game, 'node_modules', '.pnpm', 'playwright-core@1.63.0', 'node_modules', 'playwright-core', 'cli.js'));
+    expect(await findPlaywright([path.join(root, 'pnpm')], 'webkit', '2359')).toBe(path.join(game, 'node_modules', '.pnpm', 'playwright-core@1.63.0', 'node_modules', 'playwright-core', 'cli.js'));
   });
 
   it("finds it in npm's layout at the top, and gives null when no Playwright there wants that build", async () => {
     const app = path.join(root, 'npm');
     await core(path.join(app, 'node_modules', 'playwright-core'), '2359');
-    expect(await findPlaywright(app, 'webkit', '2359')).toBe(path.join(app, 'node_modules', 'playwright-core', 'cli.js'));
-    expect(await findPlaywright(app, 'webkit', '9999')).toBeNull();
-    expect(await findPlaywright(path.join(root, 'nothing here'), 'webkit', '2359')).toBeNull();
+    expect(await findPlaywright([app], 'webkit', '2359')).toBe(path.join(app, 'node_modules', 'playwright-core', 'cli.js'));
+    expect(await findPlaywright([app], 'webkit', '9999')).toBeNull();
+    expect(await findPlaywright([path.join(root, 'nothing here')], 'webkit', '2359')).toBeNull();
+  });
+
+  it("falls back to the chamber's other folders and npx's cache when the folder that ran the tests has none", async () => {
+    // a static site's desk with no node_modules, and the build's Playwright only in npx's cache
+    const desk = path.join(root, 'fallback', 'desks', 'hawise');
+    await fs.mkdir(desk, { recursive: true });
+    const cache = path.join(root, 'fallback', 'npm-cache');
+    await core(path.join(cache, '_npx', '9833c18b2d85bc59', 'node_modules', 'playwright-core'), '2359');
+    const roots = playwrightRoots(desk, [path.join(root, 'fallback', 'main')], cache);
+    expect(await findPlaywright([desk], 'webkit', '2359')).toBeNull();
+    expect(await findPlaywright(roots, 'webkit', '2359')).toBe(path.join(cache, '_npx', '9833c18b2d85bc59', 'node_modules', 'playwright-core', 'cli.js'));
+    // the main checkout comes before the cache
+    const main = path.join(root, 'fallback', 'main');
+    await core(path.join(main, 'node_modules', 'playwright-core'), '2359');
+    expect(await findPlaywright(roots, 'webkit', '2359')).toBe(path.join(main, 'node_modules', 'playwright-core', 'cli.js'));
+  });
+});
+
+describe('playwrightRoots', () => {
+  it('looks in the folder that ran the tests first, then the others, then npx, each once', () => {
+    const desk = path.join('w', 'desks', 'a');
+    expect(playwrightRoots(desk, [path.join('p', 'main'), desk, path.join('w', 'desks', 'b')], path.join('c', 'npm-cache'))).toEqual([
+      desk,
+      path.join('p', 'main'),
+      path.join('w', 'desks', 'b'),
+      path.join('c', 'npm-cache', '_npx'),
+    ]);
+  });
+
+  it("leaves npx out when there's no npm cache folder to look in", () => {
+    expect(playwrightRoots('a', ['b'], undefined)).toEqual(['a', 'b']);
+  });
+});
+
+describe('browserInstalled', () => {
+  const folder = path.join(os.tmpdir(), `browser folder ${process.pid}`);
+  afterAll(() => fs.rm(folder, { recursive: true, force: true }));
+
+  it("counts a build only once Playwright has marked it complete, and never without a browser folder", async () => {
+    await fs.mkdir(path.join(folder, 'chromium_headless_shell-1234'), { recursive: true });
+    expect(await browserInstalled(folder, 'chromium_headless_shell-1234')).toBe(false); // half-unpacked
+    await fs.writeFile(path.join(folder, 'chromium_headless_shell-1234', 'INSTALLATION_COMPLETE'), '');
+    expect(await browserInstalled(folder, 'chromium_headless_shell-1234')).toBe(true);
+    expect(await browserInstalled(folder, 'webkit-2359')).toBe(false);
+    expect(await browserInstalled(undefined, 'chromium_headless_shell-1234')).toBe(false);
   });
 });
