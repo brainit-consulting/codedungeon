@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { Agent } from '../store';
 import { hashId } from './appearance';
+import { Quill } from './Quill';
+import { useWritingHands } from './writingHands';
 
 // The coders as rigged, animated people (CC0 Quaternius outfits and animations, assembled by
 // scripts/build-characters.py), in place of the code-built ones. The default since measuring a full chamber on the
@@ -86,6 +88,8 @@ function Rigged({ agent }: { agent: Agent }) {
   const { scene, mixer, clips } = useRiggedBody(agent);
   const playing = useRef<THREE.AnimationAction | null>(null);
   const busy = agent.status === 'working' || agent.status === 'preparing';
+  // working, they write in the ledger with the quill (writingHands.ts)
+  const hands = useWritingHands(scene, hashId(agent.id));
 
   useEffect(() => {
     // working: leaning in, writing in the ledger; otherwise sat back, hands in the lap
@@ -101,9 +105,20 @@ function Rigged({ agent }: { agent: Agent }) {
     playing.current = next;
   }, [busy, clips, mixer, agent.id]);
 
-  useFrame((_, dt) => mixer.update(Math.min(dt, 0.1)));
+  useFrame(({ clock }, rawDt) => {
+    const dt = Math.min(rawDt, 0.1);
+    hands.before();
+    mixer.update(dt);
+    scene.updateMatrixWorld(true);
+    hands.after(clock.elapsedTime, dt, busy);
+  });
   // the models face +Z; the coders' chairs face -Z (towards the bench)
-  return <primitive object={scene} position={[0, SEAT.lift, -SEAT.forward]} rotation={[0, Math.PI, 0]} />;
+  return (
+    <>
+      <primitive object={scene} position={[0, SEAT.lift, -SEAT.forward]} rotation={[0, Math.PI, 0]} />
+      <Quill ref={hands.quill} visible={false} />
+    </>
+  );
 }
 
 export function RiggedCharacter({ agent }: { agent: Agent }) {

@@ -12,6 +12,8 @@ import { drawSign, drawTag, drawTerminal } from './draw';
 import { useCanvasTexture, useInteractable } from './interact';
 import { glow, toon } from './materials';
 import { hashId } from './appearance';
+import { Inkwell, Quill } from './Quill';
+import { INKPOT } from './quillRules';
 
 const SCREEN = { w: 1.0, h: 0.6, px: 896, py: 538 };
 
@@ -176,10 +178,14 @@ function VacantMonitor({ accent, qa }: { accent: string; qa: boolean }) {
   );
 }
 
-/** An open ledger and a quill in its inkpot, where the agent's hands rest (was: the keyboard and mouse). */
-function Ledger() {
+/**
+ * An open ledger, and an inkwell with a quill standing in it, where the agent's hands rest (was: the keyboard and
+ * mouse). While a rigged coder writes, the quill is in their hand (RiggedCharacter.tsx), so it's not in the inkwell.
+ */
+function Ledger({ writing }: { writing: boolean }) {
+  const z = RIGGED ? 0.31 : 0.27;
   return (
-    <group position={[0, 0.745, RIGGED ? 0.31 : 0.27]}>
+    <group position={[0, 0.745, z]}>
       <mesh position={[0, 0.01, 0]} material={LEATHER}>
         <boxGeometry args={[0.56, 0.02, 0.36]} />
       </mesh>
@@ -188,13 +194,11 @@ function Ledger() {
           <boxGeometry args={[0.26, 0.012, 0.33]} />
         </mesh>
       ))}
-      {/* inkpot and quill */}
-      <mesh position={[0.46, 0.035, -0.02]} material={IRON_DARK}>
-        <cylinderGeometry args={[0.035, 0.04, 0.07, 10]} />
-      </mesh>
-      <mesh position={[0.48, 0.15, -0.02]} rotation={[0, 0, -0.35]} material={PARCHMENT}>
-        <coneGeometry args={[0.018, 0.22, 6]} />
-      </mesh>
+      {/* the inkwell, near the writing hand (quillRules.ts's INKPOT), and the quill resting in it */}
+      <group position={[INKPOT.x, 0, INKPOT.z - z]}>
+        <Inkwell />
+        <Quill position={[0, 0.035, 0]} rotation={[0.2, 0, -0.3]} visible={!writing} />
+      </group>
     </group>
   );
 }
@@ -223,8 +227,6 @@ function Leftovers({ seed, qa }: { seed: number; qa: boolean }) {
     </group>
   );
 }
-
-const IRON_DARK = new THREE.MeshStandardMaterial({ color: '#1d1c1b', roughness: 0.5, metalness: 0.6 });
 
 /** A short candle on its holder, lit, with its own small light. */
 function DeskCandle({ position }: { position: [number, number, number] }) {
@@ -279,7 +281,7 @@ export function Desk({
       {agent ? (
         <>
           <LiveMonitor agent={agent} accent={accent} />
-          <Ledger />
+          <Ledger writing={RIGGED && (agent.status === 'working' || agent.status === 'preparing')} />
           <Leftovers seed={hashId(agent.id)} qa={qa} />
           <NameTag agent={agent} />
         </>
