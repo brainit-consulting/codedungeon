@@ -11,7 +11,8 @@ import { openLine, planPath, type Nav, type Pt } from './nav';
 // And she hunts rats (ratBrain.ts). A rat within a few metres that she can see on the grid gets her up from any
 // idle stay (never out of a leap mid-air, and not while she's answering the Overlord's call): she stalks it low and
 // slow, pounces from close, and carries her kill in her mouth to her pile by the hearth. The chest's spiders
-// (spiderBrain.ts) she goes for only now and then, and eats one where she catches it.
+// (spiderBrain.ts) she goes for only now and then, and eats one where she catches it. The great spider in the
+// gallery's dead end (lairBrain.ts) she goes for more often, and kills it but leaves it where it fell.
 
 export type CatAction =
   | 'walk'
@@ -28,7 +29,7 @@ export type CatAction =
   | 'pounce'
   | 'carry';
 
-export type SpotKind = 'hearth' | 'bar' | 'coder' | 'throne' | 'board' | 'corner';
+export type SpotKind = 'hearth' | 'bar' | 'coder' | 'throne' | 'board' | 'lair' | 'corner';
 
 /** A favourite place. `y` > 0 means up on something (she jumps from `approach`). `facing` follows Player's yaw. */
 export interface CatSpot {
@@ -48,8 +49,11 @@ export interface Prey {
   x: number;
   z: number;
   dead: boolean;
-  /** A spider (spiderBrain's Spider fits): she goes for one only now and then, and eats it where she catches it. */
-  kind?: 'rat' | 'spider';
+  /**
+   * A spider (spiderBrain's Spider fits): she goes for one only now and then, and eats it where she catches it. The
+   * great spider (lairBrain's Great fits) she goes for more often, and leaves where she kills it.
+   */
+  kind?: 'rat' | 'spider' | 'great';
 }
 
 export interface Cat {
@@ -88,6 +92,8 @@ export interface Cat {
   dropped: number;
   /** Spiders she has caught and eaten this session. */
   ate: number;
+  /** Great spiders she has killed this session. */
+  slain: number;
   /** Pounces that missed the rat she's after. */
   misses: number;
   /** Cat clock time when she gives up stalking the current rat. */
@@ -125,6 +131,7 @@ export const CAT = {
     coder: [14, 30],
     throne: [16, 34],
     board: [10, 22],
+    lair: [8, 16],
     corner: [6, 14],
   } as Record<SpotKind, [number, number]>,
   /** How long she pretends not to have heard, then how long she follows. */
@@ -150,6 +157,8 @@ export const CAT = {
   spareFor: 20,
   /** How often a spider she notices is worth the bother. */
   spiderChance: 0.3,
+  /** And how often the great spider is. */
+  greatChance: 0.5,
   carry: 0.9,
   /** The wash she gives herself after laying a rat on the pile. */
   proud: [4, 8] as [number, number],
@@ -196,6 +205,7 @@ export function createCat(seed: number, at: Pt): Cat {
     kills: 0,
     dropped: 0,
     ate: 0,
+    slain: 0,
     misses: 0,
     huntUntil: 0,
     spared: {},
@@ -330,7 +340,8 @@ function noticeRat(c: Cat, env: CatEnv): Prey | null {
     best = r;
     bestD = d;
   }
-  if (best?.kind === 'spider' && next(c) >= CAT.spiderChance) {
+  const chance = best?.kind === 'spider' ? CAT.spiderChance : best?.kind === 'great' ? CAT.greatChance : 1;
+  if (best && chance < 1 && next(c) >= chance) {
     c.spared[best.id] = c.clock + CAT.spareFor;
     return null;
   }
@@ -359,9 +370,10 @@ function giveUp(c: Cat, env: CatEnv, r: Prey | null) {
 function caught(c: Cat, env: CatEnv, r: Prey) {
   r.dead = true;
   c.prey = null;
-  if (r.kind === 'spider') {
-    // eaten where she caught it, then a wash
-    c.ate++;
+  if (r.kind === 'spider' || r.kind === 'great') {
+    // eaten where she caught it (the great one is too big: left where it fell), then a wash
+    if (r.kind === 'spider') c.ate++;
+    else c.slain++;
     c.path = [];
     c.goal = null;
     c.action = 'wash';

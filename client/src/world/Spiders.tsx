@@ -10,7 +10,8 @@ import { SPIDER, type Nest } from './spiderBrain';
 // The chest's spiders (spiderBrain.ts): black tarantulas drawn from primitives, bristly all over, on eight jointed
 // legs that step in the alternating gait real spiders use (four legs down while the other four swing), with a
 // cluster of red eyes. Rearing, the front legs go up and the fangs show. Their hiss, the tick of their feet and the
-// cat's crunch when she eats one are made here too. No colliders, nothing to aim at.
+// cat's crunch when she eats one are made here too. No colliders, nothing to aim at. GreatSpider.tsx draws the
+// gallery's great spider from the same body and legs.
 
 /** Spiders further than this from you aren't drawn. */
 const DRAW_WITHIN = 25;
@@ -19,8 +20,8 @@ const HISS_HEAR = 8;
 const CRUNCH_HEAR = 14;
 /** The model is built a little under life size and drawn at this scale: a leg span of about 30 cm. */
 const SIZE = 1.3;
-/** How far it moves (m) for one full cycle of its legs. */
-const STRIDE = 0.075;
+/** How far it moves (m) for one full cycle of its legs, per unit of its scale. */
+export const STRIDE = 0.075 / SIZE;
 
 // ---------- the body, built once ----------
 
@@ -93,6 +94,8 @@ const G = {
   eye: new THREE.SphereGeometry(0.0042, 8, 6),
   eyeSmall: new THREE.SphereGeometry(0.0026, 6, 5),
   palp: segment(0.028, 0.0045, 0.0038, 91),
+  /** A coloured band round the top of the leg below the knee, for a spider that has them. */
+  band: new THREE.CylinderGeometry(0.0084, 0.0084, 0.014, 8).rotateZ(-Math.PI / 2).translate(0.008, 0, 0),
 };
 
 /** The legs, front to back: how far forward each points (rad), and how long it is. */
@@ -109,15 +112,28 @@ const LIFT = 0.86;
 const KNEE = -1.48;
 const ANKLE = -0.7;
 
-interface LegRefs {
+export interface LegRefs {
   hip: THREE.Group | null;
   femur: THREE.Group | null;
   knee: THREE.Group | null;
   ankle: THREE.Group | null;
 }
 
-/** One spider, facing -Z, feet at y = 0 (before SIZE). Its legs and its tilt are posed by SpiderSlot. */
-function SpiderModel({ legs, tilt, palps }: { legs: LegRefs[]; tilt: React.Ref<THREE.Group>; palps: React.RefObject<(THREE.Group | null)[]> }) {
+/** Refs for a model's eight legs, to pose. */
+export const legRefs = (): LegRefs[] => Array.from({ length: 8 }, () => ({ hip: null, femur: null, knee: null, ankle: null }));
+
+/** One spider, facing -Z, feet at y = 0 (before its scale). Its legs and its tilt are posed by poseLegs. `knees`: bands below the knees. */
+export function SpiderModel({
+  legs,
+  tilt,
+  palps,
+  knees,
+}: {
+  legs: LegRefs[];
+  tilt: React.Ref<THREE.Group>;
+  palps: React.RefObject<(THREE.Group | null)[]>;
+  knees?: THREE.Material;
+}) {
   return (
     // tipped back about the rear legs' hips, so rearing lifts the front and leaves the back on the floor
     <group ref={tilt} position={[0, 0, 0.012]}>
@@ -160,7 +176,8 @@ function SpiderModel({ legs, tilt, palps }: { legs: LegRefs[]; tilt: React.Ref<T
                 <group ref={(o) => void (legs[i].femur = o)}>
                   <mesh geometry={femur} material={BODY} />
                   <group ref={(o) => void (legs[i].knee = o)} position={[len, 0, 0]}>
-                    <mesh geometry={G.knob} material={BODY} />
+                    <mesh geometry={G.knob} material={knees ?? BODY} />
+                    {knees && <mesh geometry={G.band} material={knees} />}
                     <mesh geometry={tibia} material={BODY} />
                     <group ref={(o) => void (legs[i].ankle = o)} position={[0.065 * l.scale, 0, 0]}>
                       <mesh geometry={tarsus} material={BODY} />
@@ -186,11 +203,41 @@ function easeAngle(now: number, target: number, k: number) {
   return now + d * k;
 }
 
+/** Gait and stance: where it is in its walk (rad), how much it's walking, reared up, spread for a leap (each 0 to 1). */
+export interface Stance {
+  phase: number;
+  moving: number;
+  rear: number;
+  spread: number;
+}
+
+/** Poses the eight legs and the feelers (a `twitch` of the feelers on top) for a stance. */
+export function poseLegs(legs: LegRefs[], palps: (THREE.Group | null)[], p: Stance, twitch = 0) {
+  for (let leg = 0; leg < 8; leg++) {
+    const L = legs[leg];
+    if (!L.hip || !L.femur || !L.knee || !L.ankle) continue;
+    const pair = leg >> 1;
+    const right = leg & 1;
+    // two sets of four, each the other's opposite: front-left with second-right, third-left, back-right, and so on
+    const phi = p.phase + ((pair + right) % 2) * Math.PI;
+    const swing = Math.sin(phi) * 0.32 * p.moving;
+    const lift = Math.max(0, Math.cos(phi)) * 0.5 * p.moving;
+    const ahead = LEGS[pair].ahead + swing + (pair < 2 ? p.rear * 0.25 : 0);
+    L.hip.rotation.y = right ? ahead : Math.PI - ahead;
+    // reared, the front two pairs go up and straighten, the back ones push
+    const up = pair === 0 ? 1.15 : pair === 1 ? 0.6 : -0.12;
+    L.femur.rotation.z = LIFT + lift + p.rear * up + p.spread * 0.3;
+    L.knee.rotation.z = KNEE + (pair < 2 ? p.rear * 0.75 : 0) + p.spread * 0.5;
+    L.ankle.rotation.z = ANKLE + (pair < 2 ? p.rear * 0.35 : 0) + p.spread * 0.25;
+  }
+  for (const [side, palp] of palps.entries()) if (palp) palp.rotation.z = -0.5 + twitch * (side ? 1 : 0.7) + p.rear * 0.6;
+}
+
 /** A fixed set of slots (at most three spiders at once), each posed from whichever spider it holds this frame. */
 function SpiderSlot({ nest, i, show }: { nest: React.RefObject<Nest | null>; i: number; show: React.RefObject<Set<number>> }) {
   const g = useRef<THREE.Group>(null);
   const tilt = useRef<THREE.Group>(null);
-  const legs = useRef<LegRefs[]>(Array.from({ length: 8 }, () => ({ hip: null, femur: null, knee: null, ankle: null })));
+  const legs = useRef<LegRefs[]>(legRefs());
   const palps = useRef<(THREE.Group | null)[]>([]);
   const st = useRef({ id: 0, x: 0, z: 0, heading: 0, phase: 0, moving: 0, rear: 0, spread: 0 });
   useFrame(({ clock }, rawDt) => {
@@ -209,7 +256,7 @@ function SpiderSlot({ nest, i, show }: { nest: React.RefObject<Nest | null>; i: 
     const moved = Math.hypot(s.x - p.x, s.z - p.z) + turned * 0.03;
     p.x = s.x;
     p.z = s.z;
-    p.phase += (moved / STRIDE) * Math.PI * 2;
+    p.phase += (moved / (STRIDE * SIZE)) * Math.PI * 2;
     p.moving = ease(p.moving, moved > 1e-5 || s.action === 'climb' ? 1 : 0, 1 - Math.exp(-dt * 10));
     p.rear = ease(p.rear, s.action === 'rear' ? 1 : s.action === 'perch' ? 0.55 : 0, 1 - Math.exp(-dt * 9));
     p.spread = ease(p.spread, s.action === 'leap' ? 1 : 0, 1 - Math.exp(-dt * 14));
@@ -218,27 +265,9 @@ function SpiderSlot({ nest, i, show }: { nest: React.RefObject<Nest | null>; i: 
     o.position.set(s.x, s.y, s.z);
     o.rotation.y = p.heading;
     tilt.current!.rotation.x = p.rear * 0.5 - p.spread * 0.1;
-    const t = clock.elapsedTime;
-    for (let leg = 0; leg < 8; leg++) {
-      const L = legs.current[leg];
-      if (!L.hip || !L.femur || !L.knee || !L.ankle) continue;
-      const pair = leg >> 1;
-      const right = leg & 1;
-      // two sets of four, each the other's opposite: front-left with second-right, third-left, back-right, and so on
-      const phi = p.phase + ((pair + right) % 2) * Math.PI;
-      const swing = Math.sin(phi) * 0.32 * p.moving;
-      const lift = Math.max(0, Math.cos(phi)) * 0.5 * p.moving;
-      const ahead = LEGS[pair].ahead + swing + (pair < 2 ? p.rear * 0.25 : 0);
-      L.hip.rotation.y = right ? ahead : Math.PI - ahead;
-      // reared, the front two pairs go up and straighten, the back ones push
-      const up = pair === 0 ? 1.15 : pair === 1 ? 0.6 : -0.12;
-      L.femur.rotation.z = LIFT + lift + p.rear * up + p.spread * 0.3;
-      L.knee.rotation.z = KNEE + (pair < 2 ? p.rear * 0.75 : 0) + p.spread * 0.5;
-      L.ankle.rotation.z = ANKLE + (pair < 2 ? p.rear * 0.35 : 0) + p.spread * 0.25;
-    }
     // the feelers twitch while it waits, and wave when it rears
-    const twitch = s.action === 'freeze' ? Math.max(0, Math.sin(t * 2.3 + i * 4)) ** 8 * 0.35 : 0;
-    for (const [side, palp] of palps.current.entries()) if (palp) palp.rotation.z = -0.5 + twitch * (side ? 1 : 0.7) + p.rear * 0.6;
+    const twitch = s.action === 'freeze' ? Math.max(0, Math.sin(clock.elapsedTime * 2.3 + i * 4)) ** 8 * 0.35 : 0;
+    poseLegs(legs.current, palps.current, p, twitch);
   });
   return (
     <group ref={g} visible={false}>

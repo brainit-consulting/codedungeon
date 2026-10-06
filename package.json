@@ -1,6 +1,6 @@
 {
   "name": "codedungeon",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "private": true,
   "description": "A medieval dungeon you walk through, where every coder is a real AI coding agent working through your GitHub issues.",
   "keywords": [

@@ -370,6 +370,51 @@ describe('the cat and the spiders', () => {
   });
 });
 
+describe('the cat and the great spider', () => {
+  const PILE: CatSpot = { id: 'pile', kind: 'corner', x: -15.2, z: 7, facing: Math.PI / 2, weight: 0 };
+  const great = (x: number, z: number): Prey => ({ id: -1_000_001, x, z, dead: false, kind: 'great' });
+  const firstLook = (seed: number) => {
+    const cat = createCat(seed, { x: 0, z: 7 });
+    const g = great(2, 8);
+    const e: CatEnv = { nav, spots: [], corners: [], player: null, rats: [g], pile: PILE };
+    let stalked = false;
+    run(cat, 1, e, (k) => (stalked ||= k.action === 'stalk'));
+    return { cat, g, e, stalked };
+  };
+
+  it('goes for the great spider more often than for a little one', () => {
+    const N = 300;
+    let went = 0;
+    for (let seed = 1; seed <= N; seed++) if (firstLook(seed).stalked) went++;
+    expect(went / N).toBeGreaterThan(CAT.greatChance - 0.1);
+    expect(went / N).toBeLessThan(CAT.greatChance + 0.1);
+    expect(CAT.greatChance).toBeGreaterThan(CAT.spiderChance);
+  });
+
+  it('kills it where she catches it and leaves it there: not eaten, not carried, then a wash', () => {
+    let seed = 1;
+    while (!firstLook(seed).stalked) seed++;
+    const { cat, g, e } = firstLook(seed);
+    const seen: string[] = [];
+    run(cat, 30, e, (k) => {
+      if (seen[seen.length - 1] !== k.action) seen.push(k.action);
+    });
+    expect(g.dead).toBe(true);
+    expect(cat.slain).toBe(1);
+    expect(cat.ate).toBe(0);
+    expect(cat.kills).toBe(0);
+    expect(cat.carrying).toBeNull();
+    expect(seen).not.toContain('carry');
+    expect(seen.indexOf('wash')).toBeGreaterThan(seen.indexOf('pounce'));
+  });
+
+  it('has a stay for sitting by its lair', () => {
+    const [a, b] = CAT.stay.lair;
+    expect(a).toBeGreaterThan(0);
+    expect(b).toBeGreaterThan(a);
+  });
+});
+
 describe('jumpPoint', () => {
   // off the bar: from its top (1.1 m) to the floor 1.75 m out; the bar's front edge is 0.66 m from where she sat
   const down = { from: { x: 0, z: 0, y: 1.1 }, to: { x: 0, z: 1.75, y: 0 } };

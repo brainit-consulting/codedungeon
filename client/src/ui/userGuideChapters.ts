@@ -276,6 +276,9 @@ export const CHAPTERS: GuideChapter[] = [
       p(
         "Spiders are another matter. A big black one with red eyes sometimes climbs out of the chest of spoils, never more than three about at once. They creep, freeze, and rear up at you if you get too close. The cat only bothers with one now and then, and when she catches it she eats it on the spot. An old spider slips away once you're well clear of it.",
       ),
+      p(
+        "Something bigger lives at the far end of the gallery, past the last chamber, where old webs hang in the corners: a tarantula as big as a dog, with rust-red knees. Walk down into its end of the gallery and it runs at you, stops short, rears up and hisses, then backs off home still facing you. It never comes further up the gallery than its own stretch. The cat goes for it as often as not and can kill it. She leaves it where it fell, on its back, and the body shrivels away some minutes later. Within twenty minutes another lets itself down from the ceiling on a thread. There is only ever one alive.",
+      ),
     ],
   },
   {

@@ -4,7 +4,9 @@ import * as THREE from 'three';
 import { useStore } from '../store';
 import { CAT, callCat, createCat, stepCat, type Cat as CatState, type CatAction, type CatEnv, type CatSpot, type Prey } from './catBrain';
 import { GALLERY, chamber, drawnFor, dungeonColliders, galleryEnd, inDungeon, toWorld } from './dungeon';
-import { CEO_DESK, DESK_ROWS, HALF_D, HALF_W, HEARTH, RECEPTION, deskPosition } from './layout';
+import { GreatSpider } from './GreatSpider';
+import { GREAT, createLair, stepLair, type Lair, type LairEnv } from './lairBrain';
+import { CEO_DESK, DESK_ROWS, ELEVATOR, HALF_D, HALF_W, HEARTH, RECEPTION, WALL_H, deskPosition } from './layout';
 import { makeNav, type Pt } from './nav';
 import { RAT, createWarren, releaseRat, stepWarren, type Warren, type WarrenEnv } from './ratBrain';
 import { DeadRat, PILE_DROP, Rats } from './Rats';
@@ -14,7 +16,8 @@ import { Spiders } from './Spiders';
 // The dungeon's black cat, drawn from simple shapes and posed by hand each frame from what her brain (catBrain.ts)
 // is doing. She has no collider and is not something you aim at, so she never blocks a click or the way; you call
 // her with C (Player.tsx). The rats she hunts (ratBrain.ts, drawn by Rats.tsx) and the chest's spiders
-// (spiderBrain.ts, drawn by Spiders.tsx) are stepped here with her.
+// (spiderBrain.ts, drawn by Spiders.tsx) are stepped here with her, and so is the great spider in the gallery's dead
+// end (lairBrain.ts, drawn by GreatSpider.tsx).
 
 let calls = 0;
 const HOME = { x: -HALF_W + HEARTH.d + 0.6, z: HEARTH.z + 0.8 };
@@ -22,6 +25,7 @@ let living: CatState | null = null;
 /** The session's rats and spiders: kept with her across remounts, so only a reload starts the count over. */
 let warren: Warren | null = null;
 let nest: Nest | null = null;
+let lair: Lair | null = null;
 /** The cat as she is right now (for her purr), or null before she's in the dungeon. */
 export const theCat = () => living;
 /** The Overlord calls the cat (C). */
@@ -93,6 +97,26 @@ export function chamberSpots(ch: ChamberInfo): CatSpot[] {
   const b = toWorld(c, 1.2, -HALF_D + 1.3);
   out.push({ id: `board:${ch.slot}`, kind: 'board', x: b.x, z: b.z, facing: c.rot + Math.PI, weight: 0.8 });
   return out;
+}
+
+// ---------- the great spider's lair ----------
+
+/** The great spider's lair, just inside the gallery's end wall, and how far up the gallery it defends: never as far as the last chamber's door. */
+export function lairPlace(slots: number[]): Omit<LairEnv, 'player' | 'cat'> {
+  const home = { x: 0, z: galleryEnd(slots) - 1.2 };
+  const lastDoor = slots.length ? chamber(Math.max(...slots)).z + ELEVATOR.doorHalf : HALF_D;
+  return { home, out: 0, range: Math.min(GREAT.range, home.z - lastDoor - 2), ceiling: WALL_H };
+}
+
+/** Where the cat sits to watch the lair (and, as often as not, goes for its spider from). */
+export function lairSpot(slots: number[]): CatSpot {
+  const { home } = lairPlace(slots);
+  return { id: 'lair', kind: 'lair', x: 0.7, z: home.z - 3.5, facing: Math.PI, weight: 0 };
+}
+
+/** Whether (x, z) is in the gallery, where the great spider sees you (not the hall, not a doorway or a chamber). */
+export function inGallery(x: number, z: number, slots: number[]): boolean {
+  return Math.abs(x) <= GALLERY.half && z > HALF_D && z <= galleryEnd(slots);
 }
 
 /** A few random open spots in the hall, the gallery and each chamber, for wandering. */
@@ -375,8 +399,12 @@ export function Cat({ slots }: { slots: number[] }) {
       const desks = Array.from({ length: DESK_ROWS.length * 4 }, (_, d) => d).filter((d) => busy.has(`${r.id}:${d}`));
       spots.push(...chamberSpots({ slot: r.floor, busyDesks: desks }));
     }
+    // she goes to watch the great spider only while there's one alive (its weight is set each frame)
+    spots.push(lairSpot(slots));
     return { nav, spots, player: null, corners: corners(slots), rats: [], pile: PILE_DROP };
   }, [nav, repos, slots, busyKey, ceoBusy]);
+  const lairEnv = useMemo<LairEnv>(() => ({ ...lairPlace(slots), player: null, cat: null }), [slots]);
+  const great = useRef<Lair | null>(null);
 
   useEffect(() => {
     if (!brain.current) brain.current = living ?? createCat(Math.floor(Math.random() * 1e9), { ...HOME });
@@ -385,6 +413,8 @@ export function Cat({ slots }: { slots: number[] }) {
     rats.current = warren;
     if (!nest) nest = createNest(Math.floor(Math.random() * 1e9));
     spiders.current = nest;
+    if (!lair) lair = createLair(Math.floor(Math.random() * 1e9), { ...lairPlace(slots), player: null, cat: null });
+    great.current = lair;
     // window.__dungeonCat: a read-only peek for QA (what she's doing, where, and where she's heading)
     const peek = () => {
       const c = brain.current;
@@ -402,6 +432,10 @@ export function Cat({ slots }: { slots: number[] }) {
           kills: c.kills,
           dropped: c.dropped,
           ate: c.ate,
+          slain: c.slain,
+          great: great.current?.great && { action: great.current.great.action, x: great.current.great.x, y: great.current.great.y, z: great.current.great.z },
+          bodies: great.current?.bodies.map((b) => ({ x: b.x, z: b.z, age: b.age, life: b.life })) ?? [],
+          respawnIn: great.current?.respawnIn ?? 0,
           rats: rats.current?.rats.map((r) => ({ id: r.id, action: r.action, x: r.x, z: r.z })) ?? [],
           spiders: spiders.current?.spiders.map((s) => ({ id: s.id, action: s.action, x: s.x, y: s.y, z: s.z, age: s.age })) ?? [],
         }
@@ -411,9 +445,11 @@ export function Cat({ slots }: { slots: number[] }) {
     Object.defineProperty(window, '__dungeonCat', { get: peek, configurable: true });
     // and her brain itself, to put her somewhere for a look (development only)
     (window as unknown as Record<string, unknown>).__catBrain = () => brain.current;
+    (window as unknown as Record<string, unknown>).__lair = () => great.current;
     return () => {
       delete (window as unknown as Record<string, unknown>).__dungeonCat;
       delete (window as unknown as Record<string, unknown>).__catBrain;
+      delete (window as unknown as Record<string, unknown>).__lair;
     };
   }, []);
 
@@ -459,6 +495,18 @@ export function Cat({ slots }: { slots: number[] }) {
       // only once they're down on the floor: never off the chest's rim or out of the air
       for (const s of n.spiders) if (s.y === 0 && !s.hop) prey.current.push(s);
     }
+    // the great spider: it sees you only in the gallery, and doesn't see her coming when she stalks it
+    const l = great.current;
+    if (l) {
+      const me = env.player!;
+      lairEnv.player = inGallery(me.x, me.z, slots) ? me : null;
+      lairEnv.cat = c.action === 'stalk' || c.action === 'pounce' || c.y > 0 ? null : c;
+      stepLair(l, dt, lairEnv);
+      const g = l.great;
+      if (g && !g.dead && g.y === 0 && g.action !== 'descend') prey.current.push(g);
+      const spot = env.spots.find((s) => s.kind === 'lair');
+      if (spot) spot.weight = g ? 0.5 : 0;
+    }
     env.rats = prey.current;
     stepCat(c, dt, env);
     // out of sight when she's in a room that isn't drawn (she'd float in the dark), checked a few times a second
@@ -473,6 +521,7 @@ export function Cat({ slots }: { slots: number[] }) {
       <BarMug brain={brain} />
       <Rats warren={rats} cat={brain} slots={slots} />
       <Spiders nest={spiders} cat={brain} slots={slots} />
+      <GreatSpider lair={great} slots={slots} />
     </>
   );
 }

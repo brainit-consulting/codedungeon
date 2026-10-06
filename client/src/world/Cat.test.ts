@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { catNav, chamberSpots, hallSpots } from './Cat';
+import { catNav, chamberSpots, hallSpots, inGallery, lairPlace, lairSpot } from './Cat';
+import { CAT } from './catBrain';
 import { chamber, dungeonColliders, inDungeon, roomAt } from './dungeon';
-import { HALF_W, HEARTH } from './layout';
+import { ELEVATOR, HALF_D, HALF_W, HEARTH } from './layout';
 import { clear, planPath } from './nav';
 import { RAT, createWarren, stepWarren, type WarrenEnv } from './ratBrain';
 import { PILE, PILE_DROP } from './Rats';
@@ -60,5 +61,38 @@ describe('rats in the dungeon', () => {
       expect(Math.hypot(p.x - player.x, p.z - player.z)).toBeGreaterThanOrEqual(RAT.spawnClear);
     }
     expect(new Set(born.map((p) => roomAt(p.x, p.z, slots))).size).toBeGreaterThan(1);
+  });
+});
+
+describe("the great spider's lair", () => {
+  const hearth = { x: -HALF_W + HEARTH.d + 0.6, z: HEARTH.z + 0.8 };
+  for (const slots of [[], [1], [1, 2], [2, 5], [1, 2, 3, 4, 5, 6]]) {
+    it(`sits on open floor at the gallery's end and defends only the dead end past the last door (chambers ${slots})`, () => {
+      const { home, range } = lairPlace(slots);
+      const nav = catNav(slots);
+      expect(clear(dungeonColliders(slots), home.x, home.z, 0.5, nav.bounds)).toBe(true);
+      expect(inGallery(home.x, home.z, slots)).toBe(true);
+      const lastDoor = slots.length ? chamber(Math.max(...slots)).z + ELEVATOR.doorHalf : HALF_D;
+      expect(home.z - range).toBeGreaterThan(lastDoor + 1);
+      expect(range).toBeGreaterThan(2);
+    });
+
+    it(`has a spot by it that the cat can walk to, close enough for her to see it from (chambers ${slots})`, () => {
+      const spot = lairSpot(slots);
+      const { home } = lairPlace(slots);
+      expect(planPath(catNav(slots), hearth, spot)).not.toBeNull();
+      expect(Math.hypot(spot.x - home.x, spot.z - home.z)).toBeLessThan(CAT.notice - 1);
+      expect(Math.hypot(spot.x - home.x, spot.z - home.z)).toBeGreaterThan(2);
+    });
+  }
+
+  it('sees you only in the gallery: not in the hall or a chamber', () => {
+    const slots = [1, 2, 3];
+    const { home } = lairPlace(slots);
+    expect(inGallery(0, home.z - 3, slots)).toBe(true);
+    expect(inGallery(0, 0, slots)).toBe(false);
+    const c = chamber(3);
+    expect(inGallery(c.x, c.z, slots)).toBe(false);
+    expect(roomAt(c.x, c.z, slots)).toBe(3);
   });
 });
