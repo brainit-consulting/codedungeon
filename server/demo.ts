@@ -32,6 +32,12 @@ function issue(n: number, title: string, body: string, fullName: string, labels:
 const repos = new Map<string, FakeRepo>();
 /** Repos made in the demo (new projects, published folders): empty, so no package.json for the preview to fall back on. */
 const bareRepos = new Set<string>();
+/**
+ * Repos whose main is only in the folder so far: published or made in the demo until their upload runs, and the one
+ * named by SWARM_DEMO_NO_MAIN. SWARM_DEMO_PUSH_FAIL names one whose first upload fails, to see Push again.
+ */
+const unpushed = new Set<string>(process.env.SWARM_DEMO_NO_MAIN ? [process.env.SWARM_DEMO_NO_MAIN] : []);
+const pushFails = new Set<string>(process.env.SWARM_DEMO_PUSH_FAIL ? [process.env.SWARM_DEMO_PUSH_FAIL] : []);
 const mergedSinceSync = new Map<string, number>(); // merges the fake project folder hasn't pulled yet
 const closedIssues = new Set<string>(); // `${fullName}#${n}`: issues closed by a merge
 
@@ -413,6 +419,7 @@ export function createDemoBackend(): Backend {
     if (!repos.has(fullName)) {
       repos.set(fullName, { fullName, description, issues: [], pulls: [], nextNumber: 1, main: [{ sha: fakeSha(), subject: 'Initial commit' }] });
       bareRepos.add(fullName);
+      unpushed.add(fullName);
     }
     addFolder(name, fullName);
     return fullName;
@@ -511,8 +518,18 @@ export function createDemoBackend(): Backend {
     commentPull: async (fullName, number) => `https://github.com/${fullName}/pull/${number}#issuecomment-${Date.now()}`,
     uploadEvidence: async (fullName, filePath) => `https://github.com/${fullName}/raw/swarm-qa-evidence/${filePath}`,
     ensureClone: async () => new Promise((r) => setTimeout(r, 400)),
-    remoteBranchState: async (fullName) =>
-      process.env.SWARM_DEMO_NO_MAIN === fullName ? { onGitHub: false, localHead: 'b4f895c' } : { onGitHub: true, localHead: null },
+    remoteBranchState: async (fullName) => (unpushed.has(fullName) ? { onGitHub: false, localHead: headOf(fullName).slice(0, 7) } : { onGitHub: true, localHead: null }),
+    pushBranch: async (fullName, branch, progress) => {
+      // a few seconds of what a real first push reports
+      for (const step of ['counting files', 'packing 60%', 'sending 15%', 'sending 40%', 'sending 70%', 'sending 100%']) {
+        progress(step);
+        await new Promise((r) => setTimeout(r, 900));
+        if (step === 'sending 40%' && pushFails.delete(fullName)) {
+          throw new Error(`Couldn't push ${branch} to GitHub: fatal: the remote end hung up unexpectedly (a pretend failure)`);
+        }
+      }
+      unpushed.delete(fullName);
+    },
     syncMain: async (fullName, _branch, { touch }) => {
       const behind = mergedSinceSync.get(fullName) ?? 0;
       if (behind === 0) return { status: 'in sync', behind: 0, updatable: false };

@@ -68,6 +68,8 @@ export const api = {
   shipLaunch: (repoId: string, domain: string) => call<ShipView>('POST', `${r(repoId)}/ship/launch`, { domain }),
   shipFollowUp: (repoId: string, kind: 'revert' | 'fix') => call<{ number: number }>('POST', `${r(repoId)}/ship/follow-up`, { kind }),
   stopPreview: (repoId: string) => call<PreviewView>('DELETE', `${r(repoId)}/preview`),
+  /** Push to GitHub: send the chamber's branch from its folder (it carries on after this returns). */
+  uploadMain: (repoId: string) => call('POST', `${r(repoId)}/upload`),
   disconnectRepo: (repoId: string) => call('DELETE', r(repoId)),
   syncRepo: (repoId: string) => call('POST', `${r(repoId)}/sync`),
   syncFolder: (repoId: string) => call<{ folderSync: string | null }>('POST', `${r(repoId)}/sync-folder`),

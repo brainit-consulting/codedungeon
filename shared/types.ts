@@ -77,6 +77,10 @@ export interface RepoView {
   syncError?: string;
   /** GitHub has no default branch yet: what to do about it. Auto-assign waits until the branch is there. */
   noMain?: string;
+  /** The folder has the branch and GitHub doesn't: the dungeon can push it (Push to GitHub). */
+  canUpload?: boolean;
+  /** The dungeon pushing the branch to GitHub: how far it's got, or why it failed. */
+  upload?: { status: 'pushing' | 'failed'; progress: string | null; error: string | null };
   previewConfig: PreviewConfig;
   preview: PreviewView;
   ship: ShipView; // SHIP IT: what's live on Vercel, what's waiting, and how this chamber ships

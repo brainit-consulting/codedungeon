@@ -1,8 +1,9 @@
+import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { WORKSPACE_ROOT } from './config.ts';
 import { gh, git, run } from './exec.ts';
-import { noMainNotice } from './emptyRepo.ts';
+import { noMainNotice, pushProgress } from './emptyRepo.ts';
 
 // Layout on disk:
 //   <your projects folder>/<repo>                    the floor's main checkout: your own folder, only fetched and fast-forwarded (syncMain)
@@ -201,8 +202,10 @@ async function commitReadme(dir: string, title: string, description: string) {
 }
 
 /**
- * Put a folder on GitHub (gh repo create --source --push). Only what's already committed is pushed. A folder with
- * no commits yet gets a README commit, but only when it's empty: the office never decides which of your files go public.
+ * Make a folder's GitHub repo (gh repo create --source) and its origin. Only what's already committed will go up, and
+ * it goes up afterwards (pushBranch), not here: a first push of a project with large files can take most of an hour.
+ * A folder with no commits yet gets a README commit, but only when it's empty: the office never decides which of your
+ * files go public.
  */
 export async function publishFolder(dir: string, opts: { name: string; visibility: 'private' | 'public'; owner?: string; description?: string }): Promise<string> {
   const full = path.resolve(dir);
@@ -223,7 +226,7 @@ export async function publishFolder(dir: string, opts: { name: string; visibilit
   const origin = await git(['remote', 'get-url', 'origin'], { cwd: full }).catch(() => '');
   if (origin) throw new Error(`${info.name}'s origin (${origin}) isn't on GitHub. Code Dungeon needs GitHub for issues and pull requests.`);
   const target = opts.owner ? `${opts.owner}/${opts.name}` : opts.name;
-  const args = ['repo', 'create', target, `--${opts.visibility}`, '--source', full, '--remote', 'origin', '--push'];
+  const args = ['repo', 'create', target, `--${opts.visibility}`, '--source', full, '--remote', 'origin'];
   if (opts.description) args.push('--description', opts.description);
   const out = await gh(args, { cwd: full, timeoutMs: 120_000 });
   return out.match(/github\.com\/([^/\s]+\/[^/\s]+?)(?:\.git)?(?:\s|$)/)?.[1] ?? (await inspectFolder(full)).github ?? target;
@@ -241,6 +244,44 @@ export async function createProject(root: string, name: string, opts: { visibili
   await commitReadme(dir, name, opts.description ?? '');
   const fullName = await publishFolder(dir, { name, ...opts });
   return { fullName, path: dir };
+}
+
+/**
+ * Push the floor's branch from its folder to GitHub and track it: a first push, which for a project with large files
+ * takes as long as it takes, so there's no time limit. `progress` gets a few plain words as git reports them.
+ */
+export function pushBranch(fullName: string, branch: string, progress: (text: string) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn('git', ['push', '--progress', '-u', 'origin', branch], {
+      cwd: mainDir(fullName),
+      windowsHide: true,
+      env: { ...process.env, GH_PROMPT_DISABLED: '1', GIT_TERMINAL_PROMPT: '0', NO_COLOR: '1' },
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
+    const tail: string[] = [];
+    let partial = '';
+    let last = '';
+    child.stderr.on('data', (buf: Buffer) => {
+      // git redraws its progress with \r; each piece is a line of its own
+      const lines = (partial + buf.toString()).split(/\r\n|\r|\n/);
+      partial = lines.pop() ?? '';
+      for (const line of lines) {
+        if (line.trim()) tail.push(line.trim());
+        if (tail.length > 6) tail.shift();
+        const p = pushProgress(line);
+        if (p && p !== last) progress((last = p));
+      }
+    });
+    child.once('error', (err) => reject(new Error(`Couldn't push ${branch} to GitHub: ${err.message}`)));
+    child.once('close', (code) => {
+      if (partial.trim()) tail.push(partial.trim());
+      if (code === 0) return resolve();
+      // git's own reason is on its fatal:/error: lines; the advice after them is the same every time
+      const said = tail.filter((l) => !pushProgress(l));
+      const why = said.filter((l) => /^(fatal|error|remote: error):/i.test(l));
+      reject(new Error(`Couldn't push ${branch} to GitHub: ${(why.length ? why : said.slice(-2)).join(' ') || `git exited with code ${code}`}`));
+    });
+  });
 }
 
 /**

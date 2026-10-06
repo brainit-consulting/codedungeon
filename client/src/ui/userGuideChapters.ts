@@ -208,7 +208,7 @@ export const CHAPTERS: GuideChapter[] = [
         'Each row also shows whether your project folder is up to date with GitHub. After a merge it fast-forwards when that is safe; if it can\'t (local changes, another branch checked out), it says why, and **Sync now** tries again. Nothing is ever stashed or thrown away.',
       ),
       p(
-        '**Add a project** at the bottom connects a project folder or a GitHub repo, or starts a new one. Every project must be on GitHub, because issues and pull requests are how the guild works.',
+        '**Add a project** at the bottom connects a project folder or a GitHub repo, or starts a new one. Every project must be on GitHub, because issues and pull requests are how the guild works. A folder not yet on GitHub gets its repo straight away, then uploads what you have committed. The chamber shows how far the upload has got; a big project with art files can take most of an hour, and the guild starts once it is there.',
       ),
       h('DungeonMaster & recruits'),
       p(
@@ -346,7 +346,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('A chamber says its main branch is not on GitHub yet'),
       p(
-        'Coders start from the main branch on GitHub, so nothing can start until it is there. The chamber and its board say what to do, and the guild waits instead of failing. Usually the first push never finished: in your project folder run `git push -u origin main` (with large files it can take a while). Within a minute of it arriving the notice goes and the guild starts on its own.',
+        'Coders start from the main branch on GitHub, so nothing can start until it is there. The chamber and its board say what to do, and the guild waits instead of failing. Usually the first upload never finished. When your project folder has the commits, press **Push to GitHub** on the notice (or run `git push -u origin main` in the folder). The notice shows how far it has got; with large files it can take a while. If it fails, the notice says why and offers **Push again**. Once main arrives, the notice goes and the guild starts on its own.',
       ),
       h('A pull request will not merge'),
       p(

@@ -186,6 +186,11 @@ interface RepoRuntime {
   merging: boolean;
   /** GitHub has no default branch yet (the notice to show), null when it has; undefined until first checked. */
   noMain?: string | null;
+  /** The branch's head in the folder while GitHub doesn't have it: there's something to push. */
+  mainLocalHead?: string | null;
+  /** The dungeon pushing the branch to GitHub (uploadMain), and when the progress was last sent out. */
+  upload?: { status: 'pushing' | 'failed'; progress: string | null; error: string | null };
+  uploadEmitted?: number;
 }
 
 interface QaReport {
@@ -671,6 +676,8 @@ export class Swarm {
       lastSync: rt.lastSync,
       syncError: rt.syncError,
       noMain: rt.noMain ?? undefined,
+      canUpload: !!(rt.noMain && rt.mainLocalHead && r.localPath && rt.upload?.status !== 'pushing'),
+      upload: rt.upload,
       previewConfig: r.preview,
       preview: this.previews.view(r),
       ship: this.shipyard.view(r),
@@ -956,7 +963,9 @@ export class Swarm {
     const created = await this.backend.createProject(this.state.settings.projectsDir, name, opts).catch((err: Error) => {
       throw new HttpError(400, err.message);
     });
-    return this.connectRepo(created.fullName, { mission: opts.mission, autoAssign: opts.autoAssign, localPath: created.path });
+    const view = await this.connectRepo(created.fullName, { mission: opts.mission, autoAssign: opts.autoAssign, localPath: created.path });
+    void this.uploadMain(view.id).catch(() => undefined); // its first commit goes up now (publishFolder doesn't push)
+    return view;
   }
 
   /** The folders in your projects folder (or another folder you point at), and which are floors already. */
@@ -989,7 +998,10 @@ export class Swarm {
     const fullName = await this.backend.publishFolder(f.path, { name, visibility: opts.visibility, description: opts.description }).catch((err: Error) => {
       throw new HttpError(400, err.message);
     });
-    return this.connectRepo(fullName, { mission: opts.mission, autoAssign: opts.autoAssign, localPath: f.path });
+    const view = await this.connectRepo(fullName, { mission: opts.mission, autoAssign: opts.autoAssign, localPath: f.path });
+    // what's committed goes up now, with no time limit and its progress on the chamber (publishFolder doesn't push)
+    void this.uploadMain(view.id).catch(() => undefined);
+    return view;
   }
 
   disconnectRepo(id: string) {
@@ -1299,14 +1311,71 @@ export class Swarm {
     if (!rt || rt.cloneStatus !== 'ready') return;
     const state = await this.backend.remoteBranchState(repo.fullName, repo.defaultBranch).catch(() => null);
     if (!state || !this.repoRt.has(repo.id)) return;
-    const notice = noMainNotice({ fullName: repo.fullName, branch: repo.defaultBranch, ...state, localPath: repo.localPath });
+    const uploading = rt.upload?.status === 'pushing';
+    const notice = noMainNotice({ fullName: repo.fullName, branch: repo.defaultBranch, ...state, localPath: repo.localPath, uploading });
     const before = rt.noMain;
+    const head = rt.mainLocalHead;
     rt.noMain = notice;
-    if (notice === before) return;
+    rt.mainLocalHead = state.onGitHub ? null : state.localHead;
+    if (notice === before && rt.mainLocalHead === head) return;
     this.emitRepo(repo);
     const name = repo.fullName.split('/').pop();
-    if (notice && !before) this.toast('error', notice); // once, when it's found; the chamber keeps showing it
+    if (notice && !before && !uploading) this.toast('error', notice); // once, when it's found; the chamber keeps showing it
     else if (!notice && before) this.toast('success', `${name}'s ${repo.defaultBranch} is on GitHub now. The guild can start.`);
+  }
+
+  /**
+   * Push the chamber's branch from its folder to GitHub: Push to GitHub, and straight after a folder is published. Only
+   * when GitHub doesn't have the branch yet, so it never sends commits to a repo that already has its main. Returns
+   * once the push has started: a first push with large files can take most of an hour, its progress on the chamber.
+   */
+  async uploadMain(id: string): Promise<void> {
+    const repo = this.repo(id);
+    const rt = this.repoRt.get(id);
+    const name = repo.fullName.split('/').pop();
+    const branch = repo.defaultBranch;
+    if (!rt) throw new HttpError(404, `No chamber ${id}`);
+    const pushing = () => rt.upload?.status === 'pushing'; // read afresh: another click may start one meanwhile
+    if (pushing()) throw new HttpError(409, `${name} is already uploading to GitHub.`);
+    if (!repo.localPath) throw new HttpError(400, `${name} has no folder on this computer to push from.`);
+    const state = await this.backend.remoteBranchState(repo.fullName, branch).catch(() => null);
+    if (state?.onGitHub) {
+      await this.checkMain(repo); // nothing to push: GitHub has it
+      return;
+    }
+    if (!state?.localHead) throw new HttpError(400, `${name}'s folder has no ${branch} branch to push yet. Commit something to it first.`);
+    if (pushing()) throw new HttpError(409, `${name} is already uploading to GitHub.`);
+    rt.upload = { status: 'pushing', progress: null, error: null };
+    rt.mainLocalHead = state.localHead;
+    rt.noMain = noMainNotice({ fullName: repo.fullName, branch, onGitHub: false, localHead: state.localHead, localPath: repo.localPath, uploading: true });
+    this.emitRepo(repo);
+    const current = () => this.repoRt.get(id) === rt; // the chamber may be disconnected meanwhile
+    this.backend
+      .pushBranch(repo.fullName, branch, (progress) => {
+        if (!current() || rt.upload?.status !== 'pushing') return;
+        rt.upload.progress = progress;
+        // git reports many times a second: send it out at most once a second
+        if (Date.now() - (rt.uploadEmitted ?? 0) < 1000) return;
+        rt.uploadEmitted = Date.now();
+        this.emitRepo(repo);
+      })
+      .then(
+        () => {
+          if (!current()) return;
+          rt.upload = undefined;
+          rt.noMain = null;
+          rt.mainLocalHead = null;
+          this.emitRepo(repo);
+          this.toast('success', `${name}'s ${branch} is on GitHub now. The guild can start.`);
+        },
+        (err: Error) => {
+          if (!current()) return;
+          rt.upload = { status: 'failed', progress: null, error: err.message };
+          rt.noMain = noMainNotice({ fullName: repo.fullName, branch, onGitHub: false, localHead: state.localHead, localPath: repo.localPath });
+          this.emitRepo(repo);
+          this.toast('error', `${name}: ${err.message}`);
+        },
+      );
   }
 
   /** Keep agents and QA records in step with what happened to PRs on GitHub. */

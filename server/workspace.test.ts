@@ -33,7 +33,7 @@ await fs.writeFile(gitConfig, '[user]\n\tname = Sync Test\n\temail = sync-test@e
 process.env.GIT_CONFIG_GLOBAL = gitConfig;
 
 const { git } = await import('./exec.ts');
-const { leftoversInDesk, mainDir, syncMain: sync } = await import('./workspace.ts');
+const { leftoversInDesk, mainDir, pushBranch, syncMain: sync } = await import('./workspace.ts');
 // Most tests only care about the status line.
 const syncMain = async (...args: Parameters<typeof sync>) => (await sync(...args))?.status ?? null;
 
@@ -245,5 +245,40 @@ describe('leftoversInDesk', () => {
       `  8 node ${winDesk}\\server.js`,
     ].join('\n');
     expect(leftoversInDesk(listing, winDesk, winKeep)).toEqual([8]);
+  });
+});
+
+describe('pushBranch', { timeout: 60_000 }, () => {
+  /** A folder with commits whose origin is still empty: a first push that never happened. */
+  async function unpushed(origin: string | null) {
+    const n = ++seq;
+    const fullName = `push-test/repo-${n}`;
+    const dir = mainDir(fullName);
+    await fs.mkdir(dir, { recursive: true });
+    await git(['init', '-q', '-b', 'main', dir]);
+    await commitFile(dir, 'README.md', '# Push test\n', 'initial');
+    // something worth sending, so git has progress to report
+    await commitFile(dir, 'art/map.txt', 'x'.repeat(200_000), 'add the map');
+    if (origin) {
+      await fs.mkdir(origin, { recursive: true });
+      await git(['init', '-q', '--bare', '--initial-branch=main', origin]);
+    }
+    await git(['remote', 'add', 'origin', origin ?? path.join(ROOT, 'origins', `missing ${n}.git`)], { cwd: dir });
+    return { fullName, dir };
+  }
+
+  it("sends the folder's branch to its origin and tracks it, reporting progress as it goes", async () => {
+    const origin = path.join(ROOT, 'origins', `push ${seq + 1}.git`);
+    const { fullName, dir } = await unpushed(origin);
+    const seen: string[] = [];
+    await pushBranch(fullName, 'main', (p) => seen.push(p));
+    expect(await git(['rev-parse', 'main'], { cwd: origin })).toBe(await head(dir));
+    expect(await git(['rev-parse', '--abbrev-ref', 'main@{upstream}'], { cwd: dir })).toBe('origin/main');
+    expect(seen).toContain('sending 100%');
+  });
+
+  it("says why when it can't push", async () => {
+    const { fullName } = await unpushed(null);
+    await expect(pushBranch(fullName, 'main', () => undefined)).rejects.toThrow(/^Couldn't push main to GitHub: .*(does not appear|not found|No such|does not exist|Could not read)/i);
   });
 });

@@ -34,6 +34,8 @@ export interface Backend {
   syncMain(fullName: string, defaultBranch: string, opts: { touch: boolean }): Promise<workspace.MainSync | null>;
   /** Whether GitHub has the floor's default branch, and its head in the floor's folder when only the folder has it. */
   remoteBranchState(fullName: string, branch: string): Promise<{ onGitHub: boolean; localHead: string | null } | null>;
+  /** Push the floor's branch from its folder to GitHub (a first push: no time limit), with progress in plain words. */
+  pushBranch(fullName: string, branch: string, progress: (text: string) => void): Promise<void>;
   /** Point a floor at the user's own project folder (null: a clone the office manages). */
   setLocalPath(fullName: string, dir: string | null): void;
   scanProjects(root: string): Promise<workspace.LocalFolder[]>;
@@ -93,6 +95,7 @@ export const realBackend: Backend = {
   ensureClone: workspace.ensureClone,
   syncMain: workspace.syncMain,
   remoteBranchState: workspace.remoteBranchState,
+  pushBranch: workspace.pushBranch,
   setLocalPath: workspace.setLocalPath,
   scanProjects: workspace.scanProjects,
   inspectFolder: workspace.inspectFolder,

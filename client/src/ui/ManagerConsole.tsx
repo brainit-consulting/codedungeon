@@ -9,6 +9,7 @@ import { canPostpone, canUpdateNow, drainDeadline, officeUpdateText } from '../o
 import { confirmDialog } from './Confirm';
 import { IssueForm } from './KanbanView';
 import { Icon, IconText } from './Icon';
+import { NoMainNotice } from './NoMainNotice';
 import { LiveTerminal } from './LiveTerminal';
 import { Panel } from './Overlays';
 import { Resume, Seal } from './Phone';
@@ -132,7 +133,7 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
           </div>
           {repo.cloneError && <div className="term-error small">clone failed: {repo.cloneError}</div>}
           {repo.syncError && <div className="term-error small">sync failed: {repo.syncError}</div>}
-          {repo.noMain && <div className="term-error small"><Icon name="warning" /> {repo.noMain}</div>}
+          <NoMainNotice repo={repo} small />
         </div>
         <span className="dyes" role="radiogroup" aria-label="Chamber dye">
           {CHAMBER_DYES.map((c, i) => (

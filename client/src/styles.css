@@ -1059,6 +1059,11 @@ input.inline:focus {
   font-size: 0.88rem;
   word-break: break-word;
 }
+/* the same box for something under way rather than wrong (a chamber's first upload to GitHub) */
+.term-error.term-busy {
+  background: #e9dcbc;
+  border-color: #8a6a3a;
+}
 .term-split {
   flex: 1;
   min-height: 0;
