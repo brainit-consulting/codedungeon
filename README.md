@@ -11,15 +11,15 @@ slate on every workbench is that coder's live terminal.
 
 ## Watch it first
 
-| [![Introduction to Code Dungeon](docs/images/video-intro.jpg)](https://youtu.be/RzP2SoLmC6Q) | [![Getting started with Code Dungeon](docs/images/video-start.jpg)](https://youtu.be/Mn74ZSlh78U) |
+| [![Introduction to Code Dungeon](https://img.youtube.com/vi/RzP2SoLmC6Q/maxresdefault.jpg)](https://youtu.be/RzP2SoLmC6Q) | [![Getting started with Code Dungeon](https://img.youtube.com/vi/Mn74ZSlh78U/maxresdefault.jpg)](https://youtu.be/Mn74ZSlh78U) |
 | --- | --- |
 | [**Introduction to Code Dungeon**](https://youtu.be/RzP2SoLmC6Q) (2 min 23 s): what it is and how the guild works. | [**Getting started**](https://youtu.be/Mn74ZSlh78U) (2 min 35 s): installing it and your first project. |
 
 Both are in the [Code Dungeon playlist](https://www.youtube.com/playlist?list=PLUwGnHgif6To). The projects in them
 come from demo mode and are made up.
 
-Code Dungeon grew out of Leon van Zyl's [cubefarm](https://github.com/leonvanzyl/cubefarm). It is free and open
-source under the [MIT licence](LICENSE).
+Code Dungeon grew out of Leon van Zyl's [cubefarm](https://github.com/leonvanzyl/cubefarm). It is free, under the
+[MIT licence](LICENSE).
 
 ## What you need
 
@@ -61,8 +61,9 @@ answer `y`. Your projects, guild and settings live in `codedungeon-home` in your
 
 ### Or from a copy of the code
 
-To change Code Dungeon itself, open PowerShell or Command Prompt in the folder where you keep your projects and run
-these one at a time, letting each finish:
+To change Code Dungeon itself (the code on GitHub is private for now, so this works only if you have been given access
+to it), open PowerShell or Command Prompt in the folder where you keep your projects and run these one at a time,
+letting each finish:
 
 ```powershell
 git clone https://github.com/brainit-consulting/codedungeon.git

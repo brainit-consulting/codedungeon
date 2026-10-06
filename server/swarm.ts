@@ -21,6 +21,7 @@ import { CARRY_ON, carryOnPlan, type CarryAgent } from '../shared/carryOn.ts';
 import { ASK_RULE, overlordAsk } from './overlordAsk.ts';
 import { nextChamber } from '../shared/chambers.ts';
 import { blockers, holdUps, issueSpecialty } from '../shared/issues.ts';
+import { forTheScroll, letterProblem } from '../shared/letters.ts';
 import { effectiveModel } from '../shared/models.ts';
 import { CHAMBER_DYES, COAT_DYES, periodColor } from '../shared/palette.ts';
 import { CEO_ID } from '../shared/types.ts';
@@ -3101,8 +3102,9 @@ export class Swarm {
 
   /** The manager's phone → the CEO. Injected into a running session, otherwise the CEO picks it up next. */
   async messageCeo(text: string) {
-    const t = text.trim().slice(0, 4000);
-    if (!t) throw new HttpError(400, 'Empty message');
+    const t = text.trim();
+    const problem = letterProblem(t);
+    if (problem) throw new HttpError(400, problem);
     const a = this.ceo();
     this.postMessage('manager', t);
     const rt = this.agentRt.get(a.id)!;
@@ -3167,7 +3169,7 @@ export class Swarm {
   // ---------- the phone ----------
 
   private postMessage(from: PhoneMessage['from'], text: string, requestId?: string, agentId?: string) {
-    const m: PhoneMessage = { id: this.messageSeq++, from, text: text.trim().slice(0, 6000), at: Date.now(), ...(requestId ? { requestId } : {}), ...(agentId ? { agentId } : {}) };
+    const m: PhoneMessage = { id: this.messageSeq++, from, text: forTheScroll(text), at: Date.now(), ...(requestId ? { requestId } : {}), ...(agentId ? { agentId } : {}) };
     this.state.messages.push(m);
     if (this.state.messages.length > KEEP_MESSAGES) this.state.messages.splice(0, this.state.messages.length - KEEP_MESSAGES);
     this.broadcast({ type: 'message', message: m });

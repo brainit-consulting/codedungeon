@@ -6,6 +6,7 @@ import { Markdown } from './Markdown';
 import { MessageBox } from './MessageBox';
 import { closeOverlay } from './Overlays';
 import { effectiveModel } from '../../../shared/models';
+import { letterProblem } from '../../../shared/letters';
 import { Icon, IconText } from './Icon';
 import type { IconName } from './icons';
 import { canonicalHour, presenceText, sealInitial, waxOutline } from './scroll';
@@ -208,9 +209,11 @@ function Chat() {
   }, [messages.length, info.job?.kind]);
 
   if (!ceo) return <p className="muted phone-empty">The DungeonMaster's quarters are empty.</p>;
+  // a letter too long to go stays in the box, saying why, rather than being cut short or lost
+  const tooLong = text.trim() ? letterProblem(text) : null;
   const send = (t: string) => {
     const body = t.trim();
-    if (!body) return;
+    if (!body || letterProblem(body)) return;
     setText('');
     void attempt(() => api.messageCeo(body));
   };
@@ -270,10 +273,15 @@ function Chat() {
         }}
       >
         <MessageBox value={text} onChange={setText} placeholder={`Write to ${ceo.name}…`} aria-label={`Write to ${ceo.name}`} title="Enter sends · Shift+Enter adds a new line" autoFocus />
-        <button className="btn btn-small btn-good" disabled={!text.trim()}>
+        <button className="btn btn-small btn-good" disabled={!text.trim() || !!tooLong}>
           Send
         </button>
       </form>
+      {tooLong && (
+        <p className="chat-too-long" role="alert">
+          {tooLong}
+        </p>
+      )}
     </div>
   );
 }

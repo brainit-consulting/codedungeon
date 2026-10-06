@@ -182,7 +182,7 @@ export const CHAPTERS: GuideChapter[] = [
       h('Your scroll'),
       p('Press [[P]] anywhere to take out your scroll. It has three parts:'),
       list(
-        '**The DungeonMaster\'s letters** (the first tab, under their name): write to the DungeonMaster and read what they and the dungeon send you (merges, refused merges, usage warnings).',
+        '**The DungeonMaster\'s letters** (the first tab, under their name): write to the DungeonMaster and read what they and the dungeon send you (merges, refused merges, usage warnings). A letter can run to 20,000 characters, so a whole project brief fits; past that, the scroll says so and keeps your words until you split them.',
         '**Recruits**: the people waiting for your yes.',
         '**The Realm**: every project at a glance.',
       ),
@@ -396,7 +396,7 @@ export const CHAPTERS: GuideChapter[] = [
     title: 'Quick start',
     blocks: [
       p(
-        'Code Dungeon is free and open source, under the MIT licence: [github.com/brainit-consulting/codedungeon](https://github.com/brainit-consulting/codedungeon). It runs on your own computer, and the coders work on your own GitHub projects with your own Claude subscription.',
+        'Code Dungeon is free, under the MIT licence. It runs on your own computer, and the coders work on your own GitHub projects with your own Claude subscription.',
       ),
       p(
         'Two short videos show it: [Introduction to Code Dungeon](https://youtu.be/RzP2SoLmC6Q) (2 minutes 23), what it is and how the guild works, and [Getting started](https://youtu.be/Mn74ZSlh78U) (2 minutes 35), installing it and your first project.',
@@ -433,7 +433,7 @@ export const CHAPTERS: GuideChapter[] = [
       p('If something is missing, `npx codedungeon@latest doctor` checks Node.js, git, the GitHub command line and the Claude sign-in, and says what to fix. To walk round with pretend projects and pretend coders first, start it with `npx codedungeon@latest --demo`. Nothing touches GitHub and nothing uses your subscription.'),
       h('Or from a copy of the code'),
       p(
-        'To change Code Dungeon itself, fetch its code instead. Open PowerShell or Command Prompt in the folder where you keep your projects and run these five commands one at a time, letting each one finish before the next:',
+        'To change Code Dungeon itself, fetch its code instead. The code on GitHub is private for now, so this works only if you have been given access to it. Open PowerShell or Command Prompt in the folder where you keep your projects and run these five commands one at a time, letting each one finish before the next:',
       ),
       p('1. Fetch Code Dungeon into a folder called codedungeon:'),
       command('git clone https://github.com/brainit-consulting/codedungeon.git'),

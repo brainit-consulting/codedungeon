@@ -2637,6 +2637,11 @@ input.inline:focus {
   padding: 8px 14px 8px;
   margin: 0 8px;
 }
+.chat-too-long {
+  margin: -4px 22px 8px;
+  font-size: 13px;
+  color: var(--bad);
+}
 
 /* resumes */
 .resume {

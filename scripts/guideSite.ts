@@ -124,7 +124,7 @@ const running = `<p class="running"><a href="/">Code Dungeon · The User Guide</
 const PROLOGUE = [
   'Code Dungeon is a software workshop drawn as a medieval dungeon. You walk through it in first person, from a great hall down a torchlit gallery into a chamber for each of your projects. The people at the workbenches are real AI coding agents, each running in its own terminal on your computer and working through the GitHub issues of that project.',
   'Nothing in it is pretend. The slate on a workbench is that coder\'s live terminal. The notice board is the project\'s real issues and pull requests. When a pull request has passed the testers in the assay room, it is merged on GitHub. You are the Overlord: you set the work, recruit the guild, and step in whenever you like.',
-  'It runs on your own machine: Node.js, git, the GitHub command line signed in to your account, and a coding agent (Claude Code by default; Codex or OpenCode if you have them). Code Dungeon is made by BrainIT Consulting, and it is free and open source: [github.com/brainit-consulting/codedungeon](https://github.com/brainit-consulting/codedungeon).',
+  'It runs on your own machine: Node.js, git, the GitHub command line signed in to your account, and a coding agent (Claude Code by default; Codex or OpenCode if you have them). Code Dungeon is made by BrainIT Consulting, and it is free.',
 ];
 
 /** The contents column: every chapter, the one being read marked and opened out to its sections; the text size buttons. */
