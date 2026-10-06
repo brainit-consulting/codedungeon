@@ -1,7 +1,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { describe, expect, it } from 'vitest';
-import { createOfficeTools, dungeonMasterTitle, IssueCap, jobLabel, planRoute, specialtyLabel, specialtySlug, type CeoJob, type RouteRequest } from './ceo.ts';
+import { ceoSystemPrompt, createOfficeTools, dungeonMasterTitle, IssueCap, jobLabel, planRoute, specialtyLabel, specialtySlug, type CeoJob, type RouteRequest } from './ceo.ts';
 
 describe('specialtySlug', () => {
   it('turns a specialty into a lowercase slug', () => {
@@ -195,5 +195,13 @@ describe('the DungeonMaster title', () => {
     expect(dungeonMasterTitle('Chief Executive Officer')).toBe('DungeonMaster');
     expect(dungeonMasterTitle('')).toBe('DungeonMaster');
     expect(dungeonMasterTitle('Keeper of the Keys')).toBe('Keeper of the Keys');
+  });
+});
+
+describe('the DungeonMaster prompt', () => {
+  it('asks for art drawn in code first, and for each art issue to say which way and why', () => {
+    const prompt = ceoSystemPrompt({ name: 'Vivienne', company: 'Brain IT', manager: 'Emile', notesFile: 'notes.md', sessionLimit: 0, teamCap: 6, hiring: 'approve' });
+    expect(prompt).toMatch(/Art: when code can draw it as well as a modelling tool like Blender, write the issue for code/);
+    expect(prompt).toMatch(/say in the issue which way it is made and why/);
   });
 });

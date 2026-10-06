@@ -92,7 +92,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('The DungeonMaster'),
       p(
-        'The DungeonMaster runs the dungeon for you. He studies each new chamber, writes its QA brief, turns your project briefs into GitHub issues, gives coders work that fits the project and puts forward recruits. He also reviews the whole dungeon every so often (Settings in the ledger sets how often). Write to him on your scroll ([[P]]).',
+        'The DungeonMaster runs the dungeon for you. He studies each new chamber, writes its QA brief, turns your project briefs into GitHub issues, gives coders work that fits the project and puts forward recruits. When a project needs art, he asks for it drawn in code first, and from a modelling tool like Blender only where that clearly looks better. He also reviews the whole dungeon every so often (Settings in the ledger sets how often). Write to him on your scroll ([[P]]).',
       ),
       h('Recruiting'),
       p('There are three ways to add someone to a chamber:'),
