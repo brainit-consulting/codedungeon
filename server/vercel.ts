@@ -3,7 +3,7 @@
 // at once instead of hanging. Measured with Vercel CLI 60.1.3 (docs/superpowers/specs/2026-10-03-ship-it-design.md).
 
 import fs from 'node:fs';
-import { resolveCommand, unwrapCmdShim } from './clis.ts';
+import { VOLTA_SHIM, launcherFor, resolveCommand } from './clis.ts';
 import { run } from './exec.ts';
 import type { Deployment, VercelProjectRef } from '../shared/ship.ts';
 
@@ -86,21 +86,8 @@ export function parseDeployUrl(out: string): string {
 
 // ---------- running the CLI ----------
 
-const VOLTA_SHIM = /^\s*volta\s+run\s+%~n0\s+%\*\s*$/im;
-
-/**
- * How to start the CLI without cmd.exe, which Node won't execFile a .cmd through and which would split arguments on
- * `&` and expand %VARS%. An npm launcher is unwrapped to node on its script. A Volta launcher ("volta run %~n0 %*")
- * also goes through cmd.exe inside Volta (measured: an `&` in an argument broke the call), so it's resolved to the
- * npm launcher Volta keeps behind it (`volta which vercel` + .cmd), and that is unwrapped. Null when there's no CLI,
- * or a launcher this can't read.
- */
-export function commandFor(found: string | null, shimText: string | null, volta: { cmdPath: string; text: string } | null): { file: string; args: string[] } | null {
-  if (!found) return null;
-  if (shimText === null || !/\.(cmd|bat)$/i.test(found)) return { file: found, args: [] };
-  if (VOLTA_SHIM.test(shimText)) return volta ? unwrapCmdShim(volta.cmdPath, volta.text) : null;
-  return unwrapCmdShim(found, shimText);
-}
+/** How to start the CLI without cmd.exe, which Node won't execFile a .cmd through (clis.ts launcherFor). */
+export const commandFor = launcherFor;
 
 let resolved: Promise<{ file: string; args: string[] } | null> | null = null;
 

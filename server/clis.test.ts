@@ -2,7 +2,7 @@ import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CODEX_HOOK_EVENTS, codexHookCommand, hookReviewKey, interruptions, launchArgs, oneAtATime, trustKey, unwrapCmdShim, type LaunchContext } from './clis.ts';
+import { CODEX_HOOK_EVENTS, codexHookCommand, hookReviewKey, interruptions, launchArgs, launcherFor, oneAtATime, trustKey, unwrapCmdShim, type LaunchContext } from './clis.ts';
 import { backgroundRunning } from './clis.ts';
 import { describeTool, newScreenshots, screenshotFile, summariseResult } from './agentRunner.ts';
 
@@ -27,6 +27,32 @@ describe('unwrapCmdShim', () => {
 
   it('gives up on shims it does not recognise', () => {
     expect(unwrapCmdShim(path.join(dir, 'x.cmd'), '@echo off\r\necho hi\r\n')).toBeNull();
+  });
+});
+
+describe('launcherFor', () => {
+  const voltaShim = '@echo off\r\nvolta run %~n0 %*\r\n';
+  // what Volta keeps behind its own launcher (measured: Volta\tools\image\packages\@openai\codex\codex.cmd)
+  const behind =
+    '@ECHO off\r\nGOTO start\r\n:start\r\nendLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\node_modules\\@openai\\codex\\bin\\codex.js" %*\r\n';
+  const volta = { cmdPath: 'C:/Volta/tools/image/packages/@openai/codex/codex.cmd', text: behind };
+
+  it("runs a Volta-installed CLI as node on its script: Volta's launchers cut a prompt at its first line break", () => {
+    const cmd = launcherFor('C:/Volta/bin/codex.cmd', voltaShim, volta);
+    expect(cmd?.file).toBe(process.execPath);
+    expect(cmd?.args).toEqual([path.join('C:/Volta/tools/image/packages/@openai/codex', 'node_modules\\@openai\\codex\\bin\\codex.js')]);
+  });
+
+  it("gives up on a Volta launcher when it can't see what's behind it, rather than cut the prompt short", () => {
+    expect(launcherFor('C:/Volta/bin/codex.cmd', voltaShim, null)).toBeNull();
+  });
+
+  it('unwraps an npm launcher, and runs anything else as it is', () => {
+    expect(launcherFor('C:/npm/codex.cmd', behind, null)?.args[0]).toMatch(/codex\.js$/);
+    expect(launcherFor('C:/bin/codex.exe', null, null)).toEqual({ file: 'C:/bin/codex.exe', args: [] });
+    expect(launcherFor('/usr/local/bin/codex', null, null)).toEqual({ file: '/usr/local/bin/codex', args: [] });
+    expect(launcherFor(null, null, null)).toBeNull();
+    expect(launcherFor('C:/x/codex.cmd', '@echo off\r\nsomething else %*\r\n', null)).toBeNull();
   });
 });
 

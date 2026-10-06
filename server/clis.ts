@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -67,6 +68,36 @@ export function unwrapCmdShim(shimPath: string, text: string): { file: string; a
   return { file: fs.existsSync(localNode) ? localNode : process.execPath, args: [...nodeFlags, target] };
 }
 
+/** A launcher Volta puts on PATH for a CLI installed through it. */
+export const VOLTA_SHIM = /^\s*volta\s+run\s+%~n0\s+%\*\s*$/im;
+
+/**
+ * How to start a CLI found at `found` (with its launcher's text, for a .cmd), without cmd.exe: an npm launcher is
+ * unwrapped to node on its script. A Volta launcher ("volta run %~n0 %*") goes through cmd.exe and Volta's own shim,
+ * which cut the whole command line at its first line break (measured: a three-line prompt arrived as its first line,
+ * and an `&` broke the call), so it's resolved to the npm launcher Volta keeps behind it (`volta`:
+ * `volta which <cli>` + .cmd), and that is unwrapped. Null when there's no CLI, or a launcher this can't read.
+ */
+export function launcherFor(found: string | null, shimText: string | null, volta: { cmdPath: string; text: string } | null): { file: string; args: string[] } | null {
+  if (!found) return null;
+  if (shimText === null || !/\.(cmd|bat)$/i.test(found)) return { file: found, args: [] };
+  if (VOLTA_SHIM.test(shimText)) return volta ? unwrapCmdShim(volta.cmdPath, volta.text) : null;
+  return unwrapCmdShim(found, shimText);
+}
+
+/** The npm launcher behind a Volta-installed CLI (`volta which <name>` + .cmd), or null. */
+function behindVolta(name: string): { cmdPath: string; text: string } | null {
+  const volta = resolveCommand('volta');
+  if (!volta) return null;
+  try {
+    const target = execFileSync(volta, ['which', name], { encoding: 'utf8', timeout: 30_000, windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    const cmdPath = target ? `${target.replace(/\.(cmd|exe)$/i, '')}.cmd` : '';
+    return cmdPath && fs.existsSync(cmdPath) ? { cmdPath, text: fs.readFileSync(cmdPath, 'utf8') } : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * The Claude Code the Agent SDK ships as a per-platform package (the one `cubefarm login` signs in with), so the
  * terminal runtime works without Claude Code installed, on the version the office was tested with. Same lookup as
@@ -106,13 +137,16 @@ export function commandFor(id: AgentCli): { file: string; args: string[] } | nul
   if (bundled) return { file: bundled, args: [] };
   const def = CLIS.find((c) => c.id === id);
   const found = def && resolveCommand(def.command);
-  if (!found) return null;
+  if (!def || !found) return null;
   if (WIN && /\.(cmd|bat)$/i.test(found)) {
+    let shim: string;
     try {
-      return unwrapCmdShim(found, fs.readFileSync(found, 'utf8')) ?? { file: found, args: [] };
+      shim = fs.readFileSync(found, 'utf8');
     } catch {
       return { file: found, args: [] };
     }
+    if (VOLTA_SHIM.test(shim)) return launcherFor(found, shim, behindVolta(def.command));
+    return unwrapCmdShim(found, shim) ?? { file: found, args: [] };
   }
   return { file: found, args: [] };
 }
