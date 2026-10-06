@@ -102,22 +102,34 @@ export const SENSITIVITY_MAX = 3;
 export interface LookPrefs {
   sensitivity: number;
   invertY: boolean;
-  /** Grab the mouse again when a panel or question closes (see lookLock.ts). */
+  /** Grab the mouse again when a panel or question closes (see lookLock.ts). Off unless ticked. */
   grabOnClose: boolean;
 }
 const PREFS_KEY = 'cubefarm:look';
-const DEFAULT_PREFS: LookPrefs = { sensitivity: 1, invertY: false, grabOnClose: true };
+const DEFAULT_PREFS: LookPrefs = { sensitivity: 1, invertY: false, grabOnClose: false };
 
 const clampSensitivity = (v: number) => Math.min(SENSITIVITY_MAX, Math.max(SENSITIVITY_MIN, v));
 
-function loadPrefs(): LookPrefs {
+/**
+ * The settings as saved. The grab setting is saved as `grab`: the older `grabOnClose` was on by default and saved
+ * along with any other change, so it doesn't say anyone chose it, and is ignored.
+ */
+export function parseLookPrefs(raw: string | null): LookPrefs {
   try {
-    const v = JSON.parse(localStorage.getItem(PREFS_KEY) ?? 'null') as Partial<LookPrefs> | null;
+    const v = JSON.parse(raw ?? 'null') as (Partial<LookPrefs> & { grab?: boolean }) | null;
     return {
       sensitivity: typeof v?.sensitivity === 'number' && Number.isFinite(v.sensitivity) ? clampSensitivity(v.sensitivity) : DEFAULT_PREFS.sensitivity,
       invertY: v?.invertY === true,
-      grabOnClose: v?.grabOnClose !== false,
+      grabOnClose: v?.grab === true,
     };
+  } catch {
+    return { ...DEFAULT_PREFS };
+  }
+}
+
+function loadPrefs(): LookPrefs {
+  try {
+    return parseLookPrefs(localStorage.getItem(PREFS_KEY));
   } catch {
     return { ...DEFAULT_PREFS };
   }
@@ -130,7 +142,7 @@ export const useLookPrefs = create<LookPrefs & { set: (p: Partial<LookPrefs>) =>
     set(next);
     const { sensitivity, invertY, grabOnClose } = get();
     try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify({ sensitivity, invertY, grabOnClose }));
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ sensitivity, invertY, grab: grabOnClose }));
     } catch {
       // storage may be unavailable (private mode); the setting just won't survive a reload
     }

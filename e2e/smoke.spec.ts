@@ -122,7 +122,7 @@ test('the scroll opens and closes with P, its button and Esc', async ({ page }) 
   await page.keyboard.press('p');
   await expect(hires).toBeHidden();
 
-  // Closing a panel grabs the mouse again (#42); a locked pointer can't click the HUD, so let go of it first. The lock
+  // Closing a panel may grab the mouse again (#42, when ticked in help); a locked pointer can't click the HUD, so let go of it first. The lock
   // request is async: wait for it to land (or be refused) before letting go, or it lands after and eats the click.
   await page
     .waitForFunction(() => document.pointerLockElement !== null, undefined, { timeout: 3000 })

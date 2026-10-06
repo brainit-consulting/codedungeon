@@ -1,6 +1,6 @@
 // Run with `npm test` (Vitest).
-import { expect, it } from 'vitest';
-import { SKIP_AFTER_LOCK, ZOOM_MAX, ZOOM_STEP, createLookFilter, filterLookDelta, lookScale, nextZoom, zoomedFov, type LookFilter } from './look';
+import { describe, expect, it } from 'vitest';
+import { SENSITIVITY_MAX, SKIP_AFTER_LOCK, ZOOM_MAX, ZOOM_STEP, createLookFilter, filterLookDelta, lookScale, nextZoom, parseLookPrefs, zoomedFov, type LookFilter } from './look';
 
 /** A filter that's past the post-lock skip, with some ordinary motion behind it. */
 function warmFilter(): { f: LookFilter; t: number } {
@@ -114,4 +114,23 @@ it('narrows the field of view like a spyglass: 2× zoom halves the view, 1× lea
 it('turns the view more slowly when zoomed in, so aiming stays steady', () => {
   expect(lookScale(1)).toBe(1);
   expect(lookScale(2)).toBeCloseTo(0.5);
+});
+
+describe('the look settings as saved', () => {
+  it("doesn't grab the mouse when panels close unless you ticked it", () => {
+    expect(parseLookPrefs(null).grabOnClose).toBe(false);
+    expect(parseLookPrefs('not json').grabOnClose).toBe(false);
+    expect(parseLookPrefs(JSON.stringify({ grab: true })).grabOnClose).toBe(true);
+    expect(parseLookPrefs(JSON.stringify({ grab: false })).grabOnClose).toBe(false);
+  });
+
+  it('starts the old grab setting over (it was saved on by default whenever the sensitivity changed), keeping the rest', () => {
+    const p = parseLookPrefs(JSON.stringify({ sensitivity: 2, invertY: true, grabOnClose: true }));
+    expect(p).toEqual({ sensitivity: 2, invertY: true, grabOnClose: false });
+  });
+
+  it('keeps the sensitivity in range', () => {
+    expect(parseLookPrefs(JSON.stringify({ sensitivity: 99 })).sensitivity).toBe(SENSITIVITY_MAX);
+    expect(parseLookPrefs(JSON.stringify({ sensitivity: 'x' })).sensitivity).toBe(1);
+  });
 });

@@ -65,7 +65,7 @@ export const CHAPTERS: GuideChapter[] = [
         ['Esc', 'Let go of the mouse, or close the panel that is open'],
       ),
       p(
-        'When the cross is on something you can use, a hint under it says what [[E]] will do, for example "Open the notice board". Opening any panel frees the mouse so you can click in it. Closing the panel grabs the mouse again; if you would rather it didn\'t, untick **Grab the mouse when panels close** in the help ([[H]]).',
+        'When the cross is on something you can use, a hint under it says what [[E]] will do, for example "Open the notice board". Opening any panel frees the mouse so you can click in it. When you close it, click the view to look around again. To have the mouse grabbed as soon as a panel closes, tick **Grab the mouse when panels close** in the help ([[H]]).',
       ),
       h('When the mouse cannot be grabbed'),
       p(

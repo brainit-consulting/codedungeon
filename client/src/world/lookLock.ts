@@ -3,7 +3,7 @@ import { isConfirmOpen, subscribeConfirm } from '../ui/Confirm';
 import { useLookPrefs } from './look';
 import { shouldGrabLook, viewUncovered, type Covering } from './lookLockRules';
 
-// Grabs the mouse again when a panel or question closes, so looking around needs no extra click.
+// Grabs the mouse again when a panel or question closes, if "Grab the mouse when panels close" is ticked (off by default).
 // The store listeners run synchronously inside set(), which happens inside the closing click or
 // keydown handler, so the browser still counts requestPointerLock as part of that user gesture.
 
