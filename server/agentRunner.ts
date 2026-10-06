@@ -65,6 +65,8 @@ export interface SessionCallbacks {
   screenshot(data: Buffer, mime: string): void;
   /** The final text of each turn: the reply to the prompt and to every message sent while it ran. */
   turn?(text: string): void;
+  /** What a command or tool printed (or, for CLIs that don't report it, the screen at a turn's end), to read for errors. */
+  output?(text: string): void;
   /** Claude turned the session away for the subscription's usage limit (epoch ms when it resets, if known). */
   limited?(resetsAt: number | null): void;
   /** Claude warned that the subscription's usage is getting high (not while on overage). */
@@ -430,6 +432,7 @@ export function startSession(opts: SessionOptions, callbacks: SessionCallbacks):
           if (block.type !== 'tool_result') continue;
           const name = toolNames.get(block.tool_use_id) ?? '';
           const text = resultText(block.content);
+          cb.output?.(text);
           let images = 0;
           if (Array.isArray(block.content)) {
             for (const part of block.content) {

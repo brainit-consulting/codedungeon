@@ -1,3 +1,4 @@
+import * as browsers from './browsers.ts';
 import * as github from './github.ts';
 import * as workspace from './workspace.ts';
 import { startSession, type SessionCallbacks, type SessionHandle, type SessionOptions } from './agentRunner.ts';
@@ -36,6 +37,10 @@ export interface Backend {
   remoteBranchState(fullName: string, branch: string): Promise<{ onGitHub: boolean; localHead: string | null } | null>;
   /** Push the floor's branch from its folder to GitHub (a first push: no time limit), with progress in plain words. */
   pushBranch(fullName: string, branch: string, progress: (text: string) => void): Promise<void>;
+  /** A test browser build a worktree's own Playwright asked for: its name and download size (browsers.ts). */
+  describeBrowser(root: string, browser: string, revision: string): Promise<browsers.BrowserInfo>;
+  /** Install it with that Playwright into the dungeon's browser folder, its progress in plain words. */
+  installBrowser(root: string, browser: string, revision: string, progress: (text: string) => void): Promise<void>;
   /** Point a floor at the user's own project folder (null: a clone the office manages). */
   setLocalPath(fullName: string, dir: string | null): void;
   scanProjects(root: string): Promise<workspace.LocalFolder[]>;
@@ -96,6 +101,8 @@ export const realBackend: Backend = {
   syncMain: workspace.syncMain,
   remoteBranchState: workspace.remoteBranchState,
   pushBranch: workspace.pushBranch,
+  describeBrowser: browsers.describeBrowser,
+  installBrowser: browsers.installBrowser,
   setLocalPath: workspace.setLocalPath,
   scanProjects: workspace.scanProjects,
   inspectFolder: workspace.inspectFolder,

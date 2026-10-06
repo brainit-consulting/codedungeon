@@ -38,6 +38,17 @@ const bareRepos = new Set<string>();
  */
 const unpushed = new Set<string>(process.env.SWARM_DEMO_NO_MAIN ? [process.env.SWARM_DEMO_NO_MAIN] : []);
 const pushFails = new Set<string>(process.env.SWARM_DEMO_PUSH_FAIL ? [process.env.SWARM_DEMO_PUSH_FAIL] : []);
+/**
+ * SWARM_DEMO_MISSING_BROWSER=1: testers' test runs hit Playwright's missing-WebKit error (as Playwright 1.63.0 words
+ * it) until its fake install has run, so the chamber's Install can be seen.
+ */
+const missingBrowser = process.env.SWARM_DEMO_MISSING_BROWSER === '1';
+const fakeInstalled = new Set<string>();
+const DEMO_MISSING_WEBKIT = [
+  "Error: browserType.launch: Executable doesn't exist at C:\\demo\\ms-playwright\\webkit-2359\\Playwright.exe",
+  '║ Looks like Playwright was just installed or updated.       ║',
+  '║     npx playwright install                                 ║',
+].join('\n');
 const mergedSinceSync = new Map<string, number>(); // merges the fake project folder hasn't pulled yet
 const closedIssues = new Set<string>(); // `${fullName}#${n}`: issues closed by a merge
 
@@ -149,6 +160,15 @@ function qaScript(cb: SessionCallbacks, pr: number, title: string, round: number
       { kind: 'result', text: '  ⎿ Test Files  8 passed (8)' },
       { kind: 'result', text: '    Tests  41 passed (41)' },
     ],
+    ...(missingBrowser && !fakeInstalled.has('webkit-2359')
+      ? [
+          [
+            { kind: 'tool', tool: 'Bash', text: '⏺ $ npx playwright test --project=webkit-ipad' },
+            { kind: 'result', text: "  ⎿ Error: browserType.launch: Executable doesn't exist at …\\webkit-2359\\Playwright.exe" },
+          ] as Step,
+          () => cb.output?.(DEMO_MISSING_WEBKIT),
+        ]
+      : []),
     [{ kind: 'tool', tool: 'Bash', text: '⏺ $ npm run lint && npm run build' }, { kind: 'result', text: '  ⎿ ✓ built in 1.84s' }],
     [{ kind: 'tool', tool: 'Bash', text: `⏺ $ npm run preview -- --port ${port} &` }, { kind: 'result', text: `  ⎿ Local: http://localhost:${port}/` }],
     () => cb.browserUrl(`http://localhost:${port}/`),
@@ -519,6 +539,14 @@ export function createDemoBackend(): Backend {
     uploadEvidence: async (fullName, filePath) => `https://github.com/${fullName}/raw/swarm-qa-evidence/${filePath}`,
     ensureClone: async () => new Promise((r) => setTimeout(r, 400)),
     remoteBranchState: async (fullName) => (unpushed.has(fullName) ? { onGitHub: false, localHead: headOf(fullName).slice(0, 7) } : { onGitHub: true, localHead: null }),
+    describeBrowser: async () => ({ name: 'WebKit 26.6', bytes: 64_212_518 }),
+    installBrowser: async (_root, browser, revision, progress) => {
+      for (const pct of [5, 20, 45, 70, 90, 100]) {
+        progress(`downloading ${pct}% of 59.8 MiB`);
+        await new Promise((r) => setTimeout(r, 800));
+      }
+      fakeInstalled.add(`${browser}-${revision}`);
+    },
     pushBranch: async (fullName, branch, progress) => {
       // a few seconds of what a real first push reports
       for (const step of ['counting files', 'packing 60%', 'sending 15%', 'sending 40%', 'sending 70%', 'sending 100%']) {

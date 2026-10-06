@@ -50,6 +50,19 @@ export interface PullInfo {
   pendingChecks: string[];
 }
 
+/** A browser build a chamber's tests asked for that this machine doesn't have, and its Install. */
+export interface BrowserNeed {
+  /** Its folder name in the browser folder, e.g. webkit-2359. */
+  key: string;
+  /** e.g. "WebKit 26.6" (until described: the browser and build). */
+  name: string;
+  /** What Install downloads, in MB, when known. */
+  sizeMb: number | null;
+  status: 'missing' | 'installing' | 'failed';
+  progress: string | null;
+  error: string | null;
+}
+
 export interface RepoView {
   id: string; // "owner/name"
   fullName: string;
@@ -81,6 +94,8 @@ export interface RepoView {
   canUpload?: boolean;
   /** The dungeon pushing the branch to GitHub: how far it's got, or why it failed. */
   upload?: { status: 'pushing' | 'failed'; progress: string | null; error: string | null };
+  /** Test browsers the chamber's Playwright asked for that aren't installed (server/browsers.ts). */
+  browsers?: BrowserNeed[];
   previewConfig: PreviewConfig;
   preview: PreviewView;
   ship: ShipView; // SHIP IT: what's live on Vercel, what's waiting, and how this chamber ships

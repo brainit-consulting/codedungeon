@@ -427,6 +427,8 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
    */
   const turnEnded = (text: string) => {
     lastText = text;
+    // Codex and OpenCode don't report what their commands printed: the screen shows the latest of it
+    if (cli !== 'claude') cb.output?.(term.screen());
     cb.tool(null);
     clearTimeout(finishTimer);
     finishTimer = setTimeout(endOfTurn, FINISH_GRACE_MS);
@@ -521,6 +523,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
         if (sub) return {};
         const name = toolNames.get(String(b.tool_use_id ?? '')) ?? String(b.tool_name ?? '');
         const out = toolOutput(b.tool_response);
+        cb.output?.(event === 'PostToolUseFailure' ? `${String(b.error ?? '')}\n${out.text}` : out.text);
         // Codex's unnamed screenshots are collected from the browser's folder (its hooks may not be trusted yet).
         if (cli === 'claude') for (const img of out.images) cb.screenshot(Buffer.from(img.data, 'base64'), img.mime);
         const saved = name === 'mcp__playwright__browser_take_screenshot' && !out.images.length ? screenshotFile(opts.cwd, out.text) : null;

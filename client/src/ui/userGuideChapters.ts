@@ -348,6 +348,10 @@ export const CHAPTERS: GuideChapter[] = [
       p(
         'Coders start from the main branch on GitHub, so nothing can start until it is there. The chamber and its board say what to do, and the guild waits instead of failing. Usually the first upload never finished. When your project folder has the commits, press **Push to GitHub** on the notice (or run `git push -u origin main` in the folder). The notice shows how far it has got; with large files it can take a while. If it fails, the notice says why and offers **Push again**. Once main arrives, the notice goes and the guild starts on its own.',
       ),
+      h("A chamber says its tests need a browser that isn't installed"),
+      p(
+        "A project's browser tests can ask for a browser this computer doesn't have yet, such as WebKit (Safari's engine) for iPad tests. When a coder or tester runs into that, the chamber says which one, with **Install** and the download size. Nothing downloads until you press it. It installs the exact build the project's own Playwright asks for, and then every chamber can use it. Until then, coders and testers report those tests as not run, rather than passing them.",
+      ),
       h('A pull request will not merge'),
       p(
         'If GitHub refuses the merge (for example, branch protection wants an approving review), your scroll gets a message and the dungeon tries again every 10 minutes. Checks still running after 30 minutes also get a message. Pull requests marked **needs you** have failed QA or their fixes three times: read the QA comment on GitHub and decide.',

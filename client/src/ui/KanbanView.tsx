@@ -4,6 +4,7 @@ import { agentsOnRepo, kanbanFor, useStore, type Agent, type KanbanCard } from '
 import { confirmDialog } from './Confirm';
 import { Panel } from './Overlays';
 import { Icon, IconText } from './Icon';
+import { BrowserNotice } from './BrowserNotice';
 import { NoMainNotice } from './NoMainNotice';
 
 function AgentChip({ agent }: { agent?: Agent }) {
@@ -202,6 +203,7 @@ export function KanbanView({ repoId }: { repoId: string }) {
       </div>
       {repo.syncError && <div className="term-error"><Icon name="warning" /> {repo.syncError}</div>}
       <NoMainNotice repo={repo} />
+      <BrowserNotice repo={repo} />
       {showForm && <IssueForm repoId={repo.id} agents={devs} onDone={() => setShowForm(false)} />}
 
       <div className="kanban kanban-5">

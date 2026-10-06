@@ -24,6 +24,7 @@ import { blockers, holdUps, issueSpecialty } from '../shared/issues.ts';
 import { effectiveModel } from '../shared/models.ts';
 import { CHAMBER_DYES, COAT_DYES, periodColor } from '../shared/palette.ts';
 import { CEO_ID } from '../shared/types.ts';
+import { missingBrowsers } from './browsers.ts';
 import { noMainNotice } from './emptyRepo.ts';
 import { oneAtATime } from './oneAtATime.ts';
 import type {
@@ -33,6 +34,7 @@ import type {
   AgentStatus,
   AgentTask,
   AgentView,
+  BrowserNeed,
   CeoInfo,
   CliView,
   EffortLevel,
@@ -191,6 +193,8 @@ interface RepoRuntime {
   /** The dungeon pushing the branch to GitHub (uploadMain), and when the progress was last sent out. */
   upload?: { status: 'pushing' | 'failed'; progress: string | null; error: string | null };
   uploadEmitted?: number;
+  /** Test browser builds its Playwright asked for that aren't installed, by key, with the worktree that asked. */
+  browsers?: Map<string, BrowserNeed & { root: string; browser: string; revision: string; emitted?: number }>;
 }
 
 interface QaReport {
@@ -419,6 +423,8 @@ export class Swarm {
   private messageSeq = 1;
   private agentRt = new Map<string, AgentRuntime>();
   private repoRt = new Map<string, RepoRuntime>();
+  /** Test browser builds installed from a chamber's notice since the dungeon started (browsers.ts). */
+  private installedBrowsers = new Set<string>();
   private clients = new Set<WebSocket>();
   private user: string | null = null;
   private ghError: string | undefined;
@@ -678,6 +684,7 @@ export class Swarm {
       noMain: rt.noMain ?? undefined,
       canUpload: !!(rt.noMain && rt.mainLocalHead && r.localPath && rt.upload?.status !== 'pushing'),
       upload: rt.upload,
+      browsers: rt.browsers?.size ? [...rt.browsers.values()].map(({ key, name, sizeMb, status, progress, error }) => ({ key, name, sizeMb, status, progress, error })) : undefined,
       previewConfig: r.preview,
       preview: this.previews.view(r),
       ship: this.shipyard.view(r),
@@ -1378,6 +1385,73 @@ export class Swarm {
       );
   }
 
+  // ---------- test browsers the chamber's Playwright asked for (browsers.ts) ----------
+
+  /**
+   * Read what a coder's or tester's command printed for Playwright's missing-browser error. A build not yet noted for
+   * the chamber, and not in the dungeon's browser folder, becomes a need with Install, described in the background.
+   */
+  private noticeBrowsers(repo: PersistedRepo, root: string, text: string) {
+    if (!text.includes("Executable doesn't exist")) return;
+    const rt = this.repoRt.get(repo.id);
+    if (!rt) return;
+    const folder = process.env.PLAYWRIGHT_BROWSERS_PATH;
+    for (const m of missingBrowsers(text)) {
+      // a run that started before the install can still report it afterwards
+      if (rt.browsers?.has(m.key) || this.installedBrowsers.has(m.key)) continue;
+      void (async () => {
+        if (folder && (await fs.stat(path.join(folder, m.key)).then(() => true, () => false))) return; // installed since
+        if (!this.repoRt.has(repo.id) || rt.browsers?.has(m.key)) return;
+        const need = { key: m.key, name: `${m.browser} build ${m.revision}`, sizeMb: null, status: 'missing' as const, progress: null, error: null, root, browser: m.browser, revision: m.revision };
+        (rt.browsers ??= new Map()).set(m.key, need);
+        this.emitRepo(repo);
+        const info = await this.backend.describeBrowser(root, m.browser, m.revision).catch(() => null);
+        if (info && rt.browsers.get(m.key) === need) {
+          if (info.bytes === 0) rt.browsers.delete(m.key); // nothing left to fetch: it's there after all
+          else Object.assign(need, { name: info.name, sizeMb: info.bytes === null ? null : Math.round(info.bytes / 104857.6) / 10 });
+          this.emitRepo(repo);
+        }
+        if (rt.browsers.get(m.key) !== need) return;
+        const chamber = repo.fullName.split('/').pop();
+        this.toast('error', `${chamber}'s tests need ${need.name}, which isn't installed. Install it from the chamber's notice (board or ledger).`);
+      })();
+    }
+  }
+
+  /** Install a browser build a chamber needs, with its own Playwright (Install on the chamber's notice). Returns once started. */
+  installBrowser(id: string, key: string) {
+    const repo = this.repo(id);
+    const need = this.repoRt.get(id)?.browsers?.get(key);
+    if (!need) throw new HttpError(404, `${repo.fullName.split('/').pop()} doesn't need ${key}.`);
+    if (need.status === 'installing') throw new HttpError(409, `${need.name} is already installing.`);
+    Object.assign(need, { status: 'installing', progress: null, error: null });
+    this.emitRepo(repo);
+    const current = () => this.repoRt.get(id)?.browsers?.get(key) === need;
+    this.backend
+      .installBrowser(need.root, need.browser, need.revision, (progress) => {
+        if (!current()) return;
+        need.progress = progress;
+        if (Date.now() - (need.emitted ?? 0) < 1000) return; // its download bar redraws many times a second
+        need.emitted = Date.now();
+        this.emitRepo(repo);
+      })
+      .then(
+        () => {
+          if (!current()) return;
+          // one browser folder for the whole dungeon: every chamber that needed this build has it now
+          this.installedBrowsers.add(key);
+          for (const r of this.state.repos) if (this.repoRt.get(r.id)?.browsers?.delete(key)) this.emitRepo(r);
+          this.toast('success', `${need.name} is installed: coders' next test run uses it.`);
+        },
+        (err: Error) => {
+          if (!current()) return;
+          Object.assign(need, { status: 'failed', progress: null, error: err.message });
+          this.emitRepo(repo);
+          this.toast('error', `${need.name}: ${err.message}`);
+        },
+      );
+  }
+
   /** Keep agents and QA records in step with what happened to PRs on GitHub. */
   private reconcilePulls(repo: PersistedRepo, pulls: PullInfo[]) {
     for (const a of this.state.agents) {
@@ -1735,7 +1809,7 @@ export class Swarm {
       'Workflow:',
       '1. Read the issue and explore the relevant code before changing anything.',
       '2. Implement the change with focused commits and clear messages.',
-      "3. Run the project's existing tests, linters and build (if any) and fix what you broke. Install dependencies first if needed.",
+      "3. Run the project's existing tests, linters and build (if any) and fix what you broke. Install dependencies first if needed. If Playwright says a browser isn't installed, those tests didn't run: don't count them as passing or push past them; say so (the dungeon offers the Overlord the install).",
       repo.browserTesting
         ? `4. If the project has a web UI, start its dev server in the background on port ${this.port(a)} (reserved for you, so you don't collide with teammates), then check your change with the Playwright browser tools (mcp__playwright__browser_navigate, browser_snapshot, browser_click, browser_take_screenshot). Stop the dev server when you're done.`
         : '4. Verify the behaviour you changed as directly as you can.',
@@ -1855,6 +1929,7 @@ export class Swarm {
       },
       {
         log: (entries) => this.appendLog(a, entries),
+        output: (text) => this.noticeBrowsers(repo, cwd, text),
         tool: (name) => {
           if (rt.currentTool === name) return;
           rt.currentTool = name;
@@ -2064,7 +2139,7 @@ export class Swarm {
       'How to test:',
       '1. Read the PR description and the linked issue, and work out the acceptance criteria.',
       `2. Review the code as a careful reviewer would: git diff origin/${repo.defaultBranch}...HEAD. Look for bugs, unhandled errors and edge cases, security problems, leftover debug code, and new logic without tests.`,
-      "3. Install dependencies if needed, then run the project's test suite, linters, type checks and build (whichever exist).",
+      "3. Install dependencies if needed, then run the project's test suite, linters, type checks and build (whichever exist). If Playwright says a browser isn't installed, those tests didn't run: don't count them as passing or push past them; say so (the dungeon offers the Overlord the install).",
       repo.browserTesting
         ? `4. If the project has a UI, start it in the background on port ${this.port(a)} (reserved for you) and exercise the change in a real browser with the Playwright tools: navigate, click, type, resize to a phone size, try edge cases, and check the console for errors. Take a screenshot with browser_take_screenshot (no filename) of every important state: the screenshots are attached to the PR as evidence. Stop the server afterwards.`
         : '4. Exercise the changed behaviour directly (run the program, call the API, write a quick script).',

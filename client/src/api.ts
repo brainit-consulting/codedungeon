@@ -70,6 +70,8 @@ export const api = {
   stopPreview: (repoId: string) => call<PreviewView>('DELETE', `${r(repoId)}/preview`),
   /** Push to GitHub: send the chamber's branch from its folder (it carries on after this returns). */
   uploadMain: (repoId: string) => call('POST', `${r(repoId)}/upload`),
+  /** Install a test browser build the chamber needs (it carries on after this returns). */
+  installBrowser: (repoId: string, key: string) => call('POST', `${r(repoId)}/browsers/${encodeURIComponent(key)}/install`),
   disconnectRepo: (repoId: string) => call('DELETE', r(repoId)),
   syncRepo: (repoId: string) => call('POST', `${r(repoId)}/sync`),
   syncFolder: (repoId: string) => call<{ folderSync: string | null }>('POST', `${r(repoId)}/sync-folder`),

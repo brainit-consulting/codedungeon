@@ -120,6 +120,8 @@ app.post('/api/repos/:repo/plan', route((req) => swarm.planFloor(repoId(req), ty
 app.post('/api/repos/:repo/onboard', route((req) => swarm.onboardFloor(repoId(req))));
 // Push to GitHub: the chamber's branch from its folder, when GitHub doesn't have it yet (returns once it has started)
 app.post('/api/repos/:repo/upload', route((req) => swarm.uploadMain(repoId(req))));
+// Install a test browser build the chamber's Playwright asked for (returns once it has started)
+app.post('/api/repos/:repo/browsers/:key/install', route((req) => swarm.installBrowser(repoId(req), String(req.params.key))));
 // The floor's app, for the preview monitor
 app.post(
   '/api/repos/:repo/preview',
