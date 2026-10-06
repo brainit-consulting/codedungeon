@@ -25,11 +25,25 @@ try {
   fs.rmSync(tarball);
   const version = sh('npx --no-install codedungeon --version', tmp);
   console.log(`codedungeon --version: ${version}`);
+  // installed as a package, it gives its hints the npx way
+  const wrong = spawnSync('npx --no-install codedungeon frobnicate', { cwd: tmp, shell: true, encoding: 'utf8' });
+  if (!`${wrong.stdout}${wrong.stderr}`.includes('npx codedungeon@latest --help')) throw new Error(`no npx hint for a wrong command:\n${wrong.stderr}`);
 
+  // with no SWARM_HOME, its data goes in codedungeon-home in your home folder (here a stand-in home in the temp folder)
+  const user = path.join(tmp, 'user');
+  fs.mkdirSync(user);
+  const env = { ...process.env, USERPROFILE: user, HOME: user };
+  delete env.SWARM_HOME;
   const bin = path.join(tmp, 'node_modules', 'codedungeon', 'bin', 'codedungeon.js');
   server = spawn(process.execPath, [bin, '--demo', '--no-open', '--port', String(PORT)], {
-    env: { ...process.env, SWARM_HOME: path.join(tmp, 'home') },
-    stdio: ['ignore', 'inherit', 'inherit'],
+    env,
+    stdio: ['ignore', 'pipe', 'inherit'],
+  });
+  // its banner says where its state lives ("state: <file>"); passed on as it comes
+  let banner = '';
+  server.stdout.on('data', (b) => {
+    banner += b;
+    process.stdout.write(b);
   });
   let state = null;
   for (let i = 0; i < 120 && !state; i++) {
@@ -43,6 +57,9 @@ try {
   const page = await fetch(`http://127.0.0.1:${PORT}/`).then((r) => r.text());
   if (!page.includes('<title>Code Dungeon</title>')) throw new Error('the dungeon does not serve the client');
   console.log(`demo office up: ${state.repos.length} floors, ${state.agents.length} agents, client served`);
+  const stateAt = banner.match(/state:\s*(\S+)/)?.[1];
+  if (!stateAt?.startsWith(path.join(user, 'codedungeon-home') + path.sep)) throw new Error(`the installed package keeps its state at ${stateAt}, not in codedungeon-home in the home folder`);
+  console.log(`data folder: ${path.relative(tmp, path.dirname(stateAt))} (codedungeon-home in the home folder)`);
 } finally {
   server?.kill();
   // Windows keeps the folder locked until the office has exited.

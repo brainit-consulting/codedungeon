@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// The `codedungeon` command (npm start, npm run login, npm run doctor): checks this machine is ready, starts the
-// dungeon and opens it in the browser.
+// The `codedungeon` command (npx codedungeon@latest, or npm start, npm run login, npm run doctor in a clone): checks
+// this machine is ready, starts the dungeon and opens it in the browser.
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
@@ -13,15 +13,22 @@ import { parseArgs } from 'node:util';
 const MIN_NODE = 22;
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+// Run with npx or installed with npm install -g, rather than from a clone (shared/dungeon.mjs installedAsPackage; that
+// file isn't in the package).
+const packaged = path.resolve(root).split(path.sep).includes('node_modules');
+/** How to run a subcommand, the way this copy was started: `login` → "npx codedungeon@latest login" or "npm run login". */
+const how = (sub) =>
+  packaged ? `npx codedungeon@latest${sub ? ` ${sub}` : ''}` : !sub ? 'npm start' : sub.startsWith('-') ? `node bin/codedungeon.js ${sub}` : `npm run ${sub}`;
 
 const HELP = `
   Code Dungeon ${pkg.version}: a medieval dungeon where a guild of AI coders works through your GitHub issues.
 
-  Usage (from the codedungeon folder)
-    npm start               start the dungeon and open it in your browser
-    npm run login           sign in to Claude Code, the built-in coding agent
-    npm run doctor          check that this machine is ready
-    node bin/codedungeon.js [login | doctor] [options]   the same, with options
+  Usage
+    npx codedungeon@latest           start the dungeon and open it in your browser
+    npx codedungeon@latest login     sign in to Claude Code, the built-in coding agent
+    npx codedungeon@latest doctor    check that this machine is ready
+  In a clone of the repo, in its folder: npm start, npm run login, npm run doctor
+  (or node bin/codedungeon.js [login | doctor] [options]).
 
   Options
     --port <n>   port for the dungeon (default 4417)
@@ -30,7 +37,8 @@ const HELP = `
     -v, --version
     -h, --help
 
-  The dungeon keeps its state and workspaces in codedungeon-home next to this folder (set SWARM_HOME to use another folder).
+  The dungeon keeps its state and workspaces in codedungeon-home: in your home folder when run with npx, or next to
+  the clone's folder (set SWARM_HOME to use another folder).
 `;
 
 const color = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -58,7 +66,7 @@ try {
     },
   });
 } catch (err) {
-  fail(`${err.message}\n    Run node bin/codedungeon.js --help for the options.`);
+  fail(`${err.message}\n    Run ${how('--help')} for the options.`);
 }
 const { values, positionals } = args;
 const command = positionals[0] ?? 'start';
@@ -133,7 +141,7 @@ function checks() {
       // unreadable: treated as signed out
     }
     const ok = status?.loggedIn === true;
-    out.push({ name: 'Claude', ok, detail: ok ? `signed in${status.subscriptionType ? ` (${status.subscriptionType})` : ''}` : 'not signed in', fix: 'run: npm run login' });
+    out.push({ name: 'Claude', ok, detail: ok ? `signed in${status.subscriptionType ? ` (${status.subscriptionType})` : ''}` : 'not signed in', fix: `run: ${how('login')}` });
   }
 
   // Agents test in a browser through Playwright, which drives Google Chrome by default.
@@ -201,7 +209,7 @@ if (command === 'doctor') {
   const results = checks();
   results.forEach(printCheck);
   const ok = results.every((c) => c.ok);
-  console.log(ok ? `\n  All set. Start the dungeon with: npm start (or npm run dev)\n` : '');
+  console.log(ok ? `\n  All set. Start the dungeon with: ${packaged ? how() : 'npm start (or npm run dev)'}\n` : '');
   process.exit(ok ? 0 : 1);
 }
 
@@ -213,7 +221,7 @@ if (command === 'login') {
   process.exit(res.status ?? 1);
 }
 
-if (command !== 'start') fail(`Unknown command "${command}". Run node bin/codedungeon.js --help for the options.`);
+if (command !== 'start') fail(`Unknown command "${command}". Run ${how('--help')} for the options.`);
 
 const port = Number(values.port ?? process.env.SWARM_PORT ?? 4417);
 if (!Number.isInteger(port) || port < 0 || port > 65535) fail(`"${values.port ?? process.env.SWARM_PORT}" isn't a port number.`);
@@ -222,7 +230,7 @@ const demo = values.demo || process.env.SWARM_DEMO === '1' || process.env.SWARM_
 
 // A second office on the same state would resume every agent's session a second time.
 if (port !== 0 && (await portOpen(port))) {
-  if (!(await isOffice(`http://127.0.0.1:${port}`))) fail(`Something else is using port ${port}. Start the dungeon on another one: node bin/codedungeon.js --port 4400`);
+  if (!(await isOffice(`http://127.0.0.1:${port}`))) fail(`Something else is using port ${port}. Start the dungeon on another one: ${how('--port 4400')}`);
   console.log(`\n  Code Dungeon is already running: ${url}\n`);
   if (!values['no-open']) openBrowser(url);
   process.exit(0);
@@ -234,7 +242,7 @@ if (!demo) {
     console.log('');
     problems.forEach(printCheck);
     if (problems.some((c) => c.required)) fail('Code Dungeon can’t run without these.');
-    console.log(dim('\n  Starting anyway. Fix the above, and check again with: npm run doctor'));
+    console.log(dim(`\n  Starting anyway. Fix the above, and check again with: ${how('doctor')}`));
   }
 }
 

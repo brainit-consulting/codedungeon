@@ -98,6 +98,8 @@ describe('the quick start (in the app and on the site)', () => {
     // a new Windows PC's PowerShell blocks npm's .ps1 helper until this is run once
     expect(html).toContain('running scripts is disabled on this system');
     expect(html).toContain('data-copy="Set-ExecutionPolicy -Scope CurrentUser RemoteSigned"');
+    // what to have ready, in one winget command (ids checked with winget show, 2026-10-06)
+    expect(html).toContain('data-copy="winget install OpenJS.NodeJS.LTS Git.Git GitHub.cli Google.Chrome"');
     expect(html).toContain('http://localhost:5417');
     for (const heading of ['Starting it again', 'Restarting it', 'Updating it']) expect(html).toContain(heading);
   });

@@ -37,6 +37,13 @@ source under the [MIT licence](LICENSE).
 - **Optional, for shipping apps:** a [Vercel](https://vercel.com) account and its command line, signed in
   (`npm i -g vercel`, then `vercel login`).
 
+On Windows, winget (built into Windows 10 and 11) installs Node.js, git, the GitHub CLI and Chrome in one command;
+leave out any you already have, then open a new window so they're found:
+
+```powershell
+winget install OpenJS.NodeJS.LTS Git.Git GitHub.cli Google.Chrome
+```
+
 ## Install and start
 
 Open PowerShell or Command Prompt (on Linux, a terminal) in the folder where you keep your projects, and run these one

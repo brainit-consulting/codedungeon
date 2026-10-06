@@ -3,15 +3,24 @@
 // (not in git): `forbidCDrive` keeps the data folder off the C: drive. Plain JavaScript so the launcher runs it
 // without tsx; types are in dungeon.d.mts.
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 export const SERVER_PORT = 4417;
 export const CLIENT_PORT = 5417;
 const LIVE_PORTS = [4317, 5317];
 
-/** The data folder beside the repo: …/codedungeon → …/codedungeon-home. */
-export function defaultHome(repoRoot) {
-  return path.resolve(repoRoot, '..', 'codedungeon-home');
+/** Whether the code runs from an installed package (npx codedungeon, npm install -g) rather than a checkout. */
+export function installedAsPackage(root) {
+  return path.resolve(root).split(path.sep).includes('node_modules');
+}
+
+/**
+ * The data folder: beside a checkout (…/codedungeon → …/codedungeon-home), or for an installed package in your home
+ * folder, since npm may clear the folder the package runs from (npx's cache).
+ */
+export function defaultHome(repoRoot, home = os.homedir()) {
+  return installedAsPackage(repoRoot) ? path.join(home, 'codedungeon-home') : path.resolve(repoRoot, '..', 'codedungeon-home');
 }
 
 /** This machine's own rules, from the text of dungeon.local.json; missing, unreadable or odd means none. */

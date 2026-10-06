@@ -411,6 +411,10 @@ export const CHAPTERS: GuideChapter[] = [
         '**Google Chrome**, from [google.com/chrome](https://www.google.com/chrome/), so the testers can try your app in a real browser.',
         '**A Vercel account**, from [vercel.com](https://vercel.com), only if you want to put your apps on the internet from the dungeon (chapter VIII).',
       ),
+      p(
+        "On Windows, one command installs Node.js, git, the GitHub command line and Chrome together, with winget, Windows' own installer. Run it in PowerShell or Command Prompt and accept what it asks. Leave out any you already have; for one that's there, winget offers to update it instead. Then close the window and open a new one, so it finds them:",
+      ),
+      command('winget install OpenJS.NodeJS.LTS Git.Git GitHub.cli Google.Chrome'),
       h('Install it and start it'),
       p(
         'Open **PowerShell** in the folder where you keep your projects. Command Prompt works too; on Linux, open a terminal. Run these five commands one at a time, each with its own Copy button, and let each one finish before the next:',

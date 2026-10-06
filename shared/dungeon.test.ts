@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CLIENT_PORT, SERVER_PORT, defaultHome, liveOfficeConflict, parseLocalRules } from './dungeon.mjs';
+import { CLIENT_PORT, SERVER_PORT, defaultHome, installedAsPackage, liveOfficeConflict, parseLocalRules } from './dungeon.mjs';
 
 const win = { userHome: 'C:\\Users\\snake', platform: 'win32' };
 const ok = { ports: [SERVER_PORT, CLIENT_PORT], home: 'H:\\codedungeon-home', ...win };
@@ -12,6 +12,16 @@ describe('defaults', () => {
 
   it('keeps data in codedungeon-home next to the repo', () => {
     expect(defaultHome(path.join('x', 'codedungeon'))).toBe(path.resolve('x', 'codedungeon-home'));
+    expect(installedAsPackage(path.join('x', 'codedungeon'))).toBe(false);
+  });
+
+  it("keeps an installed package's data in codedungeon-home in your home folder, not in npm's folders", () => {
+    const home = path.join('U', 'ada');
+    // npx codedungeon@latest runs it from npm's cache, which npm may clear; npm install -g from its global folder
+    for (const root of [path.join('U', 'ada', 'AppData', 'Local', 'npm-cache', '_npx', 'f3a9', 'node_modules', 'codedungeon'), path.join('U', 'ada', 'AppData', 'Roaming', 'npm', 'node_modules', 'codedungeon')]) {
+      expect(installedAsPackage(root)).toBe(true);
+      expect(defaultHome(root, home)).toBe(path.join(home, 'codedungeon-home'));
+    }
   });
 });
 
