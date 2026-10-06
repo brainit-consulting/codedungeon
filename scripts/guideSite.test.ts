@@ -90,7 +90,10 @@ describe('the quick start (in the app and on the site)', () => {
 
   it('gives the commands that install and start it one at a time, and how to start and restart it later', () => {
     expect(html).not.toMatch(/not public yet/i);
-    // each in its own box: Command Prompt doesn't take ; between commands (measured: git got the whole line and stopped)
+    // npx first: one command to sign in, one to start, each in its own box
+    for (const step of ['npx codedungeon@latest login', 'npx codedungeon@latest']) expect(html).toContain(`data-copy="${step}"`);
+    expect(html).toContain('http://localhost:4417');
+    // or from a copy of the code, each in its own box: Command Prompt doesn't take ; between commands (measured)
     for (const step of ['git clone https://github.com/brainit-consulting/codedungeon.git', 'cd codedungeon', 'npm install', 'npm run login', 'npm run dev']) {
       expect(html).toContain(`data-copy="${step}"`);
     }

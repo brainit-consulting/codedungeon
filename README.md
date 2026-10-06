@@ -46,8 +46,23 @@ winget install OpenJS.NodeJS.LTS Git.Git GitHub.cli Google.Chrome
 
 ## Install and start
 
-Open PowerShell or Command Prompt (on Linux, a terminal) in the folder where you keep your projects, and run these one
-at a time, letting each finish:
+Open PowerShell or Command Prompt (on Linux, a terminal) anywhere, and run these one at a time:
+
+```powershell
+npx codedungeon@latest login
+npx codedungeon@latest
+```
+
+The first signs Claude Code in (once; a browser window asks you to allow it). The second starts the dungeon and opens
+**http://localhost:4417**; press **Enter the dungeon**. npm asks the first time whether it may fetch codedungeon:
+answer `y`. Your projects, guild and settings live in `codedungeon-home` in your home folder, and each
+`npx codedungeon@latest` fetches the newest version, so updating is just starting it again.
+`npx codedungeon@latest doctor` checks what's missing; `npx codedungeon@latest --demo` starts a pretend dungeon.
+
+### Or from a copy of the code
+
+To change Code Dungeon itself, open PowerShell or Command Prompt in the folder where you keep your projects and run
+these one at a time, letting each finish:
 
 ```powershell
 git clone https://github.com/brainit-consulting/codedungeon.git

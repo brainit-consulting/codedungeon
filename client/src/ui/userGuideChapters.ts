@@ -417,7 +417,23 @@ export const CHAPTERS: GuideChapter[] = [
       command('winget install OpenJS.NodeJS.LTS Git.Git GitHub.cli Google.Chrome'),
       h('Install it and start it'),
       p(
-        'Open **PowerShell** in the folder where you keep your projects. Command Prompt works too; on Linux, open a terminal. Run these five commands one at a time, each with its own Copy button, and let each one finish before the next:',
+        'Open **PowerShell** anywhere. Command Prompt works too; on Linux, open a terminal. Run these two commands one at a time, each with its own Copy button:',
+      ),
+      p('1. Sign Claude in, once. A browser window asks you to allow it:'),
+      command('npx codedungeon@latest login'),
+      p('2. Start the dungeon. It opens in your browser at **http://localhost:4417**; press **Enter the dungeon**:'),
+      command('npx codedungeon@latest'),
+      p(
+        'The first time, npm asks whether it may fetch codedungeon: answer **y**. In the dungeon, a short setup asks your name, names your hold and your DungeonMaster, and brings in your first project. Your projects, your guild and your settings are kept in a codedungeon-home folder in your home folder.',
+      ),
+      p(
+        'If PowerShell says **running scripts is disabled on this system**, Windows is blocking npm\'s own PowerShell helper, which it does on a new computer. Run this once, then run the command again. It lets PowerShell run scripts you have installed yourself, and Command Prompt never needs it:',
+      ),
+      command('Set-ExecutionPolicy -Scope CurrentUser RemoteSigned'),
+      p('If something is missing, `npx codedungeon@latest doctor` checks Node.js, git, the GitHub command line and the Claude sign-in, and says what to fix. To walk round with pretend projects and pretend coders first, start it with `npx codedungeon@latest --demo`. Nothing touches GitHub and nothing uses your subscription.'),
+      h('Or from a copy of the code'),
+      p(
+        'To change Code Dungeon itself, fetch its code instead. Open PowerShell or Command Prompt in the folder where you keep your projects and run these five commands one at a time, letting each one finish before the next:',
       ),
       p('1. Fetch Code Dungeon into a folder called codedungeon:'),
       command('git clone https://github.com/brainit-consulting/codedungeon.git'),
@@ -430,25 +446,19 @@ export const CHAPTERS: GuideChapter[] = [
       p('5. Start the dungeon:'),
       command('npm run dev'),
       p(
-        'Then open **http://localhost:5417** in your browser and press **Enter the dungeon**. The first time, a short setup asks your name, names your hold and your DungeonMaster, and brings in your first project.',
+        'Then open **http://localhost:5417** in your browser and press **Enter the dungeon**. Run this way, its data lives in the codedungeon-home folder beside the codedungeon folder. `npm run doctor` checks what is missing, and `npm run dev -- --demo` starts the pretend dungeon.',
       ),
-      p(
-        'If PowerShell says **running scripts is disabled on this system** when you run npm, Windows is blocking npm\'s own PowerShell helper, which it does on a new computer. Run this once, then run the npm command again. It lets PowerShell run scripts you have installed yourself, and Command Prompt never needs it:',
-      ),
-      command('Set-ExecutionPolicy -Scope CurrentUser RemoteSigned'),
-      p('If something is missing, `npm run doctor` in the codedungeon folder checks Node.js, git, the GitHub command line and the Claude sign-in, and says what to fix.'),
-      p('To walk round with pretend projects and pretend coders first, start it with `npm run dev -- --demo` instead. Nothing touches GitHub and nothing uses your subscription.'),
       h('Starting it again'),
       p(
-        'The dungeon runs while its window is open. Another day, open PowerShell (or Command Prompt) in the codedungeon folder, run `npm run dev`, and open http://localhost:5417. Your projects, your guild and your settings are where you left them, in the codedungeon-home folder beside it.',
+        'The dungeon runs while its window is open. Another day, run `npx codedungeon@latest` again. From a copy of the code, run `npm run dev` in its folder and open http://localhost:5417. Your projects, your guild and your settings are where you left them.',
       ),
       h('Restarting it'),
       p(
-        'To stop it, press [[Ctrl]] + [[C]] in its window; that stops the coders\' sessions too. To start it again, run `npm run dev`. When the dungeon restarts by itself, after an update, the coders keep working through it.',
+        'To stop it, press [[Ctrl]] + [[C]] in its window; that stops the coders\' sessions too. To start it again, run the command you started it with. When the dungeon restarts by itself, after a change to its own code, the coders keep working through it.',
       ),
       h('Updating it'),
       p(
-        'The ledger\'s Chambers tab shows when a newer Code Dungeon is on GitHub. To update, stop it with [[Ctrl]] + [[C]], then in its folder run `git pull`, then `npm install`, then `npm run dev`, one at a time. Your projects, guild and settings stay as they are.',
+        'Started with npx, there is nothing to do: `npx codedungeon@latest` fetches the newest version each time it starts. From a copy of the code, the ledger\'s Chambers tab shows when a newer Code Dungeon is on GitHub. Stop it with [[Ctrl]] + [[C]], then in its folder run `git pull`, then `npm install`, then `npm run dev`, one at a time. Your projects, guild and settings stay as they are.',
       ),
     ],
   },
