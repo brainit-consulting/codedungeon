@@ -5,7 +5,8 @@ import { PREVIEW_SLUG, portOpen, type PreviewHandle } from './previewRunner.ts';
 import type { PreviewConfig, PreviewStatus, PreviewView, PullInfo } from '../shared/types.ts';
 
 // One preview per floor: the floor's app, run from its own worktree on a port reserved for the floor.
-// Only the config is persisted; after a restart every preview reads 'stopped'.
+// Only the config is persisted; after a restart every preview reads 'stopped'. Opening the app viewer starts a
+// stopped app by itself, unless it was stopped by hand or its last run failed.
 
 /** What the previews need to know about a floor. */
 export interface PreviewFloor {
@@ -25,6 +26,8 @@ interface Run {
   startedAt: number | null;
   error: string | null;
   log: string[];
+  /** Stopped by hand: not started by itself again until started by hand. */
+  held: boolean;
   handle: PreviewHandle | null;
   gen: number; // bumped by every start / stop; callbacks from older runs are ignored
 }
@@ -79,7 +82,7 @@ export class Previews {
   private run(id: string): Run {
     let r = this.runs.get(id);
     if (!r) {
-      r = { status: 'stopped', port: null, ref: null, pr: null, commit: null, startedAt: null, error: null, log: [], handle: null, gen: 0 };
+      r = { status: 'stopped', port: null, ref: null, pr: null, commit: null, startedAt: null, error: null, log: [], held: false, handle: null, gen: 0 };
       this.runs.set(id, r);
     }
     return r;
@@ -110,6 +113,7 @@ export class Previews {
       startedAt: r?.startedAt ?? null,
       error: r?.error ?? null,
       logTail: (r?.log ?? []).slice(-LOG_VIEW),
+      held: r?.held ?? false,
     };
   }
 
@@ -121,8 +125,16 @@ export class Previews {
     this.hooks.emit(f.id);
   }
 
-  /** Start the floor's preview on the default branch or an open PR, replacing whatever it is running now. */
-  async start(f: PreviewFloor, title: string, pr?: number | null): Promise<PreviewView> {
+  /**
+   * Start the floor's preview on the default branch or an open PR, replacing whatever it is running now. `auto`: the
+   * viewer was opened; start on the default branch only if it's stopped, wasn't stopped by hand and can be run.
+   */
+  async start(f: PreviewFloor, title: string, pr?: number | null, auto = false): Promise<PreviewView> {
+    if (auto) {
+      const r = this.runs.get(f.id);
+      if (this.view(f).status !== 'stopped' || r?.held) return this.view(f);
+      pr = null;
+    }
     if (pr !== undefined && pr !== null && (!Number.isInteger(pr) || pr <= 0)) throw new HttpError(400, `Invalid pull request number: ${pr}`);
     if (pr) await this.checkOpen(f, pr);
     const r = this.run(f.id);
@@ -132,7 +144,7 @@ export class Previews {
 
     const port = this.portFor(f);
     const ref = pr ? `PR #${pr}` : f.defaultBranch;
-    Object.assign(r, { port, ref, pr: pr ?? null, commit: null, startedAt: Date.now(), error: null, log: [] });
+    Object.assign(r, { port, ref, pr: pr ?? null, commit: null, startedAt: Date.now(), error: null, log: [], held: false });
     if (await portOpen(port)) {
       if (gen !== r.gen) return this.view(f);
       Object.assign(r, { status: 'error', error: `Port ${port} is already in use by another program. The dungeon won't stop it; free the port and try again.` });
@@ -177,12 +189,12 @@ export class Previews {
     return this.view(f);
   }
 
-  /** Stop the floor's preview and free its port. */
+  /** Stop the floor's preview (by hand: it stays stopped when the viewer opens) and free its port. */
   async stop(f: PreviewFloor): Promise<PreviewView> {
     const r = this.run(f.id);
     r.gen++;
     await this.halt(f, r);
-    Object.assign(r, { status: 'stopped', error: null, startedAt: null });
+    Object.assign(r, { status: 'stopped', error: null, startedAt: null, held: true });
     this.hooks.emit(f.id);
     return this.view(f);
   }

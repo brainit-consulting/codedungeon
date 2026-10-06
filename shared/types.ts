@@ -111,6 +111,7 @@ export interface PreviewView {
   startedAt: number | null;
   error: string | null;
   logTail: string[]; // the last 40 lines of install / app output
+  held: boolean; // stopped by hand: it won't start by itself when the viewer opens, until started by hand
 }
 
 /** A folder in the manager's projects folder, as offered when adding a floor. */

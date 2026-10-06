@@ -51,7 +51,8 @@ export const api = {
       previewEnv?: Record<string, string>;
     },
   ) => call('PATCH', r(repoId), patch),
-  startPreview: (repoId: string, pr?: number) => call<PreviewView>('POST', `${r(repoId)}/preview`, pr ? { pr } : {}),
+  /** auto: the viewer was opened; the server starts the app only if it's stopped and wasn't stopped by hand. */
+  startPreview: (repoId: string, pr?: number, auto = false) => call<PreviewView>('POST', `${r(repoId)}/preview`, auto ? { auto } : pr ? { pr } : {}),
   shipCheck: (repoId: string) => call<ShipView>('POST', `${r(repoId)}/ship/check`),
   shipOptions: (scope?: string) =>
     call<{ loggedInAs: string | null; teams: { slug: string; name: string }[]; scope: string | null; projects: { id: string; name: string }[] }>(

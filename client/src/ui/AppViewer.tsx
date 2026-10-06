@@ -161,6 +161,11 @@ export function AppViewer({ repoId }: { repoId: string }) {
     toolbar.current?.querySelector<HTMLElement>('select, button')?.focus();
   }, []);
 
+  // Opening the viewer starts a stopped app by itself on the default branch (not one stopped by hand, nor one that failed).
+  useEffect(() => {
+    if (preview?.status === 'stopped' && !preview.held) api.startPreview(repoId, undefined, true).catch(() => undefined);
+  }, [repoId]);
+
   if (!repo || !preview) {
     return (
       <Panel title="App">
@@ -337,8 +342,9 @@ export function AppViewer({ repoId }: { repoId: string }) {
       ) : (
         <div className="app-state">
           <div className="app-state-icon"><Icon name="slate" /></div>
-          <h3>The app isn't running</h3>
+          <h3>{preview.held ? 'You stopped the app' : "The app isn't running"}</h3>
           <p className="muted">
+            {preview.held && 'It stays stopped when you open this panel until you start it again. '}
             Start it on <b>{refLabel(picked)}</b> to use it right here. It runs from the chamber's own preview worktree on port {preview.port}.
           </p>
           <button className="btn btn-good" disabled={busy} onClick={() => void start()}>

@@ -42,7 +42,7 @@ export const CHAPTERS: GuideChapter[] = [
         "**The coders' workbenches**, each with a slate on an easel showing that coder's live terminal (chapter V). While they work they write in the ledger on their bench, the quill pinched between thumb and forefinger. The ink goes down as they write, laid out like code, they dip in the inkwell now and then, and turn the page when it's full.",
         '**The assay room**: the testers in aprons along the east wall, who check every pull request before it is merged.',
         '**The gauges** on the far wall, right of the SHIP IT sign: how hard this computer is working (processor, memory, disk) and how Claude usage stands. Press [[E]] on them for the full readout, refreshed every five seconds.',
-        "**The framed screen** on the left wall: the project's own app. Press [[E]] on it to start the app on the default branch or on any open pull request, and use it right there.",
+        "**The framed screen** on the left wall: the project's own app. Press [[E]] on it and the app starts by itself on the default branch, and you use it right there. You can switch it to any open pull request. If you press **Stop**, it stays stopped the next time you open the screen, until you start it again.",
       ),
       p(
         'The plate at the top left of the screen always tells you where you are: the chamber number and repo name, or G and the great hall, with how many people are in the guild, how many are working, and how many pull requests are in QA or ready to merge.',

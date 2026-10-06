@@ -124,7 +124,8 @@ app.post(
   route((req) => {
     const pr = req.body?.pr;
     if (pr !== undefined && pr !== null && (typeof pr !== 'number' || !Number.isInteger(pr) || pr <= 0)) throw new HttpError(400, 'pr must be a positive integer');
-    return swarm.startPreview(repoId(req), pr ?? null);
+    // auto: the viewer was opened, so only a stopped app that wasn't stopped by hand starts (Previews.start)
+    return swarm.startPreview(repoId(req), pr ?? null, req.body?.auto === true);
   }),
 );
 app.delete('/api/repos/:repo/preview', route((req) => swarm.stopPreview(repoId(req))));

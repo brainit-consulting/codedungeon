@@ -1208,9 +1208,9 @@ export class Swarm {
     return { number: await this.shipyard.followUp(this.repo(id), kind) };
   }
 
-  async startPreview(id: string, pr?: number | null): Promise<PreviewView> {
+  async startPreview(id: string, pr?: number | null, auto = false): Promise<PreviewView> {
     const repo = this.repo(id);
-    return this.previews.start(repo, `${repo.fullName.split('/')[1]} app`, pr);
+    return this.previews.start(repo, `${repo.fullName.split('/')[1]} app`, pr, auto);
   }
 
   stopPreview(id: string): Promise<PreviewView> {
