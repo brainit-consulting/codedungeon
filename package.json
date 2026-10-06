@@ -1,6 +1,6 @@
 {
   "name": "codedungeon",
-  "version": "0.10.2",
+  "version": "0.10.3",
   "description": "A medieval dungeon you walk through, where every coder is a real AI coding agent working through your GitHub issues.",
   "keywords": [
     "claude-code",

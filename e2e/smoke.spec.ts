@@ -3,7 +3,8 @@ import { MANAGER_DESK } from '../client/src/world/layout';
 import { colourStats, decodePng } from './png';
 
 // Smoke tests against the demo office: it loads without errors, you can walk in, the 3D view renders and moves,
-// and the main panels open and close. Pointer lock may not work headless, so nothing here depends on it.
+// and the main panels open and close. Pointer lock may not work headless (and on Windows it's refused, see below),
+// so nothing here depends on it.
 
 const VIEW_KEY = 'codedungeon:view'; // where the client remembers the player's spot (store.ts saveView)
 
@@ -17,6 +18,13 @@ interface SavedView {
 // Every test fails on a console error, an uncaught exception, or a request to the office that failed.
 const test = base.extend<{ page: Page }>({
   page: async ({ page, baseURL }, use) => {
+    // On Windows a headless page that holds pointer lock fences the real mouse to its hidden window once a screenshot
+    // is taken, and the fence outlasts the run until Alt-Tab: there the page is refused the lock, as the browser
+    // panel in the Claude app refuses it, and the office falls back to drag-to-look.
+    if (process.platform === 'win32')
+      await page.addInitScript(() => {
+        Element.prototype.requestPointerLock = () => Promise.reject(new DOMException('pointer lock refused in local test runs', 'SecurityError'));
+      });
     const problems: string[] = [];
     // Only the office itself is under test: stub anything external (the Google Fonts stylesheet) so the result
     // doesn't depend on the network.
