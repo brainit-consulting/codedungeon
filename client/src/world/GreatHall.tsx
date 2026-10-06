@@ -6,6 +6,7 @@ import { FIRE, Flame, useFireLight } from './lightPool';
 import { Model } from './models';
 import { Chandelier } from './Props';
 import { stone } from './stone';
+import { TableFood } from './Feast';
 
 // The great hall's tavern: the bar with its back bar of kegs and bottles, the stools, the hearth, the feasting
 // tables. Placed by layout.ts's constants, which also give each its collider.
@@ -112,7 +113,7 @@ export function FeastTables() {
   return (
     <>
       <Chandelier position={[RECEPTION.x, WALL_H, RECEPTION.z - 0.9]} />
-      {FEAST_TABLES.map((t) => (
+      {FEAST_TABLES.map((t, i) => (
         <group key={t.x} position={[t.x, 0, t.z]}>
           <Chandelier position={[0, WALL_H, 0]} />
           <Model name="props/Table_Large" />
@@ -121,6 +122,9 @@ export function FeastTables() {
           <Model name="props/CandleStick_Triple" position={[0, 0.81, 0]} />
           <Model name="props/Table_Plate" position={[-0.4, 0.815, -0.25]} />
           <TableCandles />
+          <group position={[0, 0.815, 0]}>
+            <TableFood index={i} />
+          </group>
         </group>
       ))}
     </>

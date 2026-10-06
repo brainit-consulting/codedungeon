@@ -25,6 +25,7 @@ import { effectiveModel } from '../shared/models.ts';
 import { CHAMBER_DYES, COAT_DYES, periodColor } from '../shared/palette.ts';
 import { CEO_ID } from '../shared/types.ts';
 import { noMainNotice } from './emptyRepo.ts';
+import { oneAtATime } from './oneAtATime.ts';
 import type {
   AgentCli,
   AgentLook,
@@ -835,16 +836,23 @@ export class Swarm {
     this.saveTimer = setTimeout(() => void this.writeState().catch((err) => console.warn('could not save the state', err)), 1500);
   }
 
-  /** Write the state file now, e.g. before the office stops or hands itself to the launcher. */
-  private async writeState() {
+  /**
+   * Write the state file now, e.g. before the office stops or hands itself to the launcher. Writes take turns
+   * (oneAtATime): two at once trip over the same temp file, and an older one can land last. Each writes the state as
+   * it is when its turn comes.
+   */
+  private writeState(): Promise<void> {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = null;
+    return this.writeTurn();
+  }
+  private writeTurn = oneAtATime(async () => {
     for (const a of this.state.agents) a.logTail = (this.agentRt.get(a.id)?.log ?? []).slice(-200);
     await fs.mkdir(path.dirname(STATE_FILE), { recursive: true });
     const tmp = `${STATE_FILE}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(this.state, null, 2));
     await fs.rename(tmp, STATE_FILE);
-  }
+  });
 
   // ---------- lookups ----------
 
