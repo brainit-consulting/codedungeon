@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useStore } from '../store';
-import { CAT, callCat, createCat, stepCat, type Cat as CatState, type CatAction, type CatEnv, type CatSpot, type Prey } from './catBrain';
+import { CAT, callCat, createCat, stepCat, type Cat as CatState, type CatEnv, type CatSpot, type Prey } from './catBrain';
+import { BUILD, POSES, poseCat, type Pose } from './catPose';
 import { GALLERY, chamber, drawnFor, dungeonColliders, galleryEnd, inDungeon, toWorld } from './dungeon';
 import { GreatSpider } from './GreatSpider';
 import { GREAT, createLair, stepLair, type Lair, type LairEnv } from './lairBrain';
@@ -52,13 +53,17 @@ export function roomForSpider(): boolean {
 
 // ---------- where she likes to be ----------
 
+/** How far along the bar from its middle she sits on it (west), with the mug she pushes about beside her. */
+const BAR_SEAT = 1.7;
+
 export function hallSpots(ceoBusy: boolean): CatSpot[] {
   return [
     { id: 'hearth', kind: 'hearth', x: -HALF_W + HEARTH.d + 0.55, z: HEARTH.z, facing: Math.PI / 2, weight: 3 },
     {
+      // the bar's west end, clear of where Wystan wipes it (wipingHand.test.ts measures that)
       id: 'bar',
       kind: 'bar',
-      x: RECEPTION.x - 1.0,
+      x: RECEPTION.x - BAR_SEAT,
       z: RECEPTION.z - 0.05,
       y: 1.105,
       approach: { x: RECEPTION.x - 1.2, z: RECEPTION.z + 1.75 },
@@ -155,38 +160,7 @@ const INNER = new THREE.MeshStandardMaterial({ color: '#2a1d1d', roughness: 0.9 
 const EYE = new THREE.MeshBasicMaterial({ color: '#e8f05a', toneMapped: false });
 const PUPIL = new THREE.MeshBasicMaterial({ color: '#050505' });
 
-/** Pose parameters; each frame eases toward the target for the current action. */
-interface Pose {
-  rear: number; // 0 standing .. 1 sat on her haunches
-  curl: number; // 0 .. 1 curled up asleep
-  stride: number; // leg swing amplitude
-  headDown: number; // radians
-  paw: number; // 0 .. 1 one front paw raised (washing, nudging)
-  eyes: number; // 1 open .. 0 shut
-  tailUp: number; // 1 tail up (walking) .. 0 tail down and wrapped
-  stretch: number; // 0 .. 1 leaping
-  crouch: number; // 0 .. 1 belly to the floor, stalking
-}
-
-const POSES: Record<CatAction, Pose> = {
-  walk: { rear: 0, curl: 0, stride: 1, headDown: 0.05, paw: 0, eyes: 1, tailUp: 1, stretch: 0, crouch: 0 },
-  follow: { rear: 0, curl: 0, stride: 1.2, headDown: 0, paw: 0, eyes: 1, tailUp: 1, stretch: 0, crouch: 0 },
-  jumpUp: { rear: 0, curl: 0, stride: 0, headDown: -0.2, paw: 0, eyes: 1, tailUp: 0.6, stretch: 1, crouch: 0 },
-  jumpDown: { rear: 0, curl: 0, stride: 0, headDown: 0.3, paw: 0, eyes: 1, tailUp: 0.8, stretch: 1, crouch: 0 },
-  sit: { rear: 1, curl: 0, stride: 0, headDown: 0, paw: 0, eyes: 1, tailUp: 0, stretch: 0, crouch: 0 },
-  purr: { rear: 1, curl: 0, stride: 0, headDown: 0.12, paw: 0, eyes: 0.35, tailUp: 0, stretch: 0, crouch: 0 },
-  ignore: { rear: 1, curl: 0, stride: 0, headDown: -0.15, paw: 0, eyes: 0.6, tailUp: 0.3, stretch: 0, crouch: 0 },
-  wash: { rear: 1, curl: 0, stride: 0, headDown: 0.55, paw: 1, eyes: 0.5, tailUp: 0, stretch: 0, crouch: 0 },
-  nudge: { rear: 1, curl: 0, stride: 0, headDown: 0.25, paw: 1, eyes: 1, tailUp: 0.2, stretch: 0, crouch: 0 },
-  sleep: { rear: 0, curl: 1, stride: 0, headDown: 0.4, paw: 0, eyes: 0, tailUp: 0, stretch: 0, crouch: 0 },
-  // belly low, head level and pushed forward, tail low and twitching at the tip
-  stalk: { rear: 0, curl: 0, stride: 0.55, headDown: -0.1, paw: 0, eyes: 1, tailUp: 0.1, stretch: 0, crouch: 1 },
-  pounce: { rear: 0, curl: 0, stride: 0, headDown: -0.1, paw: 0, eyes: 1, tailUp: 0.5, stretch: 1, crouch: 0 },
-  // trotting home with it, head held high
-  carry: { rear: 0, curl: 0, stride: 1, headDown: -0.35, paw: 0, eyes: 1, tailUp: 1, stretch: 0, crouch: 0 },
-};
-
-const TAIL = 7;
+const TAIL = BUILD.tail.n;
 
 function CatBody({ brain }: { brain: React.RefObject<CatState | null> }) {
   const root = useRef<THREE.Group>(null);
@@ -219,80 +193,34 @@ function CatBody({ brain }: { brain: React.RefObject<CatState | null> }) {
     phase.current += dt * (moving ? (c.action === 'follow' ? 11 : c.action === 'stalk' ? 5 : 8) : 0);
     const ph = phase.current;
 
-    // body: pitched up when sat, low and round when curled, a slight bob when walking, breathing when asleep
-    const b = body.current!;
-    const breathe = 1 + Math.sin(t * (p.curl > 0.5 ? 1.6 : 2.4)) * 0.025;
-    const purr = c.action === 'purr' ? Math.sin(t * 60) * 0.002 : 0;
-    b.position.set(0, 0.17 - p.curl * 0.09 - p.crouch * 0.07 + (moving ? Math.abs(Math.sin(ph)) * 0.012 : 0) + purr, p.rear * 0.05);
-    b.rotation.x = p.rear * 0.62 - p.stretch * 0.15;
-    b.rotation.z = p.curl * 1.2;
-    b.scale.set(1 + p.curl * 0.15, breathe, 1 - p.curl * 0.25 + p.stretch * 0.15);
-
-    // head: tracks the body, looks down to wash, tucked in asleep; ignoring, she turns it away
-    const h = head.current!;
-    h.position.set(p.curl * 0.09, 0.28 - p.curl * 0.17 + p.rear * 0.09 - p.crouch * 0.1, -0.19 + p.rear * 0.07 + p.curl * 0.05 - p.crouch * 0.03);
     mouth.current!.visible = c.carrying !== null;
-    const washBob = c.action === 'wash' ? Math.sin(t * 7) * 0.12 : 0;
-    const hunting = c.action === 'stalk' || c.action === 'pounce';
-    const look = c.action === 'ignore' ? 0.9 + Math.sin(t * 0.7) * 0.15 : hunting ? 0 : Math.sin(t * 0.37) * 0.25 * (1 - p.curl);
-    h.rotation.set(p.headDown + washBob, look, p.curl * 0.8);
-    // eyes: blink now and then, half shut purring, shut asleep
-    const blink = (t * 0.31) % 1 > 0.97 ? 0.1 : 1;
-    eyes.current!.scale.y = Math.max(0.05, p.eyes * blink);
-
-    // legs: a diagonal gait walking; sat, the front ones straight and the hind ones tucked; one paw up to wash
-    const L = legs.current;
-    const swing = Math.sin(ph) * 0.55 * p.stride;
-    const [fl, fr, hl, hr] = L;
-    if (fl && fr && hl && hr) {
-      fl.rotation.x = swing - p.rear * 0.5 + p.stretch * -0.9 - p.paw * 1.6 + (c.action === 'nudge' ? Math.max(0, Math.sin(t * 3)) * 0.5 : 0);
-      fr.rotation.x = -swing - p.rear * 0.5 + p.stretch * -0.9;
-      hl.rotation.x = -swing + p.rear * 1.3 + p.stretch * 0.9;
-      hr.rotation.x = swing + p.rear * 1.3 + p.stretch * 0.9;
-      for (const leg of L) if (leg) leg.scale.y = (1 - p.curl * 0.85) * (1 - p.crouch * 0.44);
-    }
-
-    // tail: up in a question mark when walking, wrapped round her feet sat, around her nose asleep; it flicks
-    const flick = c.action === 'ignore' || c.action === 'stalk' ? 0.6 : 0.18;
-    for (let i = 0; i < TAIL; i++) {
-      const s = tail.current[i];
-      if (!s) continue;
-      const u = i / (TAIL - 1);
-      const up = p.tailUp * (0.5 - u * 0.15);
-      const wrap = (1 - p.tailUp) * (0.35 + p.curl * 0.25);
-      s.rotation.set(-up, wrap + Math.sin(t * 2.2 - i * 0.6) * flick * u, 0);
-    }
+    poseCat({ body: body.current!, head: head.current!, eyes: eyes.current!, legs: legs.current, tail: tail.current }, p, { t, ph, moving, action: c.action });
   });
 
-  const legAt: [number, number][] = [
-    [-0.05, -0.12],
-    [0.05, -0.12],
-    [-0.055, 0.11],
-    [0.055, 0.11],
-  ];
+  const { torso, haunch, leg, paw, tail: tl } = BUILD;
   return (
     <group ref={root}>
       <group ref={body}>
         {/* torso, chest, haunches */}
         <mesh material={FUR} rotation={[Math.PI / 2, 0, 0]}>
-          <capsuleGeometry args={[0.08, 0.2, 6, 12]} />
+          <capsuleGeometry args={[torso.r, torso.len, 6, 12]} />
         </mesh>
-        <mesh material={FUR} position={[0, 0.0, 0.11]} scale={[1.05, 1, 1]}>
-          <sphereGeometry args={[0.092, 12, 10]} />
+        <mesh material={FUR} position={[0, 0.0, haunch.z]} scale={[haunch.wide, 1, 1]}>
+          <sphereGeometry args={[haunch.r, 12, 10]} />
         </mesh>
         {/* legs, from the shoulders and hips */}
-        {legAt.map(([x, z], i) => (
-          <group key={i} ref={(o) => void (legs.current[i] = o)} position={[x, -0.03, z]}>
-            <mesh material={FUR} position={[0, -0.075, 0]}>
-              <capsuleGeometry args={[0.022, 0.12, 4, 6]} />
+        {BUILD.legs.map(([x, z], i) => (
+          <group key={i} ref={(o) => void (legs.current[i] = o)} position={[x, BUILD.legY, z]}>
+            <mesh material={FUR} position={[0, leg.y, 0]}>
+              <capsuleGeometry args={[leg.r, leg.len, 4, 6]} />
             </mesh>
-            <mesh material={FUR} position={[0, -0.145, -0.012]} scale={[1, 0.6, 1.3]}>
-              <sphereGeometry args={[0.026, 8, 6]} />
+            <mesh material={FUR} position={[0, paw.y, paw.z]} scale={[1, paw.flat, paw.long]}>
+              <sphereGeometry args={[paw.r, 8, 6]} />
             </mesh>
           </group>
         ))}
         {/* the tail, a chain of segments from the rump */}
-        <group position={[0, 0.03, 0.17]} rotation={[0.3, 0, 0]}>
+        <group position={tl.at} rotation={[tl.tilt, 0, 0]}>
           <TailChain refs={tail} i={0} />
         </group>
       </group>
@@ -336,11 +264,11 @@ function CatBody({ brain }: { brain: React.RefObject<CatState | null> }) {
 
 function TailChain({ refs, i }: { refs: React.RefObject<(THREE.Group | null)[]>; i: number }) {
   if (i >= TAIL) return null;
-  const len = 0.045;
+  const { len, r, taper } = BUILD.tail;
   return (
     <group ref={(o) => void (refs.current[i] = o)}>
       <mesh material={FUR} position={[0, len / 2, 0]}>
-        <capsuleGeometry args={[0.017 - i * 0.0012, len, 3, 6]} />
+        <capsuleGeometry args={[r - i * taper, len, 3, 6]} />
       </mesh>
       <group position={[0, len, 0]}>
         <TailChain refs={refs} i={i + 1} />
@@ -361,7 +289,7 @@ function BarMug({ brain }: { brain: React.RefObject<CatState | null> }) {
     const pushing = c.action === 'nudge' && c.goal?.kind === 'bar';
     if (pushing) at.current = Math.min(0.42, at.current + dt * 0.12);
     else if (c.goal?.kind !== 'bar') at.current = Math.max(0, at.current - dt * 0.05); // someone tidies it back
-    g.current.position.set(RECEPTION.x - 1.25 - 0.0, 1.105, RECEPTION.z - 0.1 + at.current);
+    g.current.position.set(RECEPTION.x - BAR_SEAT - 0.25, 1.105, RECEPTION.z - 0.1 + at.current);
   });
   return (
     <group ref={g}>

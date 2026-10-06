@@ -254,7 +254,7 @@ export const CHAPTERS: GuideChapter[] = [
       p('Mind your fingers the first time you open it. And now and then something comes out of it that is not spoils.'),
       h('The tavern'),
       p(
-        "Coders and testers with nothing to do don't sit at their benches: they go to the great hall's bar and feasting tables, where Wystan the Tapster keeps the ale coming. They talk, drink and wait for work. When an issue or a pull request comes for them they're back at their bench at once; while they're away, their slate says where they went. The tables are laid with bread, cheese and fruit, and between pours Wystan wipes down the bar or talks with his hands.",
+        "Coders and testers with nothing to do don't sit at their benches: they go to the great hall's bar and feasting tables, where Wystan the Tapster keeps the ale coming. They talk, drink and wait for work. When an issue or a pull request comes for them they're back at their bench at once; while they're away, their slate says where they went. The tables are laid with bread, cheese and fruit, and between pours Wystan wipes the bar down with his towel or talks with his hands.",
       ),
       p(
         "Stand near the bar and you'll hear some of what they say, in speech bubbles, and some of it is about the guild's real work. Press [[E]] on any of them, or on Wystan, for a word of your own.",
@@ -265,7 +265,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('The black cat'),
       p(
-        'A black cat lives in the dungeon and thinks she runs it. She sleeps by the hearth, sits on the bar, keeps working coders company and takes the DungeonMaster\'s table when he isn\'t looking.',
+        'A black cat lives in the dungeon and thinks she runs it. She sleeps by the hearth, sits on the end of the bar, keeps working coders company and takes the DungeonMaster\'s table when he isn\'t looking.',
       ),
       p(
         'Press [[C]] to call her. She will ignore you for a moment, then follow you about. She never blocks your way or a click, and a shut door doesn\'t stop her: she shoulders it open a crack and slips through.',

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { hallSpots } from './Cat';
 import { COUNTER_TOP, TAP, TAPSTER_BUILD, WIPE_S } from './tavernRules';
 import { findHand, palmNormal } from './twoBoneIk';
 import { RAG, createWipingHand, scrubAt } from './wipingHand';
@@ -190,6 +191,23 @@ describe('Wystan wiping the bar', () => {
       });
       expect(landed).not.toBeNull();
     }
+  });
+
+  it("keeps the towel clear of the cat's place on the bar, wherever he wipes and leaves it", async () => {
+    const w = await wystan();
+    const bar = hallSpots(false).find((s) => s.kind === 'bar')!;
+    // sat there, she reaches about 0.25 m from her spot (front paws, haunches, the tail round her side)
+    const her = 0.25 + 0.03;
+    let nearest = Infinity;
+    for (const long of [WIPE_S, 2.3, WIPE_S + 1.7, 3.1])
+      w.wipe(long, 1, () => {
+        for (let u = -1; u <= 1; u += 0.25)
+          for (const [a, b] of [[u, -1], [u, 1], [-1, u], [1, u]]) {
+            const p = w.rag.localToWorld(new THREE.Vector3((a * RAG.w) / 2, 0, (b * RAG.d) / 2));
+            nearest = Math.min(nearest, Math.hypot(p.x - bar.x, p.z - bar.z));
+          }
+      });
+    expect(nearest).toBeGreaterThan(her);
   });
 
   it('scrubs round in ovals over the wood, not just to and fro', () => {
