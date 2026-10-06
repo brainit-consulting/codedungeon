@@ -88,9 +88,16 @@ describe('the quick start (in the app and on the site)', () => {
     expect(files['index.html']).toContain('href="/quick-start"');
   });
 
-  it('gives the one line that installs and starts it, and how to start and restart it later', () => {
+  it('gives the commands that install and start it one at a time, and how to start and restart it later', () => {
     expect(html).not.toMatch(/not public yet/i);
-    expect(html).toContain('git clone https://github.com/brainit-consulting/codedungeon.git; cd codedungeon; npm install; npm run login; npm run dev');
+    // each in its own box: Command Prompt doesn't take ; between commands (measured: git got the whole line and stopped)
+    for (const step of ['git clone https://github.com/brainit-consulting/codedungeon.git', 'cd codedungeon', 'npm install', 'npm run login', 'npm run dev']) {
+      expect(html).toContain(`data-copy="${step}"`);
+    }
+    expect(html).not.toMatch(/data-copy="[^"]*;/);
+    // a new Windows PC's PowerShell blocks npm's .ps1 helper until this is run once
+    expect(html).toContain('running scripts is disabled on this system');
+    expect(html).toContain('data-copy="Set-ExecutionPolicy -Scope CurrentUser RemoteSigned"');
     expect(html).toContain('http://localhost:5417');
     for (const heading of ['Starting it again', 'Restarting it', 'Updating it']) expect(html).toContain(heading);
   });
@@ -131,7 +138,7 @@ describe('links on the site', () => {
 describe('commands to copy', () => {
   it('sets a command in its own box with a Copy button that carries the exact line', () => {
     const html = buildSite(CHAPTERS)['quick-start.html'];
-    const line = 'git clone https://github.com/brainit-consulting/codedungeon.git; cd codedungeon; npm install; npm run login; npm run dev';
+    const line = 'git clone https://github.com/brainit-consulting/codedungeon.git';
     expect(html).toContain(`<div class="command"><code>${line}</code><button type="button" class="copy" data-copy="${line}">Copy</button></div>`);
   });
 });

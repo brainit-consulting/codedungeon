@@ -39,15 +39,24 @@ source under the [MIT licence](LICENSE).
 
 ## Install and start
 
-Open PowerShell (on Linux, a terminal) in the folder where you keep your projects, and paste this one line:
+Open PowerShell or Command Prompt (on Linux, a terminal) in the folder where you keep your projects, and run these one
+at a time, letting each finish:
 
 ```powershell
-git clone https://github.com/brainit-consulting/codedungeon.git; cd codedungeon; npm install; npm run login; npm run dev
+git clone https://github.com/brainit-consulting/codedungeon.git
+cd codedungeon
+npm install
+npm run login
+npm run dev
 ```
 
-It fetches Code Dungeon into a `codedungeon` folder, installs what it needs (about a minute), signs Claude Code in
+That fetches Code Dungeon into a `codedungeon` folder, installs what it needs (about a minute), signs Claude Code in
 (once; a browser window asks you to allow it), and starts the dungeon. Then open **http://localhost:5417** and press
 **Enter the dungeon**.
+
+If PowerShell says *running scripts is disabled on this system* when you run npm (Windows blocks npm's PowerShell
+helper on a new computer), run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once and try again, or use
+Command Prompt, which doesn't need it.
 
 If something is missing, `npm run doctor` checks Node, git, the GitHub CLI and the Claude sign-in, and says what to fix.
 
@@ -60,7 +69,7 @@ The dungeon runs while its terminal window is open.
 | **Start it** | `npm run dev`, then open http://localhost:5417 |
 | **Stop it** | press `Ctrl+C` in its window (this stops the coders' sessions too) |
 | **Restart it** | `Ctrl+C`, then `npm run dev` again |
-| **Update it** | `Ctrl+C`, then `git pull; npm install; npm run dev` |
+| **Update it** | `Ctrl+C`, then `git pull`, `npm install` and `npm run dev`, one at a time |
 
 Your projects, guild and settings live in the `codedungeon-home` folder beside it, so they survive restarts and
 updates. When the dungeon restarts by itself after a change to its own code, the coders' sessions carry on. The
