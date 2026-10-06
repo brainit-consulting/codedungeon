@@ -1,6 +1,6 @@
 {
   "name": "codedungeon",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "private": true,
   "description": "A medieval dungeon you walk through, where every coder is a real AI coding agent working through your GitHub issues.",
   "keywords": [
@@ -48,7 +48,7 @@
     "guide:site": "node --import tsx scripts/build-guide-site.ts"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.3.283",
+    "@anthropic-ai/claude-agent-sdk": "^0.3.291",
     "@lydell/node-pty": "1.2.0-beta.15",
     "@modelcontextprotocol/sdk": "^1.30.1",
     "@xterm/addon-serialize": "^0.14.0",
