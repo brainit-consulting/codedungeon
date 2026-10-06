@@ -222,6 +222,25 @@ export function closeFingers(h: HandBones, amount: number | readonly number[], t
   if (thumbAmount > 0) bend(h.thumb, thumbTip, thumbAmount);
 }
 
+const curlAxis = new THREE.Vector3();
+
+/**
+ * Curl one finger (0 index … 3 pinky) by its own amount at each of its three joints, every joint about the same axis:
+ * square to the finger as it points now and to the palm's normal. So a curl can go on round past a right angle, as
+ * fingers do round a handle; closeFingers finds the axis afresh at each joint, which turns back once the finger has
+ * passed the palm's normal.
+ */
+export function curlFinger(h: HandBones, finger: number, amounts: readonly number[]) {
+  const f = h.fingers[finger];
+  h.hand.updateMatrixWorld(true);
+  const n = palmNormal(h, new THREE.Vector3());
+  f[1].getWorldPosition(F).sub(f[0].getWorldPosition(P1)).normalize();
+  curlAxis.crossVectors(F, n);
+  if (curlAxis.lengthSq() < 1e-8) return;
+  curlAxis.normalize();
+  for (let i = 0; i < 3; i++) if (amounts[i]) turn(f[i], curlAxis, amounts[i]);
+}
+
 const tipAt = new THREE.Vector3();
 const baseAt = new THREE.Vector3();
 const joint = new THREE.Vector3();

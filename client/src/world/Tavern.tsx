@@ -8,40 +8,36 @@ import { SANS, roundRect, wrap } from './draw';
 import { useCanvasTexture, useInteractable } from './interact';
 import { RECEPTION } from './layout';
 import { Model } from './models';
-import { HandPose } from './handPose';
 import { RIGGED, SEAT, useRiggedBody } from './RiggedCharacter';
 import {
-  COUNTER_TOP,
   GREETINGS,
   TAP,
   TAPSTER,
   TAPSTER_BUILD,
   TAPSTER_PAUSE,
   TAVERN_SEATS,
-  WIPE_HAND_Y,
-  WIPE_LEAN,
   WIPE_S,
   assignSeats,
   chatter,
   drinkAt,
   drinkSeed,
-  leanFor,
   offDuty,
-  restTargets,
   tapsterGesture,
-  wipeAt,
   type ChatterContext,
+  type Drink,
   type Seat,
   type TapsterGesture,
 } from './tavernRules';
-import { findArm, keepHandAbove, leanForward, type ArmBones } from './barReach';
 import { onPoke } from './toys/poke';
-import { closeFingers, facePalm, findHand, reachWith } from './twoBoneIk';
+import { useDrinkingHands } from './drinkingHands';
+import { createWipingHand } from './wipingHand';
+import { towelGeometry, towelMaterial } from './barTowel';
 
 // The tavern after hours: guild members with nothing on sit at the bar and the feasting tables with a mug, talk, and
 // now and then drink, until work calls them back to their benches (Desk.tsx leaves their chair empty meanwhile). Wystan
 // the Tapster keeps the bar. When the Overlord is close, one of them says something now and then in a speech bubble;
-// E on any of them gets a word straight to you. The rules are in tavernRules.ts; the arm that lifts the mug in twoBoneIk.ts.
+// E on any of them gets a word straight to you. The rules are in tavernRules.ts; the hands that hold the mug and drink
+// from it in drinkingHands.ts.
 
 // ---------- who sits where ----------
 
@@ -118,36 +114,15 @@ function Bubble({ text, at }: { text: string; at: [number, number, number] }) {
 
 // ---------- a drinker ----------
 
-const UP = new THREE.Vector3(0, 1, 0);
-const DOWN = new THREE.Vector3(0, -1, 0);
-const v = () => new THREE.Vector3();
+const NOT_DRINKING: Drink = { weight: 0, toMouth: 0, holding: false, tilt: 0 };
 
 function Patron({ agent, seat, talking, drinks }: { agent: Agent; seat: Seat; talking: boolean; drinks: boolean }) {
   const { scene, mixer, clips } = useRiggedBody(agent);
-  const bones = useMemo(() => {
-    const get = (n: string) => scene.getObjectByName(n);
-    const [upperL, lowerL, upperR, lowerR, head, waist] = ['upperarm_l', 'lowerarm_l', 'upperarm_r', 'lowerarm_r', 'Head', 'spine_01'].map(get);
-    const left = findHand(scene, 'l');
-    const right = findHand(scene, 'r');
-    return upperL && lowerL && upperR && lowerR && head && waist && left && right ? { upperL, lowerL, upperR, lowerR, head, waist, left, right } : null;
-  }, [scene]);
-  // everything moved by hand (the lean, the arms, the hands), put back to the clip's pose before each frame's mixer update
-  const pose = useMemo(
-    () => new HandPose(bones ? [bones.waist, bones.upperL, bones.lowerL, bones.upperR, bones.lowerR, ...bones.left.bones, ...bones.right.bones] : []),
-    [bones],
-  );
-  const rest = useMemo(() => restTargets(seat), [seat]);
-  const settled = useRef(0);
+  // the lean, the left hand flat on the wood, and the right holding the mug, which goes wherever that hand has it
+  const hands = useDrinkingHands(scene, seat);
   const mug = useRef<THREE.Group>(null);
   const seed = useMemo(() => drinkSeed(agent.id), [agent.id]);
   const playing = useRef<{ name: string; action: THREE.AnimationAction } | null>(null);
-  const tmp = useMemo(() => ({ target: v(), pole: v(), shoulder: v(), mouth: v(), rest: v(), mug: v(), palm: v() }), []);
-
-  // which way they face, and their right, in the world
-  const fwd = useMemo(() => new THREE.Vector3(-Math.sin(seat.yaw), 0, -Math.cos(seat.yaw)), [seat.yaw]);
-  const right = useMemo(() => new THREE.Vector3(-fwd.z, 0, fwd.x), [fwd]);
-  // the mug turned so its handle (its +x) is on their right
-  const mugYaw = seat.yaw;
 
   useEffect(() => {
     const name = talking ? 'Sitting_Talking_Loop' : 'Sitting_Idle_Loop';
@@ -164,46 +139,11 @@ function Patron({ agent, seat, talking, drinks }: { agent: Agent; seat: Seat; ta
 
   useFrame(({ clock }, rawDt) => {
     const dt = Math.min(rawDt, 0.1);
-    pose.undo();
+    hands.mug.current = mug.current;
+    hands.before();
     mixer.update(dt);
-    pose.keep();
     scene.updateMatrixWorld(true);
-    const m = mug.current;
-    if (!bones || !m) return;
-    // the arms settle onto the bar or table as they sit down
-    settled.current = Math.min(1, settled.current + dt / 0.6);
-    const w = settled.current;
-    const d = drinks ? drinkAt(clock.elapsedTime, seed) : { weight: 0, toMouth: 0, holding: false, tilt: 0 };
-
-    // They lean in on the bar or the table from the waist: sat upright, their arms would have to go straight to reach it.
-    leanForward(bones.waist, leanFor(seat) * w, fwd);
-
-    // The left forearm rests on the bar or the table, hand flat, beside the mug.
-    bones.upperL.getWorldPosition(tmp.shoulder);
-    tmp.target.set(rest.left.x, rest.left.y, rest.left.z);
-    tmp.pole.copy(tmp.shoulder).addScaledVector(UP, -1).addScaledVector(right, -0.6).addScaledVector(fwd, -0.3);
-    reachWith(bones.upperL, bones.lowerL, bones.left.hand, tmp.target, tmp.pole, w);
-    facePalm(bones.left, DOWN, w);
-    closeFingers(bones.left, 0.12 * w, 0.05 * w);
-
-    // The right hand keeps hold of the mug's handle: the mug goes from its place to just under the lips (its base, rim
-    // at the mouth) and back, and the hand goes with it, palm to the mug and fingers closed round the handle.
-    tmp.rest.set(seat.mug.x, seat.mug.y, seat.mug.z);
-    tmp.mug.copy(tmp.rest);
-    if (d.toMouth > 0) {
-      bones.head.getWorldPosition(tmp.mouth).addScaledVector(fwd, 0.18).addScaledVector(UP, -0.17);
-      tmp.mug.lerp(tmp.mouth, d.toMouth);
-    }
-    bones.upperR.getWorldPosition(tmp.shoulder);
-    tmp.target.copy(tmp.mug).addScaledVector(UP, 0.085).addScaledVector(right, 0.13).addScaledVector(fwd, -0.06); // the wrist, just behind the handle
-    tmp.pole.copy(tmp.shoulder).addScaledVector(UP, -1).addScaledVector(right, 0.6).addScaledVector(fwd, -0.3);
-    reachWith(bones.upperR, bones.lowerR, bones.right.hand, tmp.target, tmp.pole, w);
-    tmp.palm.copy(right).negate(); // towards the mug
-    facePalm(bones.right, tmp.palm, w);
-    closeFingers(bones.right, 0.85 * w, 0.45 * w);
-
-    m.position.copy(tmp.mug);
-    m.rotation.set(d.tilt * 1.1, mugYaw, 0, 'YXZ'); // tipped back towards them for the sip
+    hands.after(dt, drinks ? drinkAt(clock.elapsedTime, seed) : NOT_DRINKING);
   });
 
   return (
@@ -235,8 +175,6 @@ function Talkable({ id, label, at, h }: { id: string; label: string; at: [number
 const TAPSTER_LOOK = { id: 'wystan-the-tapster', look: 'masculine' as const, role: 'dev' as const, hair: '#a04a22' };
 const NOT_ON_A_TAPSTER = /hood|pauldron/i;
 
-const RAG = new THREE.MeshStandardMaterial({ color: '#8f7d62', roughness: 1 });
-
 /**
  * Wystan: idle behind the bar, and every few seconds a gesture: a reach over the bar, a wipe of it with a rag (leaning
  * over from the waist), or a word with his hands; he talks with them too whenever the Overlord speaks to him. His
@@ -249,10 +187,8 @@ function Tapster({ talking }: { talking: boolean }) {
       if (NOT_ON_A_TAPSTER.test(o.name)) o.visible = false;
     });
   }, [scene]);
-  const rig = useMemo(
-    () => ({ arms: [findArm(scene, 'l'), findArm(scene, 'r')].filter((a): a is ArmBones => !!a), right: findArm(scene, 'r'), hand: findHand(scene, 'r'), waist: scene.getObjectByName('spine_01') ?? null }),
-    [scene],
-  );
+  // the wipe: his hand flat on a towel, scrubbing round over the counter (wipingHand.ts)
+  const wiping = useMemo(() => createWipingHand(scene), [scene]);
   const acts = useMemo(() => {
     const clip = (name: string) => clips.find((c) => c.name === name);
     const [idle, serve, talk] = [clip('Idle_Loop'), clip('Interact'), clip('Idle_Talking_Loop')].map((c) => (c ? mixer.clipAction(c) : null));
@@ -264,9 +200,8 @@ function Tapster({ talking }: { talking: boolean }) {
     return { idle, serve, talk };
   }, [clips, mixer]);
   const rag = useRef<THREE.Mesh>(null);
+  const towel = useMemo(() => towelGeometry(), []);
   const now = useRef<{ gesture: TapsterGesture | null; since: number; until: number; nextAt: number; wipe: number }>({ gesture: null, since: 0, until: 0, nextAt: 6, wipe: 0 });
-  const target = useMemo(() => new THREE.Vector3(), []);
-  const pole = useMemo(() => new THREE.Vector3(), []);
   // window.__tapster('wipe' | 'serve' | 'talk', seconds?): a gesture on demand, for checking them (development only)
   const forced = useRef<TapsterGesture | null>(null);
   const forcedFor = useRef<number | null>(null);
@@ -309,37 +244,21 @@ function Tapster({ talking }: { talking: boolean }) {
       forcedFor.current = null;
       Object.assign(g, { gesture: next, since: t, until: t + long });
     }
+    wiping.before();
     mixer.update(dt);
     scene.updateMatrixWorld(true);
 
-    // wiping: lean over from the waist and scrub along the counter's near edge, palm down on the rag
+    // wiping: eased in and out; his hands otherwise rest on the wood rather than in it (wipingHand.ts)
     g.wipe += ((g.gesture === 'wipe' ? 1 : 0) - g.wipe) * (1 - Math.exp(-dt * 4));
-    const arm = rig.right;
-    if (g.wipe > 0.002 && arm && rig.waist) {
-      leanForward(rig.waist, WIPE_LEAN * g.wipe);
-      const p = wipeAt(t - g.since);
-      target.set(p.x, COUNTER_TOP.top + WIPE_HAND_Y, p.z);
-      arm.lower.getWorldPosition(pole);
-      pole.x -= 0.3; // the elbow out to his right
-      reachWith(arm.upper, arm.lower, arm.hand, target, pole, g.wipe);
-      if (rig.hand) facePalm(rig.hand, DOWN, g.wipe);
-    }
-    // whatever the clip and the wipe did, his hands rest on the wood rather than in it
-    for (const a of rig.arms) keepHandAbove(a, COUNTER_TOP);
-    const r = rag.current;
-    if (r && arm) {
-      r.visible = g.wipe > 0.5;
-      arm.hand.getWorldPosition(r.position);
-      r.position.y = COUNTER_TOP.top + 0.006;
-    }
+    wiping.rag.current = rag.current;
+    wiping.after(t - g.since, g.wipe, g.gesture === 'wipe');
   });
   // the models face +Z: he faces the room, over the bar
   return (
     <>
       <primitive object={scene} position={[TAP.x, 0, TAP.z]} scale={TAPSTER_BUILD} />
-      <mesh ref={rag} material={RAG} visible={false} rotation={[0, 0.4, 0]}>
-        <boxGeometry args={[0.16, 0.012, 0.11]} />
-      </mesh>
+      {/* his bar towel, on the counter where he last left it (wipingHand.ts puts it there) */}
+      <mesh ref={rag} geometry={towel} material={towelMaterial()} receiveShadow />
     </>
   );
 }

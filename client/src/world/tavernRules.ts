@@ -201,14 +201,8 @@ export function tapsterGesture(roll: number): TapsterGesture {
 /** Seconds between his gestures, and how long a wipe lasts. */
 export const TAPSTER_PAUSE: [number, number] = [7, 13];
 export const WIPE_S = 5;
-/** Leaning over the bar to wipe it (radians), and how high his wrist rides over the wood. */
-export const WIPE_LEAN = 0.3;
-export const WIPE_HAND_Y = 0.05;
-
-/** Where his right hand is, `s` seconds into a wipe: a scrub to and fro along the near edge of the counter. */
-export function wipeAt(s: number): { x: number; z: number } {
-  return { x: TAP.x - 0.2 + Math.sin(s * 2.4) * 0.14, z: COUNTER_TOP.minZ + 0.07 + Math.sin(s * 4.8) * 0.025 };
-}
+/** Leaning over the bar from the waist to wipe it (radians); the wipe itself is in wipingHand.ts. */
+export const WIPE_LEAN = 0.4;
 
 /** Wystan the Tapster, behind the bar. */
 export const TAPSTER = {

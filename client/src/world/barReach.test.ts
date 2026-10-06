@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { findArm, keepHandAbove, leanForward, sinkBelow, type ArmBones } from './barReach';
-import { COUNTER_TOP, TAP, TAPSTER_BUILD, WIPE_HAND_Y, WIPE_LEAN, tapsterGesture, wipeAt } from './tavernRules';
+import { findArm, keepHandAbove, sinkBelow, type ArmBones } from './barReach';
+import { COUNTER_TOP, TAP, TAPSTER_BUILD, tapsterGesture } from './tavernRules';
 
 describe('sinkBelow', () => {
   const top = { minX: 0, maxX: 1, minZ: 0, maxZ: 1, top: 1 };
@@ -62,26 +62,8 @@ describe("Wystan's hands and the bar counter, at his build and where he stands",
   });
 });
 
-describe('Wystan wiping the bar', () => {
-  it('keeps the rag on the counter, in front of him, where his right hand can reach all through the wipe', async () => {
-    const gltf = await wystan();
-    const mixer = new THREE.AnimationMixer(gltf.scene);
-    mixer.clipAction(gltf.animations.find((c) => c.name === 'Idle_Loop')!).play();
-    mixer.update(0);
-    gltf.scene.updateMatrixWorld(true);
-    leanForward(gltf.scene.getObjectByName('spine_01')!, WIPE_LEAN); // leaning over the bar from the waist, as he does to wipe it
-    const arm = findArm(gltf.scene, 'r')!;
-    const at = (o: THREE.Object3D) => o.getWorldPosition(new THREE.Vector3());
-    const reach = at(arm.upper).distanceTo(at(arm.lower)) + at(arm.lower).distanceTo(at(arm.hand));
-    for (let s = 0; s < 6; s += 0.05) {
-      const p = wipeAt(s);
-      expect(p.x).toBeGreaterThan(COUNTER_TOP.minX);
-      expect(p.x).toBeLessThan(COUNTER_TOP.maxX);
-      expect(p.z).toBeGreaterThan(COUNTER_TOP.minZ + 0.03);
-      expect(at(arm.upper).distanceTo(new THREE.Vector3(p.x, COUNTER_TOP.top + WIPE_HAND_Y, p.z))).toBeLessThan(reach * 0.97);
-    }
-  });
-
+// The wipe itself (his hand flat on the towel, the towel on the wood, his reach) is measured in wipingHand.test.ts.
+describe('Wystan behind the bar', () => {
   it('does all three of his gestures now and then', () => {
     const seen = new Set(Array.from({ length: 100 }, (_, i) => tapsterGesture(i / 100)));
     expect([...seen].sort()).toEqual(['serve', 'talk', 'wipe']);

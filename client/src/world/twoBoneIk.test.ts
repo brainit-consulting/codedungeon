@@ -1,7 +1,7 @@
 // Run with `npm test` (Vitest).
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { closeFingers, facePalm, findHand, orientHand, palmNormal, reachThumb, reachWith } from './twoBoneIk';
+import { closeFingers, curlFinger, facePalm, findHand, orientHand, palmNormal, reachThumb, reachWith } from './twoBoneIk';
 
 /** A shoulder with an upper arm 0.3 long and a forearm 0.27 long, hanging straight down, under a turned parent. */
 function arm() {
@@ -181,5 +181,30 @@ describe('the hand', () => {
     const target = index.clone().lerp(tip(), 0.3);
     reachThumb(hand, target, hand.thumb[1].getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0, 0.05)));
     expect(tip().distanceTo(target)).toBeLessThan(0.002);
+  });
+
+  it('curls a finger joint by joint, on round past a right angle, as fingers do round a handle', () => {
+    const { hand } = handRig();
+    const f = hand.fingers[1];
+    const at = (i: number) => f[i].getWorldPosition(new THREE.Vector3());
+    const straight = at(1).sub(at(0)).normalize();
+    const n = palmNormal(hand, new THREE.Vector3());
+    curlFinger(hand, 1, [0.5, 1.6, 1.6]);
+    // each bone points where the turns so far put it: 0.5, 2.1 and 3.7 radians round from straight, towards the palm
+    const dir = (i: number) => at(i + 1).sub(at(i)).normalize();
+    for (const [i, total] of [[0, 0.5], [1, 2.1], [2, 3.7]] as const) {
+      expect(dir(i).dot(straight), `bone ${i}`).toBeCloseTo(Math.cos(total), 2);
+      expect(dir(i).dot(n), `bone ${i}`).toBeCloseTo(Math.sin(total), 2);
+    }
+  });
+
+  it('closeFingers, by contrast, turns back once a finger is past a right angle (why handles use curlFinger)', () => {
+    const { hand } = handRig();
+    const f = hand.fingers[1];
+    const at = (i: number) => f[i].getWorldPosition(new THREE.Vector3());
+    const straight = at(1).sub(at(0)).normalize();
+    closeFingers(hand, [0, 1.25, 0, 0], 0);
+    // three turns of 1.25 should leave the last bone pointing back (cos 3.75 = -0.82); it doesn't
+    expect(at(3).sub(at(2)).normalize().dot(straight)).toBeGreaterThan(-0.5);
   });
 });
