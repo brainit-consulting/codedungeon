@@ -1,5 +1,6 @@
 import { formatBytes, percentOf, type SystemView } from '../../../shared/system';
 import type { UsageView } from '../../../shared/types';
+import { todayLine } from '../../../shared/usage';
 import { SANS } from './draw';
 
 // The gauge board's face (GaugeBoard.tsx): brass dials for CPU, memory and disk on parchment in an oak frame, and a
@@ -105,6 +106,8 @@ export interface GaugeFace {
   dials: Dial[];
   usage: { text: string; tone: 'good' | 'bad' };
   sessions: string;
+  /** Every session since midnight, at API prices (the usage meter). */
+  today: string;
   stale: boolean;
 }
 
@@ -119,6 +122,7 @@ export function gaugeFace(v: SystemView | null, usage: UsageView, failed: boolea
     ],
     usage: usageLine(usage),
     sessions: v ? `${v.sessions.running} session${v.sessions.running === 1 ? '' : 's'} running · dungeon ${formatBytes(v.process.rss)}` : '',
+    today: v ? todayLine(v.today) : '',
     stale: failed,
   };
 }
@@ -154,18 +158,20 @@ export function drawGauges(ctx: CanvasRenderingContext2D, w: number, h: number, 
   ctx.strokeStyle = 'rgba(42, 29, 20, 0.45)';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(60, 488);
-  ctx.lineTo(w - 60, 488);
+  ctx.moveTo(60, 470);
+  ctx.lineTo(w - 60, 470);
   ctx.stroke();
   ctx.textAlign = 'left';
   ctx.fillStyle = INK;
   ctx.font = `700 34px ${DISPLAY}`;
-  ctx.fillText('Claude usage', 64, 530);
+  ctx.fillText('Claude usage', 64, 508);
   const labelW = ctx.measureText('Claude usage').width;
   ctx.fillStyle = f.usage.tone === 'bad' ? RUST : GOOD;
   ctx.font = `700 34px ${SANS}`;
-  ctx.fillText(f.usage.text, 64 + labelW + 18, 530);
+  ctx.fillText(f.usage.text, 64 + labelW + 18, 508);
   ctx.fillStyle = INK_FADED;
   ctx.font = `500 28px ${SANS}`;
-  ctx.fillText(f.sessions, 64, 574);
+  ctx.fillText(f.sessions, 64, 546);
+  ctx.font = `500 26px ${SANS}`;
+  ctx.fillText(f.today, 64, 584);
 }

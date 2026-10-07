@@ -6,6 +6,7 @@ import { confirmDialog } from './Confirm';
 import { Icon } from './Icon';
 import { LiveTerminal } from './LiveTerminal';
 import { effectiveModel } from '../../../shared/models';
+import { jobLine, splitLine } from '../../../shared/usage';
 import { Markdown } from './Markdown';
 import { MessageBox } from './MessageBox';
 import { Seal } from './Phone';
@@ -147,7 +148,11 @@ export function TerminalView({ agentId }: { agentId: string }) {
         </span>
         {agent.startedAt && <span className="muted"><Icon name="hourglass" /> {elapsed(agent.startedAt, working ? null : agent.endedAt)}</span>}
         {agent.turns > 0 && <span className="muted">{agent.turns} turns</span>}
-        {agent.costUsd > 0 && <span className="muted" title="API-equivalent cost reported by the coding agent; subscription usage is billed by plan">≈${agent.costUsd.toFixed(2)}</span>}
+        {(agent.tokens || agent.costUsd > 0 || (settings.runtime === 'terminal' && cli !== 'claude' && agent.startedAt)) && (
+          <span className="muted" title={agent.tokens ? `${splitLine(agent.tokens)}. At API list prices: not what a subscription costs.` : undefined}>
+            {jobLine(agent.tokens, agent.costUsd, agent.contextPct, cliName)}
+          </span>
+        )}
       </div>
       {agent.lastError && agent.status !== 'working' && <div className="term-error"><Icon name="warning" /> {agent.lastError}</div>}
       {agent.asks && (

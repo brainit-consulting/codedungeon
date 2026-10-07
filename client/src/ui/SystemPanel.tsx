@@ -1,4 +1,5 @@
 import { formatBytes, formatDuration, percentOf } from '../../../shared/system';
+import { formatTokens, formatUsd } from '../../../shared/usage';
 import { useStore } from '../store';
 import { HISTORY_MS, useSystemFeed, type SystemPoint } from '../systemFeed';
 import { Panel } from './Overlays';
@@ -123,6 +124,11 @@ export function SystemPanel() {
       <dl className="gauges-facts">
         <dt>Claude usage</dt>
         <dd className={usage.state === 'normal' ? 'good' : 'high'}>{usageText}</dd>
+        <dt>Today at API prices</dt>
+        <dd>
+          {v.today.tokens > 0 || v.today.costUsd > 0 ? `${formatTokens(v.today.tokens)} tokens · ${formatUsd(v.today.costUsd)}` : 'Nothing yet'}
+          <span className="muted"> · what today's work would cost at API list prices, not what your subscription costs. Codex and OpenCode report no figures.</span>
+        </dd>
         <dt>Sessions</dt>
         <dd>
           {s.running} running{s.limit > 0 ? ` of ${s.limit} allowed` : ''} · {s.agents} in the guild

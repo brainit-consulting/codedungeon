@@ -27,6 +27,12 @@ describe('gaugeFace', () => {
     expect(a.sessions).toBe('1 session running · dungeon 100 MB');
   });
 
+  it("shows today's usage at API prices", () => {
+    const f = gaugeFace(reading(1, 40), { state: 'normal', until: null }, false);
+    expect(f.today).toBe('Today at API prices: 4.2M tokens · $18.40');
+    expect(gaugeFace(null, { state: 'normal', until: null }, false).today).toBe('');
+  });
+
   it('shows empty dials before the first reading', () => {
     expect(gaugeFace(null, { state: 'normal', until: null }, false).dials.map((d) => d.pct)).toEqual([null, null, null]);
   });
