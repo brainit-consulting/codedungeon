@@ -24,6 +24,7 @@ import {
 } from './agentRunner.ts';
 import type { OfficeTools } from './ceo.ts';
 import type { AgentTerminal } from './terminal.ts';
+import { permissionAnswer, PromptWait } from './permissionGate.ts';
 import { FileMeter, promptBaseline, statusUsage, UsageTally } from './usageMeter.ts';
 import type { AgentCli } from '../shared/types.ts';
 
@@ -120,7 +121,7 @@ const shellArg = (p: string) => `"${p.replaceAll('\\', '/')}"`;
 
 // ---------- plumbing ----------
 
-const HOOK_EVENTS = ['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'Stop', 'StopFailure', 'Notification'];
+const HOOK_EVENTS = ['UserPromptSubmit', 'PreToolUse', 'PermissionRequest', 'PostToolUse', 'PostToolUseFailure', 'Stop', 'StopFailure', 'Notification'];
 
 /** The browser for a session. Its snapshots and unnamed screenshots go to the session's folder, not the worktree. */
 function playwrightServer(outputDir: string) {
@@ -328,6 +329,8 @@ function idleHook(live: LiveCli, b: Record<string, unknown>): Record<string, unk
   switch (String(b.hook_event_name ?? '')) {
     case 'PreToolUse':
       return ALLOW;
+    case 'PermissionRequest':
+      return permissionAnswer(b) === 'allow' ? { hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'allow' } } } : {};
     case 'UserPromptSubmit': {
       const text = String(b.prompt ?? '').trim();
       // before the follow-up starts: no reply to this prompt is in the session file yet
@@ -420,6 +423,11 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   };
   if (cli !== 'claude') cb.usage?.({ tokens: null, costUsd: 0, contextPct: null });
 
+  // A permission prompt nobody answers (permissionGate.ts): the Overlord is told once it has waited ten minutes.
+  const promptWait = new PromptWait((text) => cb.permissionWait?.(text));
+  const startWait = (what: string) => promptWait.start(what);
+  const clearWait = () => promptWait.clear();
+
   /** Codex and OpenCode don't report tool results: pass on the screenshots their browser saved instead. all: the last look. */
   const collectShots = (all = false) => {
     const l = live;
@@ -438,6 +446,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   const finish = (r: Omit<SessionResult, 'costUsd' | 'turns'>, keep = false) => {
     if (done) return;
     measure(true);
+    clearWait();
     done = true;
     for (const t of [finishTimer, bootTimer]) clearTimeout(t);
     clearInterval(screenTimer);
@@ -536,6 +545,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
     const event = String(b.hook_event_name ?? '');
     const sub = typeof b.agent_id === 'string' && b.agent_id !== ''; // a subagent's call: kept off the log
     if (cli === 'claude' && !sub && typeof b.transcript_path === 'string' && b.transcript_path) transcript = b.transcript_path;
+    if (!sub && ['PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'UserPromptSubmit', 'Stop', 'StopFailure'].includes(event)) clearWait();
     if (cli === 'claude' && !sub && b.session_id !== kept) {
       const id = resumableSession(b, fs.existsSync);
       if (id) {
@@ -605,8 +615,22 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
         finish({ ok: false, text: lastText, errors: [`${label} stopped: ${error.replace(/_/g, ' ')}${details ? ` (${clip(details, 160)})` : ''}`] }, true);
         return {};
       }
+      case 'PermissionRequest': {
+        // a prompt despite PreToolUse's allow: yes for the office, except a removal (permissionGate.ts)
+        const what = describeTool(opts.cwd, String(b.tool_name ?? ''), toolInput(b));
+        if (permissionAnswer(b) === 'allow') {
+          log([{ kind: 'system', text: `  ✔ ${label} asked before: ${clip(what, 160)}. The dungeon answered yes.` }]);
+          return { hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'allow' } } };
+        }
+        log([{ kind: 'error', text: `⚠ ${label} asks before removing: ${clip(what, 160)}. Open the terminal to answer it.` }]);
+        startWait(what);
+        return {};
+      }
       case 'Notification': {
-        if (b.notification_type === 'permission_prompt') log([{ kind: 'error', text: `⚠ ${label} is waiting for a permission answer: open the terminal to answer it.` }]);
+        if (b.notification_type === 'permission_prompt') {
+          log([{ kind: 'error', text: `⚠ ${label} is waiting for a permission answer: open the terminal to answer it.` }]);
+          if (!sub) startWait('');
+        }
         return {};
       }
       case 'StatusLine':

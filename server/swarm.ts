@@ -19,6 +19,7 @@ import { isCli } from './clis.ts';
 import { AgentTerminal } from './terminal.ts';
 import { CARRY_ON, carryOnPlan, type CarryAgent } from '../shared/carryOn.ts';
 import { ASK_RULE, overlordAsk } from './overlordAsk.ts';
+import { scratchRule } from './permissionGate.ts';
 import { nextChamber } from '../shared/chambers.ts';
 import { blockers, holdUps, issueSpecialty } from '../shared/issues.ts';
 import { forTheScroll, letterProblem } from '../shared/letters.ts';
@@ -1864,6 +1865,7 @@ export class Swarm {
       '',
       'Rules: never push to the default branch, never force-push, never merge pull requests yourself (the dungeon merges them once QA and the checks pass), and never edit files outside your worktree. Never deploy, promote or roll back on Vercel or anywhere else: the Overlord ships from the dungeon. If you cannot finish, open a draft PR (gh pr create --draft) explaining what is left and why.',
       ASK_RULE,
+      scratchRule(path.join(HOME_DIR, 'tmp')),
     ]
       .filter((l) => l !== '')
       .join('\n');
@@ -2003,6 +2005,7 @@ export class Swarm {
         limited: (at) => this.pauseForLimit(at),
         usageWarning: (info) => this.paceForWarning(info),
         usage: (u) => this.onUsage(a, u),
+        permissionWait: (text) => this.onPermissionWait(a, text),
         finished: (result) => void this.onFinished(a, repo, result),
       },
     );
@@ -2023,6 +2026,26 @@ export class Swarm {
     }
     a.contextPct = u.contextPct;
     this.emitAgent(a); // the runners already report at most every few seconds
+  }
+
+  /**
+   * Their Claude Code has sat at a permission prompt nobody answered (permissionGate.ts): they need the Overlord, but
+   * their session is alive at the prompt, so they're not halted. null: it was answered and they carried on.
+   */
+  private onPermissionWait(a: PersistedAgent, text: string | null) {
+    if (!this.agentRt.has(a.id) || !this.state.agents.includes(a)) return;
+    if (text === null) {
+      if (a.asks?.startsWith('Claude Code is asking')) a.asks = null;
+      this.emitAgent(a);
+      return;
+    }
+    a.asks = text;
+    const repo = this.state.repos.find((r) => r.id === a.repoId);
+    const where = repo ? ` (${repo.fullName.split('/').pop()})` : '';
+    this.appendLog(a, [{ kind: 'manager', text: `🙋 Waiting on the Overlord: ${text}` }]);
+    this.postMessage('office', `🙋 ${a.name}${where} needs you: ${text}`);
+    this.toast('info', `${a.name} needs you: Claude Code is waiting for a permission answer.`);
+    this.emitAgent(a);
   }
 
   /** A session ended: its cost is final; the day gets any cost it hadn't reported as it went. */
@@ -2219,6 +2242,7 @@ export class Swarm {
       '',
       'Rules: do not modify the code under test, do not commit, push, comment on, review or merge anything on GitHub. Never deploy, promote or roll back anything. The dungeon posts your report on the pull request. Finish with the structured QA report: verdict, summary, the checks you performed, the commands you ran and one caption per screenshot. If you run something long in the background, wait for it to finish before your final message; the report must be in that message.',
       `${ASK_RULE} That line takes the place of the report.`,
+      scratchRule(path.join(HOME_DIR, 'tmp')),
     ].join('\n');
   }
 
@@ -3139,6 +3163,7 @@ export class Swarm {
         limited: (at) => this.pauseForLimit(at),
         usageWarning: (info) => this.paceForWarning(info),
         usage: (u) => this.onUsage(a, u),
+        permissionWait: (text) => this.onPermissionWait(a, text),
         finished: (result) => this.onCeoFinished(a, result),
       },
     );

@@ -178,6 +178,9 @@ export const CHAPTERS: GuideChapter[] = [
       p(
         "Now and then a coder or tester can't go on without you: a decision only you can make, a password or key, an account, access. They stop and say exactly what they need. It goes on your scroll with an **Answer** button, their panel shows **needs you**, and the scroll's red badge counts them until they're answered. Answer in their message box and they carry on with your answer. If you sorted it out some other way, press **▶ Carry on**.",
       ),
+      p(
+        "Claude Code itself sometimes stops to ask before a step, such as writing into its own settings folder or removing a folder at the top of a drive. The dungeon answers yes for you, except to a removal: that stays for you to decide. If a coder has waited ten minutes on one, it goes on your scroll and their panel shows **needs you**. Open their terminal and answer it there.",
+      ),
       h("Who's working"),
       p(
         'The list at the top right shows everyone working right now, with their latest thought, reply or tool call: everyone in this chamber, or everyone in the dungeon when you are in the great hall. Click a name to open their terminal. [[Tab]] shows or hides the list.',
@@ -323,6 +326,10 @@ export const CHAPTERS: GuideChapter[] = [
       h('"GitHub CLI is not ready"'),
       p(
         'The dungeon reaches GitHub only through the `gh` command. Open a terminal and run `gh auth login`, then `gh auth status` to check. Restart the dungeon afterwards. `npx codedungeon@latest doctor` checks Node, git, `gh` and the Claude login in one go (from a copy of the code, `npm run doctor` in its folder).',
+      ),
+      h('A coder waits for a permission answer'),
+      p(
+        'Claude Code asks before removing a folder it counts as critical: the top of a drive, your home folder, or the folder it works in. The dungeon never answers those for you. After ten minutes the coder shows **needs you** and your scroll says what Claude Code wants to remove. Open their terminal ([[E]] on their bench), check the path, and answer. Coders are told to keep scratch folders in the dungeon\'s own tmp folder, so this should be rare.',
       ),
       h('Claude asks to sign in'),
       p(

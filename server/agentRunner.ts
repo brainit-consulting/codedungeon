@@ -74,6 +74,8 @@ export interface SessionCallbacks {
   usageWarning?(info: UsageWarning): void;
   /** This job's tokens and cost at API prices so far (usageMeter.ts); tokens null: the CLI reports none. */
   usage?(u: { tokens: Tokens | null; costUsd: number; contextPct: number | null }): void;
+  /** A permission prompt has waited too long for an answer (permissionGate.ts); null: it was answered. */
+  permissionWait?(text: string | null): void;
   finished(result: SessionResult): void;
 }
 
