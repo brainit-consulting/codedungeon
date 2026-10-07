@@ -41,7 +41,7 @@ export const CHAPTERS: GuideChapter[] = [
         '**The notice board** on the far wall, facing you as you come in: the chamber\'s issues and pull requests (chapter IV).',
         "**The coders' workbenches**, each with a slate on an easel showing that coder's live terminal (chapter V). While they work they write in the ledger on their bench, the quill pinched between thumb and forefinger. The ink goes down as they write, laid out like code, they dip in the inkwell now and then, and turn the page when it's full.",
         '**The assay room**: the testers in aprons along the east wall, who check every pull request before it is merged.',
-        '**The gauges** on the far wall, right of the SHIP IT sign: how hard this computer is working (processor, memory, disk) and how Claude usage stands. Press [[E]] on them for the full readout, refreshed every five seconds.',
+        '**The gauges** on the far wall, right of the SHIP IT sign: how hard this computer is working (processor, memory, disk) and how Claude usage stands. Press [[E]] on them for the full readout, refreshed every five seconds. The bottom line, **Today at API prices**, adds up every session since midnight: the tokens, and what they would cost at API list prices. A subscription doesn\'t charge by the token, so this isn\'t what you pay; it shows how much work went through. Codex and OpenCode report no figures, so their sessions aren\'t in it.',
         "**The framed screen** on the left wall: the project's own app. Press [[E]] on it and the app starts by itself on the default branch, and you use it right there. You can switch it to any open pull request. If you press **Stop**, it stays stopped the next time you open the screen, until you start it again.",
       ),
       p(
@@ -170,6 +170,9 @@ export const CHAPTERS: GuideChapter[] = [
         'click into the terminal and type, as if it were your own (while it has focus, [[Esc]] goes to the agent and interrupts its turn);',
         'use the message box underneath: [[Enter]] sends, [[Shift]] + [[Enter]] starts a new line. While they work it is typed into their session; afterwards it resumes it as a follow-up;',
         'press **Stop** to halt them, and **▶ Carry on** to set them going again on the same work, where they stopped, with everything they knew. It works for coding, fixing and testing, after a Stop, after [[Esc]] in their terminal, and after their session failed or crashed. Or hand them an issue from the backlog, or **Clear bench** when they are done.',
+      ),
+      p(
+        'The top of the full terminal shows **this job** so far: its tokens, what they would cost at API prices, and how full the coder\'s context is. Hover over it to see where the tokens went: cache reads are most of them, and the cheapest.',
       ),
       h('When someone needs you'),
       p(
