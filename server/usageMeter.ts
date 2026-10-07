@@ -65,8 +65,12 @@ export function modelTokens(mu: Record<string, { inputTokens?: number; outputTok
   return t;
 }
 
-/** What a running cost added since `last`. A drop means it started again from 0 (/clear, a new process). */
-export const costStep = (last: number, now: number) => (now >= last ? now - last : now);
+/**
+ * What a running cost added since `last`. A drop adds nothing: it is a /clear or a new process, or a status tick that
+ * arrived late (each tick is its own POST). Counting on from the new reading can't over-count; the cost of the
+ * replies between a reset and its first tick is all it can miss.
+ */
+export const costStep = (last: number, now: number) => (now >= last ? now - last : 0);
 
 /**
  * One job's figures, measured from where the session stood when the job began. lastCost null: where the running
@@ -141,6 +145,16 @@ export class FileMeter {
     }
     return t;
   }
+}
+
+/**
+ * Where a session stood when a prompt went in (the UserPromptSubmit hook fires before any reply to it): the start of
+ * a job typed at a CLI that was waiting at its prompt. Null when the hook names no session file.
+ */
+export function promptBaseline(b: Record<string, unknown>, meter: FileMeter, costSeen: number | null) {
+  const transcript = typeof b.transcript_path === 'string' ? b.transcript_path : '';
+  if (!transcript) return null;
+  return { transcript, tokens: meter.read(transcript), cost: costSeen };
 }
 
 /** The running cost and how full the context is, from Claude Code's status line payload. */

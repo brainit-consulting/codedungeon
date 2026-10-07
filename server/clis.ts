@@ -352,7 +352,7 @@ export function backgroundRunning(screen: string): boolean {
 
 // ---------- helper scripts the CLIs run ----------
 
-/** Claude Code's status line: posts its data (cost, usage limits) to the office and shows the office's line. */
+/** Claude Code's status line: posts its data (cost, usage limits, context fill) to the office and shows the office's line. */
 export const STATUSLINE_SOURCE = String.raw`// cubefarm: Claude Code's status line. Forwards the session's status to the office and prints the office's line.
 const url = process.argv[2];
 let body = '';
@@ -363,7 +363,7 @@ process.stdin.on('end', async () => {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ hook_event_name: 'StatusLine', session_id: status.session_id, cost: status.cost, rate_limits: status.rate_limits }),
+      body: JSON.stringify({ hook_event_name: 'StatusLine', session_id: status.session_id, cost: status.cost, rate_limits: status.rate_limits, context_window: status.context_window }),
       signal: AbortSignal.timeout(2000),
     });
     const out = await res.json();

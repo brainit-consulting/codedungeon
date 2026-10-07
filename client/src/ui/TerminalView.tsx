@@ -6,7 +6,7 @@ import { confirmDialog } from './Confirm';
 import { Icon } from './Icon';
 import { LiveTerminal } from './LiveTerminal';
 import { effectiveModel } from '../../../shared/models';
-import { jobLine, splitLine } from '../../../shared/usage';
+import { headerLine, splitLine } from '../../../shared/usage';
 import { Markdown } from './Markdown';
 import { MessageBox } from './MessageBox';
 import { Seal } from './Phone';
@@ -84,6 +84,8 @@ export function TerminalView({ agentId }: { agentId: string }) {
   const working = isBusy(agent);
   const cli = agent.role === 'ceo' ? 'claude' : agent.cli || settings.defaultCli;
   const cliName = clis.find((c) => c.id === cli)?.label ?? cli;
+  // tokens and cost at API prices (shared/usage.ts); the SDK runtime is always Claude
+  const usageText = headerLine(agent.tokens, agent.costUsd, agent.contextPct, settings.runtime === 'terminal' ? cli : 'claude', cliName, !!agent.startedAt);
   const issueUrl = agent.issueNumber ? `https://github.com/${repo.fullName}/issues/${agent.issueNumber}` : null;
   // Carry on: back to the same work after a Stop, an Esc, a crash or a restart (the server decides the same way)
   const carry = carryOnPlan(agent, { others: agentsOnRepo(allAgents, repo.id), pulls: repo.pulls, qa: agent.prNumber ? (qaRecords[`${repo.id}#${agent.prNumber}`] ?? null) : null });
@@ -148,9 +150,9 @@ export function TerminalView({ agentId }: { agentId: string }) {
         </span>
         {agent.startedAt && <span className="muted"><Icon name="hourglass" /> {elapsed(agent.startedAt, working ? null : agent.endedAt)}</span>}
         {agent.turns > 0 && <span className="muted">{agent.turns} turns</span>}
-        {(agent.tokens || agent.costUsd > 0 || (settings.runtime === 'terminal' && cli !== 'claude' && agent.startedAt)) && (
+        {usageText && (
           <span className="muted" title={agent.tokens ? `${splitLine(agent.tokens)}. At API list prices: not what a subscription costs.` : undefined}>
-            {jobLine(agent.tokens, agent.costUsd, agent.contextPct, cliName)}
+            {usageText}
           </span>
         )}
       </div>

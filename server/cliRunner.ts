@@ -24,7 +24,7 @@ import {
 } from './agentRunner.ts';
 import type { OfficeTools } from './ceo.ts';
 import type { AgentTerminal } from './terminal.ts';
-import { FileMeter, statusUsage, UsageTally } from './usageMeter.ts';
+import { FileMeter, promptBaseline, statusUsage, UsageTally } from './usageMeter.ts';
 import type { AgentCli } from '../shared/types.ts';
 
 // One agent session as the real CLI in a pseudo-terminal: the same contract as the Agent SDK runner (log lines, the
@@ -184,6 +184,8 @@ interface LiveCli {
   meter: FileMeter;
   /** The status line's running cost when last seen; null: not known (adopted after a restart, or resumed). */
   costSeen: number | null;
+  /** Where its session stood when the manager typed a prompt at it while it waited: the start of that job. */
+  typedBase?: ReturnType<typeof promptBaseline>;
 }
 const lives = new Map<AgentTerminal, LiveCli>();
 /** How to trust Codex's hooks was said once this run (Codex asks at the start of every session until they are). */
@@ -328,11 +330,16 @@ function idleHook(live: LiveCli, b: Record<string, unknown>): Record<string, unk
       return ALLOW;
     case 'UserPromptSubmit': {
       const text = String(b.prompt ?? '').trim();
+      // before the follow-up starts: no reply to this prompt is in the session file yet
+      if (text && live.cli === 'claude') live.typedBase = promptBaseline(b, live.meter, live.costSeen);
       if (!text || live.term.onIdlePrompt?.(text)) return {};
       return { decision: 'block', reason: "The dungeon couldn't take that on as a follow-up right now (see the agent's panel). Nothing was sent." };
     }
-    case 'StatusLine':
+    case 'StatusLine': {
+      const cost = statusUsage(b).cost;
+      if (cost !== null) live.costSeen = cost;
       return { statusLine: live.statusLine };
+    }
   }
   return {};
 }
@@ -675,6 +682,12 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
     term.releaseIdle = null;
     live.session = { hook, exited };
     Object.assign(live, { statusLine });
+    if (opts.typed && live.typedBase) {
+      // typed at its prompt: the job began when the prompt went in, before this session was started
+      transcript = live.typedBase.transcript;
+      tally = new UsageTally(live.typedBase.tokens, live.typedBase.cost);
+    }
+    live.typedBase = null;
     remember(live);
     if (live.resumeId) cb.sessionId(live.resumeId);
     if (opts.typed || opts.reattach) busy(); // typed at the prompt, or still at it after a restart: already running

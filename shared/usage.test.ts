@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatTokens, formatUsd, jobLine, splitLine, todayLine } from './usage.ts';
+import { formatTokens, formatUsd, headerLine, jobLine, splitLine, todayLine } from './usage.ts';
 
 describe('usage formats', () => {
   it('rounds tokens the way the board shows them', () => {
@@ -26,5 +26,18 @@ describe('usage formats', () => {
   it('writes the split', () => {
     expect(splitLine({ input: 2, cacheRead: 800_000, cacheWrite: 10_000, output: 2_000 })).toBe('2 fresh in · 800k cache reads · 10.0k cache writes · 2.0k out');
     expect(splitLine(null)).toBe('');
+  });
+});
+
+describe('headerLine', () => {
+  const t = { input: 2, cacheRead: 800_000, cacheWrite: 10_000, output: 2_000 };
+  it('shows the job when there are figures', () => expect(headerLine(t, 3.1, 42, 'claude', 'Claude Code', true)).toBe('This job: 812k tokens · $3.10 at API prices · context 42% full'));
+  it('never says "no figures" for a Claude agent: a job from before the meter shows just its cost', () => {
+    expect(headerLine(null, 0.42, null, 'claude', 'Claude Code', true)).toBe('This job: $0.42 at API prices');
+    expect(headerLine(null, 0, null, 'claude', 'Claude Code', true)).toBeNull();
+  });
+  it('says so for a CLI that reports nothing, once it has started', () => {
+    expect(headerLine(null, 0, null, 'codex', 'Codex', true)).toBe('No figures from Codex');
+    expect(headerLine(null, 0, null, 'codex', 'Codex', false)).toBeNull();
   });
 });

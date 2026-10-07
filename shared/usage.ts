@@ -34,6 +34,16 @@ export function jobLine(tokens: TokenCounts | null, costUsd: number, contextPct:
   return `This job: ${formatTokens(total(tokens))} tokens · ${formatUsd(costUsd)} at API prices${ctx}`;
 }
 
+/**
+ * The terminal header's line, or null for none. Only a CLI that reports nothing (Codex, OpenCode) says "no figures";
+ * a Claude agent with a cost but no tokens (a job from before the meter) shows just the cost.
+ */
+export function headerLine(tokens: TokenCounts | null, costUsd: number, contextPct: number | null, cli: string, cliName: string, started: boolean) {
+  if (tokens) return jobLine(tokens, costUsd, contextPct, cliName);
+  if (cli !== 'claude') return started ? jobLine(null, 0, null, cliName) : null;
+  return costUsd > 0 ? `This job: ${formatUsd(costUsd)} at API prices` : null;
+}
+
 /** Where a job's tokens went: cache reads are most of them and the cheapest. */
 export function splitLine(tokens: TokenCounts | null) {
   if (!tokens) return '';

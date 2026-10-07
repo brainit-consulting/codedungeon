@@ -999,7 +999,9 @@ function ceoSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle {
     if (done) return;
     done = true;
     cb.tool(null);
-    cb.finished({ ok, text, costUsd: ok ? 0.4 + Math.random() : 0.05, turns: 6 + Math.floor(Math.random() * 10), errors: error ? [error] : [] });
+    const costUsd = ok ? 0.4 + Math.random() : 0.05;
+    cb.usage?.({ tokens: { input: 300, cacheRead: Math.round(costUsd * 400_000), cacheWrite: 9_000, output: 2_400 }, costUsd, contextPct: 31 }); // made-up figures for the usage meter
+    cb.finished({ ok, text, costUsd, turns: 6 + Math.floor(Math.random() * 10), errors: error ? [error] : [] });
   };
 
   timers.push(

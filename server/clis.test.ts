@@ -257,3 +257,29 @@ describe('backgroundRunning', () => {
     expect(backgroundRunning(old)).toBe(false);
   });
 });
+
+describe('the status line script', () => {
+  it('forwards the cost and how full the context is to the office', async () => {
+    const { STATUSLINE_SOURCE } = await import('./clis.ts');
+    const http = await import('node:http');
+    const { spawn } = await import('node:child_process');
+    let got: Record<string, unknown> = {};
+    const server = http.createServer((req, res) => {
+      let b = '';
+      req.on('data', (c) => (b += c));
+      req.on('end', () => {
+        got = JSON.parse(b);
+        res.end(JSON.stringify({ statusLine: 'ok' }));
+      });
+    });
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+    const port = (server.address() as { port: number }).port;
+    const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'cd-status-')), 'statusline.cjs');
+    fs.writeFileSync(file, STATUSLINE_SOURCE);
+    const child = spawn(process.execPath, [file, `http://127.0.0.1:${port}/`], { windowsHide: true });
+    child.stdin.end(JSON.stringify({ session_id: 's1', cost: { total_cost_usd: 1.5 }, context_window: { used_percentage: 41 } }));
+    await new Promise((r) => child.on('exit', r));
+    server.close();
+    expect(got).toMatchObject({ session_id: 's1', cost: { total_cost_usd: 1.5 }, context_window: { used_percentage: 41 } });
+  });
+});

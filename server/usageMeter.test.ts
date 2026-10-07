@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { costStep, FileMeter, foldUsage, modelTokens, NO_TOKENS, statusUsage, subTokens, sumTokens, totalTokens, UsageTally, type Tokens } from './usageMeter.ts';
+import { costStep, FileMeter, foldUsage, modelTokens, NO_TOKENS, promptBaseline, statusUsage, subTokens, sumTokens, totalTokens, UsageTally, type Tokens } from './usageMeter.ts';
 
 // One reply as Claude Code writes it to its session file (shape measured 2026-10-06).
 const reply = (id: string, output: number, extra: Partial<Record<string, number>> = {}) =>
@@ -28,7 +28,7 @@ describe('foldUsage', () => {
 
 describe('costStep', () => {
   it('adds what the running cost grew by', () => expect(costStep(1.5, 2)).toBeCloseTo(0.5));
-  it('counts from 0 again when the running cost drops (/clear, a fresh process)', () => expect(costStep(3, 0.25)).toBeCloseTo(0.25));
+  it('adds nothing when the running cost drops (/clear, or a status tick arriving late): it can never over-count', () => expect(costStep(31.2, 31.15)).toBe(0));
 });
 
 describe('UsageTally', () => {
@@ -46,9 +46,10 @@ describe('UsageTally', () => {
     t.update({ input: 1, cacheRead: 2, cacheWrite: 3, output: 4 }, 0.1);
     expect(t.update(null, null)).toEqual({ tokens: { input: 1, cacheRead: 2, cacheWrite: 3, output: 4 }, costUsd: 0.1 });
   });
-  it('never goes negative after a cost reset', () => {
+  it('after a reset, counts on from the new reading', () => {
     const t = new UsageTally(NO_TOKENS, 2);
-    expect(t.update(null, 0.3).costUsd).toBeCloseTo(0.3);
+    expect(t.update(null, 0.3).costUsd).toBe(0);
+    expect(t.update(null, 0.5).costUsd).toBeCloseTo(0.2);
   });
 });
 
@@ -106,4 +107,20 @@ describe('UsageTally with an unknown starting cost (a CLI re-attached after an o
     expect(t.update(null, 3).costUsd).toBe(0);
     expect(t.update(null, 3.4).costUsd).toBeCloseTo(0.4);
   });
+});
+
+describe('promptBaseline (a prompt typed at an idle CLI)', () => {
+  it('notes where the session file and cost stood when the prompt went in, before its first reply', () => {
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'cd-meter-'));
+    const file = path.join(d, 's.jsonl');
+    fs.writeFileSync(file, `${reply('old', 50)}\n`);
+    const meter = new FileMeter();
+    const base = promptBaseline({ transcript_path: file }, meter, 2.5)!;
+    expect(base).toMatchObject({ transcript: file, cost: 2.5 });
+    fs.appendFileSync(file, `${reply('new', 70)}\n`);
+    const job = new UsageTally(base.tokens, base.cost).update(meter.read(file), 2.9);
+    expect(job.tokens.output).toBe(70);
+    expect(job.costUsd).toBeCloseTo(0.4);
+  });
+  it('is null when the hook names no session file', () => expect(promptBaseline({}, new FileMeter(), 1)).toBeNull());
 });
