@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { costStep, FileMeter, foldUsage, NO_TOKENS, statusUsage, subTokens, sumTokens, totalTokens, UsageTally, type Tokens } from './usageMeter.ts';
+import { costStep, FileMeter, foldUsage, modelTokens, NO_TOKENS, statusUsage, subTokens, sumTokens, totalTokens, UsageTally, type Tokens } from './usageMeter.ts';
 
 // One reply as Claude Code writes it to its session file (shape measured 2026-10-06).
 const reply = (id: string, output: number, extra: Partial<Record<string, number>> = {}) =>
@@ -88,3 +88,22 @@ describe('statusUsage', () => {
 });
 
 it('subTokens floors at 0', () => expect(subTokens(NO_TOKENS, { input: 1, cacheRead: 1, cacheWrite: 1, output: 1 })).toEqual(NO_TOKENS));
+
+describe('modelTokens', () => {
+  it("adds up the SDK's per-model usage (main loop and subagents together)", () => {
+    const mu = {
+      'claude-opus-5-5': { inputTokens: 10, outputTokens: 200, cacheReadInputTokens: 5000, cacheCreationInputTokens: 300 },
+      'claude-haiku-4-5': { inputTokens: 1, outputTokens: 20, cacheReadInputTokens: 0, cacheCreationInputTokens: 50 },
+    };
+    expect(modelTokens(mu)).toEqual({ input: 11, cacheRead: 5000, cacheWrite: 350, output: 220 });
+    expect(modelTokens(undefined)).toEqual(NO_TOKENS);
+  });
+});
+
+describe('UsageTally with an unknown starting cost (a CLI re-attached after an office restart)', () => {
+  it('takes the first reading as its baseline instead of counting the whole session again', () => {
+    const t = new UsageTally(NO_TOKENS, null);
+    expect(t.update(null, 3).costUsd).toBe(0);
+    expect(t.update(null, 3.4).costUsd).toBeCloseTo(0.4);
+  });
+});

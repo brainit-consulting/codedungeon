@@ -1,6 +1,7 @@
 // Types shared between the swarm server and the 3D client.
 
 import type { ShipView } from './ship.ts';
+import type { TokenCounts } from './usage.ts';
 
 export type AgentStatus =
   | 'idle' // at desk, nothing assigned
@@ -212,6 +213,10 @@ export interface AgentView {
   startedAt: number | null;
   endedAt: number | null;
   costUsd: number;
+  /** This job's tokens at API prices (shared/usage.ts); null: their CLI reports none (Codex, OpenCode). */
+  tokens: TokenCounts | null;
+  /** How full their context is (Claude Code's status line), or null before it says. */
+  contextPct: number | null;
   turns: number;
   browserUrl: string | null;
   hasScreenshot: boolean;

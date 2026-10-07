@@ -56,6 +56,8 @@ export interface OfficeLoad {
   clisWaiting: number;
   usage: UsageView;
   pacingSessions: number;
+  /** Every session since local midnight, at API prices. */
+  today: { tokens: number; costUsd: number };
 }
 
 const cpuTimes = (): CpuTimes[] => os.cpus().map((c) => c.times);
@@ -103,6 +105,7 @@ export function createSystemMonitor(opts: { diskPath: string; office: () => Offi
       uptime: { system: Math.round(os.uptime()), office: Math.round(process.uptime()) },
       sessions: { running: office.running, agents: office.agents, limit: office.limit, clisWorking: office.clisWorking, clisWaiting: office.clisWaiting },
       usage: { ...office.usage, pacingSessions: office.pacingSessions },
+      today: office.today,
     };
   }
 

@@ -13,6 +13,7 @@ const reading = (at: number, cpu: number | null, used = 8): SystemView => ({
   uptime: { system: 100, office: 10 },
   sessions: { running: 1, agents: 3, limit: 0, clisWorking: 1, clisWaiting: 0 },
   usage: { state: 'normal', until: null, pacingSessions: 3 },
+  today: { tokens: 4_210_000, costUsd: 18.4 },
 });
 
 describe('gaugeFace', () => {

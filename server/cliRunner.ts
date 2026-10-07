@@ -24,6 +24,7 @@ import {
 } from './agentRunner.ts';
 import type { OfficeTools } from './ceo.ts';
 import type { AgentTerminal } from './terminal.ts';
+import { FileMeter, statusUsage, UsageTally } from './usageMeter.ts';
 import type { AgentCli } from '../shared/types.ts';
 
 // One agent session as the real CLI in a pseudo-terminal: the same contract as the Agent SDK runner (log lines, the
@@ -43,6 +44,8 @@ const SESSIONS_DIR = path.join(HOME_DIR, 'sessions');
 const BIN_DIR = path.join(HOME_DIR, 'bin');
 /** After a turn ends the CLI may still pick up a queued message: only an idle prompt this long means it's done. */
 const FINISH_GRACE_MS = 3000;
+/** The usage meter reads a session file at most this often while it works (and always at a turn's end). */
+const USAGE_EVERY_MS = 5000;
 // A turn that ends with background work still running waits for it (re-checking the screen), but never past this.
 const BACKGROUND_WAIT_MS = 90 * 60_000;
 const BACKGROUND_RECHECK_MS = 30_000;
@@ -177,6 +180,10 @@ interface LiveCli {
   /** The office session driving it; null while it waits at its prompt. */
   session: { hook(b: Record<string, unknown>): Record<string, unknown>; exited(code: number): void } | null;
   idleTimer?: NodeJS.Timeout;
+  /** Its Claude session file, read a little at a time for the usage meter. */
+  meter: FileMeter;
+  /** The status line's running cost when last seen; null: not known (adopted after a restart, or resumed). */
+  costSeen: number | null;
 }
 const lives = new Map<AgentTerminal, LiveCli>();
 /** How to trust Codex's hooks was said once this run (Codex asks at the start of every session until they are). */
@@ -284,7 +291,7 @@ export async function reconnectClis(terminalFor: (agentId: string) => AgentTermi
       if (meta.cli === 'codex' && meta.resumeId) void codexThread('archive', meta.resumeId, h.exit === null ? new Promise((r) => setTimeout(r, 5000)) : undefined);
       continue;
     }
-    const l: LiveCli = { agentId: meta.agentId, cli: meta.cli, term, proc: adoptPty(h), token: meta.token, dir: meta.dir, resumeId: meta.resumeId ?? null, statusLine: '🏰 Code Dungeon', shots: new Set(), session: null };
+    const l: LiveCli = { agentId: meta.agentId, cli: meta.cli, term, proc: adoptPty(h), token: meta.token, dir: meta.dir, resumeId: meta.resumeId ?? null, statusLine: '🏰 Code Dungeon', shots: new Set(), session: null, meter: new FileMeter(), costSeen: null };
     wire(l);
     waitAtPrompt(l);
     // Resizing makes the CLI draw its whole screen again, over whatever the saved copy of the terminal missed.
@@ -387,6 +394,25 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   const cb: SessionCallbacks = { ...callbacks };
   const log = (entries: LogEntry[]) => entries.length && cb.log(entries);
 
+  // The usage meter (usageMeter.ts): only Claude Code reports tokens and cost. The tally starts at this job's first
+  // measurement, from the first hook that names the session file, before any reply of this job is in it.
+  let tally: UsageTally | null = null;
+  let transcript = '';
+  let contextPct: number | null = null;
+  let measuredAt = 0;
+  const measure = (force = false) => {
+    const l = live;
+    if (cli !== 'claude' || !l || !transcript) return;
+    if (!force && Date.now() - measuredAt < USAGE_EVERY_MS) return;
+    measuredAt = Date.now();
+    const totals = l.meter.read(transcript);
+    tally ??= new UsageTally(totals, l.costSeen);
+    const job = tally.update(totals, null);
+    costUsd = job.costUsd;
+    cb.usage?.({ tokens: job.tokens, costUsd, contextPct });
+  };
+  if (cli !== 'claude') cb.usage?.({ tokens: null, costUsd: 0, contextPct: null });
+
   /** Codex and OpenCode don't report tool results: pass on the screenshots their browser saved instead. all: the last look. */
   const collectShots = (all = false) => {
     const l = live;
@@ -404,6 +430,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   /** The session is over. A developer's CLI that ended its turn normally stays at its prompt (keep); others close. */
   const finish = (r: Omit<SessionResult, 'costUsd' | 'turns'>, keep = false) => {
     if (done) return;
+    measure(true);
     done = true;
     for (const t of [finishTimer, bootTimer]) clearTimeout(t);
     clearInterval(screenTimer);
@@ -478,8 +505,12 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   };
 
   const onStatus = (b: Record<string, unknown>) => {
-    const cost = Number((b.cost as { total_cost_usd?: unknown } | undefined)?.total_cost_usd);
-    if (Number.isFinite(cost)) costUsd = cost;
+    const s = statusUsage(b);
+    if (s.contextPct !== null) contextPct = s.contextPct;
+    if (s.cost !== null) {
+      if (tally) costUsd = tally.update(null, s.cost).costUsd;
+      if (live) live.costSeen = s.cost;
+    }
     const limits = (b.rate_limits ?? {}) as Record<string, { used_percentage?: unknown; resets_at?: unknown } | null>;
     for (const [type, l] of Object.entries(limits)) {
       const used = Number(l?.used_percentage);
@@ -497,6 +528,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   const hook = (b: Record<string, unknown>): Record<string, unknown> => {
     const event = String(b.hook_event_name ?? '');
     const sub = typeof b.agent_id === 'string' && b.agent_id !== ''; // a subagent's call: kept off the log
+    if (cli === 'claude' && !sub && typeof b.transcript_path === 'string' && b.transcript_path) transcript = b.transcript_path;
     if (cli === 'claude' && !sub && b.session_id !== kept) {
       const id = resumableSession(b, fs.existsSync);
       if (id) {
@@ -535,11 +567,13 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
         if (event === 'PostToolUseFailure') log([{ kind: 'error', text: `  ⎿ ${clip(tidyPaths(opts.cwd, String(b.error ?? out.text ?? 'Error')).split('\n')[0] || 'Error', 200)}` }]);
         else if (name !== 'TodoWrite') log(summariseResult(opts.cwd, name, out.text));
         cb.tool(null);
+        measure();
         return {};
       }
       case 'UserPromptSubmit': {
         if (sub) return {};
         busy();
+        measure(true); // nothing of this job is in the file yet: the baseline
         const prompt = String(b.prompt ?? '').trim();
         const i = officePrompts.findIndex((p) => p.slice(0, 60) === prompt.slice(0, 60));
         if (i >= 0) officePrompts.splice(i, 1);
@@ -553,6 +587,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
           log(assistantLines(text));
           cb.turn?.(text);
         }
+        measure(true);
         turnEnded(text);
         return {};
       }
@@ -728,7 +763,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   if (cli === 'claude' && opts.resumeSessionId) cb.sessionId(sessionId);
   term.note(`── ${label}${opts.label ? ` · ${opts.label}` : ''} ──`);
   const resumeId = cli === 'claude' ? sessionId : (opts.resumeSessionId ?? null);
-  const l: LiveCli = { agentId: opts.agentId ?? '', cli, term, proc: null, token, dir, resumeId, statusLine, shots: new Set(), session: { hook, exited } };
+  const l: LiveCli = { agentId: opts.agentId ?? '', cli, term, proc: null, token, dir, resumeId, statusLine, shots: new Set(), session: { hook, exited }, meter: new FileMeter(), costSeen: opts.resumeSessionId ? null : 0 };
   const begin = () => {
     if (done) return; // stopped while its thread was being unarchived
     let p: Pty;

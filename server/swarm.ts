@@ -28,6 +28,8 @@ import { CEO_ID } from '../shared/types.ts';
 import { browserInstalled, missingBrowsers, NoPlaywrightError, playwrightRoots } from './browsers.ts';
 import { noMainNotice } from './emptyRepo.ts';
 import { oneAtATime } from './oneAtATime.ts';
+import { addToDay, type UsageDay } from './usageDay.ts';
+import { addTokens, NO_TOKENS, totalTokens, type Tokens } from './usageMeter.ts';
 import type {
   AgentCli,
   AgentLook,
@@ -108,6 +110,9 @@ interface PersistedAgent {
   startedAt: number | null;
   endedAt: number | null;
   costUsd: number;
+  /** This job's tokens at API prices (usage meter); null: their CLI reports none. */
+  tokens?: Tokens | null;
+  contextPct?: number | null;
   turns: number;
   sessionId: string | null;
   sessionCli: AgentCli | null; // the CLI whose session sessionId is: only it can resume it
@@ -155,6 +160,8 @@ interface Persisted {
   ceo: CeoState;
   messages: PhoneMessage[];
   phoneReadAt: number;
+  /** Every session since local midnight, at API prices (usageDay.ts). */
+  usageToday?: UsageDay;
 }
 
 interface Shot {
@@ -173,6 +180,8 @@ interface AgentRuntime {
   screenshot: { data: Buffer; mime: string; at: number } | null;
   shots: Shot[]; // every screenshot of the current session (QA evidence)
   terminal: AgentTerminal | null; // their terminal, once they've run in the terminal runtime
+  /** Where the job's figures stood when this session began, and what this session has reported so far. */
+  usageBase?: { tokens: Tokens; costUsd: number; seenTokens: number; seenCost: number };
 }
 
 interface RepoRuntime {
@@ -528,6 +537,7 @@ export class Swarm {
         ceo: { ...this.state.ceo, ...loaded.ceo },
         messages: loaded.messages ?? [],
         phoneReadAt: loaded.phoneReadAt ?? 0,
+        usageToday: loaded.usageToday,
       };
       for (const m of this.state.messages) this.messageSeq = Math.max(this.messageSeq, m.id + 1);
       if (!EFFORTS.includes(this.state.settings.defaultEffort)) this.state.settings.defaultEffort = 'medium';
@@ -725,6 +735,8 @@ export class Swarm {
       startedAt: a.startedAt,
       endedAt: a.endedAt,
       costUsd: a.costUsd,
+      tokens: a.tokens ?? null,
+      contextPct: a.contextPct ?? null,
       turns: a.turns,
       browserUrl: rt.browserUrl,
       hasScreenshot: !!rt.screenshot,
@@ -778,7 +790,8 @@ export class Swarm {
   /** How busy the office is, for the gauges (GET /api/system): sessions running, the team, Claude's usage. */
   load() {
     const { sessionLimit, pacingSessions } = this.state.settings;
-    return { running: this.running(), agents: this.state.agents.length, limit: sessionLimit, pacingSessions, usage: this.usageNow() };
+    const today = addToDay(this.state.usageToday, 0, 0, Date.now()); // a new day reads 0 without a write
+    return { running: this.running(), agents: this.state.agents.length, limit: sessionLimit, pacingSessions, usage: this.usageNow(), today: { tokens: today.tokens, costUsd: today.costUsd } };
   }
 
   screenshot(agentId: string) {
@@ -1593,6 +1606,8 @@ export class Swarm {
       startedAt: null,
       endedAt: null,
       costUsd: 0,
+      tokens: null,
+      contextPct: null,
       turns: 0,
       sessionId: null,
       sessionCli: null,
@@ -1861,6 +1876,8 @@ export class Swarm {
       startedAt: Date.now(),
       endedAt: null,
       costUsd: 0,
+      tokens: null,
+      contextPct: null,
       turns: 0,
       lastError: null,
       asks: null,
@@ -1937,6 +1954,7 @@ export class Swarm {
     a.status = 'working';
     const how = this.sessionRuntime(a, resumeSessionId);
     this.emitAgent(a);
+    rt.usageBase = { tokens: a.tokens ?? NO_TOKENS, costUsd: a.costUsd, seenTokens: 0, seenCost: 0 };
     rt.session = this.backend.startSession(
       {
         cwd,
@@ -1984,9 +2002,35 @@ export class Swarm {
         },
         limited: (at) => this.pauseForLimit(at),
         usageWarning: (info) => this.paceForWarning(info),
+        usage: (u) => this.onUsage(a, u),
         finished: (result) => void this.onFinished(a, repo, result),
       },
     );
+  }
+
+  /** A session's figures so far: the job's line, and what it added to the day (only growth, so nothing counts twice). */
+  private onUsage(a: PersistedAgent, u: { tokens: Tokens | null; costUsd: number; contextPct: number | null }) {
+    const rt = this.agentRt.get(a.id);
+    if (!rt || !this.state.agents.includes(a)) return;
+    const b = (rt.usageBase ??= { tokens: a.tokens ?? NO_TOKENS, costUsd: a.costUsd, seenTokens: 0, seenCost: 0 });
+    if (u.tokens) {
+      const seen = totalTokens(u.tokens);
+      this.state.usageToday = addToDay(this.state.usageToday, seen - b.seenTokens, u.costUsd - b.seenCost, Date.now());
+      b.seenTokens = Math.max(b.seenTokens, seen);
+      b.seenCost = Math.max(b.seenCost, u.costUsd);
+      a.tokens = addTokens(b.tokens, u.tokens);
+      a.costUsd = b.costUsd + u.costUsd;
+    }
+    a.contextPct = u.contextPct;
+    this.emitAgent(a); // the runners already report at most every few seconds
+  }
+
+  /** A session ended: its cost is final; the day gets any cost it hadn't reported as it went. */
+  private finalUsage(a: PersistedAgent, rt: AgentRuntime, costUsd: number) {
+    const b = rt.usageBase ?? { tokens: a.tokens ?? NO_TOKENS, costUsd: a.costUsd, seenTokens: 0, seenCost: 0 };
+    if (costUsd > b.seenCost) this.state.usageToday = addToDay(this.state.usageToday, 0, costUsd - b.seenCost, Date.now());
+    a.costUsd = b.costUsd + Math.max(costUsd, b.seenCost);
+    rt.usageBase = undefined;
   }
 
   private async onFinished(a: PersistedAgent, repo: PersistedRepo, result: SessionResult) {
@@ -1996,7 +2040,7 @@ export class Swarm {
     rt.session = null;
     rt.currentTool = null;
     a.endedAt = Date.now();
-    a.costUsd += result.costUsd;
+    this.finalUsage(a, rt, result.costUsd);
     a.turns += result.turns;
     // Dev servers the agent forgot to stop would otherwise keep its port and lock its desk folder.
     void this.backend.releaseDesk(repo.fullName, this.agentSlug(a), this.port(a)).catch(() => undefined);
@@ -2940,6 +2984,8 @@ export class Swarm {
         startedAt: null,
         endedAt: null,
         costUsd: 0,
+        tokens: null,
+        contextPct: null,
         turns: 0,
         sessionId: null,
         sessionCli: null,
@@ -3030,7 +3076,7 @@ export class Swarm {
     const floor = this.ceoFloor(job.repoId);
     const label = jobLabel(job, floor);
     this.state.ceo.job = job;
-    Object.assign(a, { status: 'working' as AgentStatus, task: null, issueNumber: null, issueTitle: label, startedAt: Date.now(), endedAt: null, costUsd: 0, turns: 0, lastError: null });
+    Object.assign(a, { status: 'working' as AgentStatus, task: null, issueNumber: null, issueTitle: label, startedAt: Date.now(), endedAt: null, costUsd: 0, tokens: null, contextPct: null, turns: 0, lastError: null });
     this.appendLog(a, [
       { kind: 'system', text: '' },
       { kind: 'system', text: `━━━ ${label} ━━━` },
@@ -3054,6 +3100,7 @@ export class Swarm {
     const s = this.state.settings;
     // A chat carries on from the CEO's last session, so "why did you propose that?" has an answer.
     const how = this.sessionRuntime(a, job.kind === 'chat' ? (a.sessionId ?? undefined) : undefined);
+    rt.usageBase = { tokens: a.tokens ?? NO_TOKENS, costUsd: a.costUsd, seenTokens: 0, seenCost: 0 };
     rt.session = this.backend.startSession(
       {
         cwd: CEO_DIR,
@@ -3091,6 +3138,7 @@ export class Swarm {
         turn: (text) => this.postMessage('ceo', text),
         limited: (at) => this.pauseForLimit(at),
         usageWarning: (info) => this.paceForWarning(info),
+        usage: (u) => this.onUsage(a, u),
         finished: (result) => this.onCeoFinished(a, result),
       },
     );
@@ -3102,7 +3150,7 @@ export class Swarm {
     rt.session = null;
     rt.currentTool = null;
     a.endedAt = Date.now();
-    a.costUsd += result.costUsd;
+    this.finalUsage(a, rt, result.costUsd);
     a.turns += result.turns;
     const job = this.state.ceo.job;
     this.state.ceo.job = null;

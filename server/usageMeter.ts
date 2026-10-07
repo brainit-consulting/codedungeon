@@ -56,22 +56,34 @@ export function sumTokens(byId: Map<string, Tokens>): Tokens {
   return t;
 }
 
+/** The SDK's per-model running totals (a result's modelUsage: main loop, subagents and compaction) as one count. */
+export function modelTokens(mu: Record<string, { inputTokens?: number; outputTokens?: number; cacheReadInputTokens?: number; cacheCreationInputTokens?: number }> | undefined): Tokens {
+  let t = NO_TOKENS;
+  for (const m of Object.values(mu ?? {})) {
+    t = addTokens(t, { input: num(m.inputTokens), cacheRead: num(m.cacheReadInputTokens), cacheWrite: num(m.cacheCreationInputTokens), output: num(m.outputTokens) });
+  }
+  return t;
+}
+
 /** What a running cost added since `last`. A drop means it started again from 0 (/clear, a new process). */
 export const costStep = (last: number, now: number) => (now >= last ? now - last : now);
 
-/** One job's figures, measured from where the session stood when the job began. */
+/**
+ * One job's figures, measured from where the session stood when the job began. lastCost null: where the running
+ * cost stood isn't known (a CLI re-attached after an office restart), so its first reading is the baseline.
+ */
 export class UsageTally {
   private tokens: Tokens = NO_TOKENS;
   private cost = 0;
   constructor(
     private readonly baseTokens: Tokens,
-    private lastCost: number,
+    private lastCost: number | null,
   ) {}
 
   update(totals: Tokens | null, cost: number | null) {
     if (totals) this.tokens = subTokens(totals, this.baseTokens);
     if (cost !== null) {
-      this.cost += costStep(this.lastCost, cost);
+      if (this.lastCost !== null) this.cost += costStep(this.lastCost, cost);
       this.lastCost = cost;
     }
     return { tokens: this.tokens, costUsd: this.cost };

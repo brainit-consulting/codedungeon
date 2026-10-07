@@ -4,6 +4,7 @@ import { query, type CanUseTool, type Options, type SDKMessage, type SDKUserMess
 import type { AgentCli, AgentRole, EffortLevel, LogKind } from '../shared/types.ts';
 import type { OfficeTools } from './ceo.ts';
 import type { UsageWarning } from './pacing.ts';
+import { modelTokens, NO_TOKENS, UsageTally, type Tokens } from './usageMeter.ts';
 import type { AgentTerminal } from './terminal.ts';
 import { VERSION } from './config.ts';
 
@@ -71,6 +72,8 @@ export interface SessionCallbacks {
   limited?(resetsAt: number | null): void;
   /** Claude warned that the subscription's usage is getting high (not while on overage). */
   usageWarning?(info: UsageWarning): void;
+  /** This job's tokens and cost at API prices so far (usageMeter.ts); tokens null: the CLI reports none. */
+  usage?(u: { tokens: Tokens | null; costUsd: number; contextPct: number | null }): void;
   finished(result: SessionResult): void;
 }
 
@@ -299,6 +302,8 @@ export function startSession(opts: SessionOptions, callbacks: SessionCallbacks):
   let stopped = false;
   let lastCost = 0;
   let lastTurns = 0;
+  // A resumed session's first result already carries its earlier turns: it becomes the baseline instead (SDK docs)
+  let tally: UsageTally | null = opts.resumeSessionId ? null : new UsageTally(NO_TOKENS, 0);
   const toolNames = new Map<string, string>();
 
   input.push(opts.prompt);
@@ -457,7 +462,11 @@ export function startSession(opts: SessionOptions, callbacks: SessionCallbacks):
         break;
       }
       case 'result': {
-        lastCost = msg.total_cost_usd;
+        const totals = modelTokens(msg.modelUsage);
+        tally ??= new UsageTally(totals, msg.total_cost_usd);
+        const job = tally.update(totals, msg.total_cost_usd);
+        lastCost = job.costUsd;
+        cb.usage?.({ tokens: job.tokens, costUsd: job.costUsd, contextPct: null });
         lastTurns = msg.num_turns;
         if (msg.subtype === 'success' && !msg.is_error && msg.num_turns === 0) {
           // A resumed session can first replay a turn left over from before an office restart: an empty "success"

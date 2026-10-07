@@ -223,8 +223,10 @@ function fakeSession(opts: SessionOptions, cb: SessionCallbacks, fullName: strin
   const body = kind === 'qa' ? qaScript(cb, number, title, round) : kind === 'fix' ? fixScript(number) : devScript(opts, cb, number, title);
   const script = [header, ...(asking ? body.slice(0, 7) : body)];
 
+  // made-up figures for the usage meter: they grow with each step, to the job's cost at the end
+  const jobCost = 0.3 + Math.random();
   const finish = () => {
-    const costUsd = 0.3 + Math.random();
+    const costUsd = jobCost;
     const turns = 15 + Math.floor(Math.random() * 20);
     cb.tool(null);
     if (kind === 'qa') {
@@ -320,6 +322,11 @@ function fakeSession(opts: SessionOptions, cb: SessionCallbacks, fullName: strin
       cb.tool(tool?.tool ?? null);
       cb.log(s);
     }
+    cb.usage?.({
+      tokens: { input: 40 * i, cacheRead: 18_000 * i, cacheWrite: 1_500 * i, output: 600 * i },
+      costUsd: (jobCost * i) / script.length,
+      contextPct: Math.min(95, 8 + 6 * i),
+    });
     timers.push(setTimeout(step, 1600 + Math.random() * 3800));
   };
   timers.push(setTimeout(step, 600));

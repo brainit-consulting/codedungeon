@@ -20,6 +20,8 @@ export interface SystemView {
   sessions: { running: number; agents: number; limit: number; clisWorking: number; clisWaiting: number };
   /** Claude's usage as the office knows it from Claude's warnings, and how many sessions pacing allows. */
   usage: UsageView & { pacingSessions: number };
+  /** Every session since local midnight, at API prices (the usage meter). */
+  today: { tokens: number; costUsd: number };
 }
 
 /** "512 MB", "31.7 GB", "1.20 TB": binary units, three significant figures. */
