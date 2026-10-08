@@ -43,6 +43,8 @@ export { terminalsAvailable };
 
 const SESSIONS_DIR = path.join(HOME_DIR, 'sessions');
 const BIN_DIR = path.join(HOME_DIR, 'bin');
+/** The scratch folder coders are told to use: removals inside it are answered yes (permissionGate.ts). */
+const SCRATCH_DIR = path.join(HOME_DIR, 'tmp');
 /** After a turn ends the CLI may still pick up a queued message: only an idle prompt this long means it's done. */
 const FINISH_GRACE_MS = 3000;
 /** The usage meter reads a session file at most this often while it works (and always at a turn's end). */
@@ -330,7 +332,7 @@ function idleHook(live: LiveCli, b: Record<string, unknown>): Record<string, unk
     case 'PreToolUse':
       return ALLOW;
     case 'PermissionRequest':
-      return permissionAnswer(b) === 'allow' ? { hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'allow' } } } : {};
+      return permissionAnswer(b, SCRATCH_DIR) === 'allow' ? { hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'allow' } } } : {};
     case 'UserPromptSubmit': {
       const text = String(b.prompt ?? '').trim();
       // before the follow-up starts: no reply to this prompt is in the session file yet
@@ -616,9 +618,9 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
         return {};
       }
       case 'PermissionRequest': {
-        // a prompt despite PreToolUse's allow: yes for the office, except a removal (permissionGate.ts)
+        // a prompt despite PreToolUse's allow: yes for the office, except a removal outside scratch (permissionGate.ts)
         const what = describeTool(opts.cwd, String(b.tool_name ?? ''), toolInput(b));
-        if (permissionAnswer(b) === 'allow') {
+        if (permissionAnswer(b, SCRATCH_DIR) === 'allow') {
           log([{ kind: 'system', text: `  ✔ ${label} asked before: ${clip(what, 160)}. The dungeon answered yes.` }]);
           return { hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'allow' } } };
         }

@@ -179,7 +179,7 @@ export const CHAPTERS: GuideChapter[] = [
         "Now and then a coder or tester can't go on without you: a decision only you can make, a password or key, an account, access. They stop and say exactly what they need. It goes on your scroll with an **Answer** button, their panel shows **needs you**, and the scroll's red badge counts them until they're answered. Answer in their message box and they carry on with your answer. If you sorted it out some other way, press **▶ Carry on**.",
       ),
       p(
-        "Claude Code itself sometimes stops to ask before a step, such as writing into its own settings folder or removing a folder at the top of a drive. The dungeon answers yes for you, except to a removal: that stays for you to decide. If a coder has waited ten minutes on one, it goes on your scroll and their panel shows **needs you**. Open their terminal and answer it there.",
+        "Claude Code itself sometimes stops to ask before a step, such as writing into its own settings folder or removing a folder at the top of a drive. The dungeon answers yes for you, except to a removal outside its own tmp folder: that stays for you to decide. If a coder has waited ten minutes on one, it goes on your scroll and their panel shows **needs you**. Open their terminal and answer it there.",
       ),
       h("Who's working"),
       p(
@@ -329,7 +329,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('A coder waits for a permission answer'),
       p(
-        'Claude Code asks before removing a folder it counts as critical: the top of a drive, your home folder, or the folder it works in. The dungeon never answers those for you. After ten minutes the coder shows **needs you** and your scroll says what Claude Code wants to remove. Open their terminal ([[E]] on their bench), check the path, and answer. Coders are told to keep scratch folders in the dungeon\'s own tmp folder, so this should be rare.',
+        'Claude Code asks before some removals, such as a folder at the top of a drive, your home folder, or the folder it works in. The dungeon answers yes only when every path being removed sits inside its own tmp folder, the scratch folder coders are told to use. Anything else waits for you: after ten minutes the coder shows **needs you** and your scroll says what Claude Code wants to remove. Open their terminal ([[E]] on their bench), check the path, and answer.',
       ),
       h('Claude asks to sign in'),
       p(
