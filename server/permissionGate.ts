@@ -51,7 +51,8 @@ const UNSAFE = /[$%~`,;{}<>|!&\r\n\0]/;
  */
 function removesOnlyScratch(command: string, scratch: string, shell: 'sh' | 'ps'): boolean {
   if (/[()`]/.test(command)) return false;
-  const parts = command.split(/(&&|\|\||[;&|\n])/);
+  const parts = splitCommands(command);
+  if (!parts) return false;
   let here: string | null = null;
   let moved = false;
   for (let i = 0; i < parts.length; i += 2) {
@@ -75,6 +76,35 @@ function removesOnlyScratch(command: string, scratch: string, shell: 'sh' | 'ps'
     }
   }
   return true;
+}
+
+/**
+ * A command line cut at its separators (&&, ||, ;, &, |, newline) outside quotes, as [command, separator, command, …];
+ * null when a quote is never closed. Godric's `grep -E "OK|Error"` was cut at the quoted | in v0.13.1.
+ */
+function splitCommands(line: string): string[] | null {
+  const parts: string[] = [];
+  let start = 0;
+  let quote = '';
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (quote) {
+      if (c === quote) quote = '';
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      quote = c;
+      continue;
+    }
+    const sep = line.startsWith('&&', i) || line.startsWith('||', i) ? line.slice(i, i + 2) : /[;&|\n]/.test(c) ? c : '';
+    if (!sep) continue;
+    parts.push(line.slice(start, i), sep);
+    i += sep.length - 1;
+    start = i + 1;
+  }
+  if (quote) return null;
+  parts.push(line.slice(start));
+  return parts;
 }
 
 /** A segment's words as the shell would pass them, quotes removed; null when it can't be read with certainty. */

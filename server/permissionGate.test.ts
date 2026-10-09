@@ -38,6 +38,17 @@ describe('permissionAnswer: removals inside the scratch folder', () => {
   it("answers yes to Godric's command (he waited four hours on it, 8 Oct)", () => {
     allow(bash(`cd "${pad}" && rm -f prev/*; bash prev.sh "Idle:1,Haggle:2"`, desk));
   });
+  it("answers yes to Godric's whole command line, with a | inside quotes (v0.13.1 split it there and asked, 9 Oct)", () => {
+    allow(
+      bash(
+        `cd "${pad}" && rm -f prev/*; bash prev.sh "Idle:1,Haggle:4,Throw:17,Attack:10,Cheer:7" | grep -E "OK|Error" ; cd prev && uv run --no-project --with pillow python ../mont.py ../m1.png front34.png Idle_01.png && uv run --no-project --with pillow python ../mont.py ../m2.png Haggle_04.png`,
+        desk,
+      ),
+    );
+  });
+  it('still reads a separator inside quotes as part of the word, not as a place to split', () => {
+    ask(bash(`cd "${pad}" && echo "a;b" ; rm -rf *`, desk)); // the ; inside quotes doesn't make the rm follow the cd with &&
+  });
   it('answers yes to removals named by their full path inside it, from Bash or PowerShell', () => {
     allow(bash(`rm -rf "${path.join(pad, 'prev')}"`, desk));
     allow(bash(`rm -f '${path.join(pad, 'prev')}'/*.png "${path.join(pad, 'old.txt')}"`, desk));
