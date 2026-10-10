@@ -14,6 +14,9 @@ import { UserGuide } from './UserGuide';
 import { getAudioPrefs, setAudioPrefs, subscribeAudio } from './sfx';
 import { Icon, IconText } from './Icon';
 import { spoilsList } from '../world/spoils';
+import { LIBRARY } from '../world/bookRules';
+import { daybook } from '../world/daybook';
+import { useSystemFeed } from '../systemFeed';
 
 // Closing a panel grabs the mouse again right away if "Grab the mouse when panels close" is ticked in help
 // (world/lookLock.ts; off by default), and mouse presses are swallowed for a moment so a double click on
@@ -111,6 +114,41 @@ function MouseSettings() {
   );
 }
 
+/** A book from the library (world/bookRules.ts), opened with E on its spine. */
+function BookPage({ bookId }: { bookId: string }) {
+  const book = LIBRARY.find((b) => b.id === bookId);
+  if (!book) return null;
+  return (
+    <Panel title={book.title} className="panel-book">
+      <div className="book-page">
+        <p className="book-by">
+          {book.by} · {book.year}
+        </p>
+        <p>{book.about}</p>
+        {book.dungeon && <p className="muted small">One of the dungeon's own books.</p>}
+      </div>
+    </Panel>
+  );
+}
+
+/** The Overlord's Daybook (world/daybook.ts), on the stack on your table: today in the dungeon, from the live figures. */
+function DaybookPage() {
+  const repos = useStore((s) => s.repos);
+  const agents = useStore((s) => s.agents);
+  const { latest } = useSystemFeed();
+  const { date, lines } = daybook({ now: Date.now(), repos: Object.values(repos), agents: Object.values(agents), today: latest?.today ?? null });
+  return (
+    <Panel title="The Overlord's Daybook" className="panel-book">
+      <div className="book-page">
+        <p className="book-by">{date}</p>
+        {lines.map((l) => (
+          <p key={l}>{l}</p>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
 /** The chest of spoils (world/SpoilsChest.tsx): the guild's latest merged pull requests. */
 function Spoils() {
   const repos = useStore((s) => s.repos);
@@ -184,6 +222,10 @@ function Help() {
           The dart board hangs on the great hall's south wall, at the west end. Aim at it and press <kbd>E</kbd> to take the three darts. Click or press <kbd>F</kbd> to throw one: a tap lobs it, holding throws harder.
           Darts stick only in the board; a round is three darts, scored like the real game (doubles, trebles, 25 and the bull), and the chalk tally beside it keeps the best round. Press <kbd>E</kbd> on the board again to collect them. <kbd>G</kbd> puts the darts back on the ledge.
         </p>
+        <h3>The library</h3>
+        <p>
+          The bookcases in your study, and one in every chamber, hold the classics of computing. Press <kbd>E</kbd> on a book with a title on its spine to read a line or two about it. The Daybook on your table tells you about today.
+        </p>
         <h3>Sound</h3>
         <p>
           The dungeon's bell tolls when a PR is ready to merge, fails QA or gets merged, when someone hits an error and when a new recruit arrives. <kbd>M</kbd> mutes or unmutes everything, anywhere; <kbd>N</kbd> turns the music on or off.
@@ -254,5 +296,9 @@ export function Overlays() {
       return <ShipPanel repoId={overlay.repoId} />;
     case 'spoils':
       return <Spoils />;
+    case 'book':
+      return <BookPage bookId={overlay.bookId} />;
+    case 'daybook':
+      return <DaybookPage />;
   }
 }

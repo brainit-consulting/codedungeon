@@ -75,6 +75,10 @@ export const DART_BOARD = { x: -12.9, wall: HALF_D, tallyX: -13.75 };
 // The QA lab: test stations along the east wall. Testers face the wall, with their backs to the room.
 export const QA_LAB = { x: HALF_W - 2.0, stations: [-5.2, -2.0, 1.2] };
 export const QA_ROTATION = -Math.PI / 2;
+
+// A chamber's bookcase of the library (Books.tsx): its back on the west wall between the torches at z -8 and 0,
+// facing into the chamber, clear of the west column of benches. z is its middle.
+export const CHAMBER_BOOKCASE = { x: -HALF_W + 0.24, z: -4 };
 export const qaDeskPosition = (slot: number) => ({ x: QA_LAB.x, z: QA_LAB.stations[slot % QA_LAB.stations.length] });
 
 export function officeColliders(): Rect[] {
@@ -95,6 +99,7 @@ export function officeColliders(): Rect[] {
   out.push(rect(-HALF_W + 2.6, 6.5, 0.9, 1.4, SOLID_H.coffeeTable)); // coffee table
   out.push(rect(HALF_W - 0.45, 7.4, 0.9, 5, SOLID_H.kitchen)); // kitchenette counter + fridge
   out.push(rect(HALF_W - 0.5, -9.5, 0.7, 0.7, SOLID_H.cooler)); // water cooler
+  out.push(rect(CHAMBER_BOOKCASE.x, CHAMBER_BOOKCASE.z, 0.5, 1.5, SOLID_H.bookshelf)); // the library's bookcase
   // The door's two oak leaves (Doors.tsx) swing in and stand open against the south wall either side of the doorway,
   // each a 1.2 m fin hinged at the doorway's edge. Solid there, so the cat and the player go round them.
   const { doorHalf } = ELEVATOR;

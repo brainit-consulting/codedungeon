@@ -9,7 +9,8 @@ import * as THREE from 'three';
 import { signStatus } from '../../../shared/ship';
 import { useCanvasTexture, useInteractable } from './interact';
 import { KanbanBoard } from './KanbanBoard';
-import { DESK_ROWS, HALF_D, HALF_W, MAX_DESKS, QA_LAB, QA_ROTATION, WALL_H, deskPosition, qaDeskPosition } from './layout';
+import { CHAMBER_BOOKCASE, DESK_ROWS, HALF_D, HALF_W, MAX_DESKS, QA_LAB, QA_ROTATION, WALL_H, deskPosition, qaDeskPosition } from './layout';
+import { Bookcase } from './Books';
 import { shade } from './materials';
 import { Chandelier, CoffeeTable, Couch, Kitchenette, Plant, WallClock, WaterCooler } from './Props';
 import { Shell, torchesOn } from './Shell';
@@ -150,6 +151,7 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
       <Plant position={[-11, 0, -HALF_D + 0.7]} scale={1.1} />
       <Plant position={[HALF_W - 0.7, 0, HALF_D - 0.7]} scale={0.9} pot="#6e4a30" />
       <Couch position={[-HALF_W + 0.9, 0, 6.5]} rotationY={-Math.PI / 2} color={shade(repo.color, -0.05)} />
+      <Bookcase position={[CHAMBER_BOOKCASE.x, 0, CHAMBER_BOOKCASE.z]} rotationY={Math.PI / 2} seed={10 + repo.floor} offset={repo.floor * 7} />
       <CoffeeTable position={[-HALF_W + 2.6, 0, 6.5]} rotationY={Math.PI / 2} />
       <Kitchenette position={[HALF_W - 0.45, 0, 7]} />
       <WaterCooler position={[HALF_W - 0.5, 0, -9.5]} />

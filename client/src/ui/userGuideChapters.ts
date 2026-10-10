@@ -21,7 +21,7 @@ export const CHAPTERS: GuideChapter[] = [
       h('The great hall'),
       p('You start in the great hall. Its corners and walls hold everything that is about the whole dungeon rather than one project:'),
       list(
-        '**Your study**, the room at the back left. Your table is there: press [[E]] at it to open the Overlord\'s ledger (chapter VI).',
+        '**Your study**, the room at the back left. Your table is there: press [[E]] at it to open the Overlord\'s ledger (chapter VI). On the stack of books at its end lies your Daybook, and the bookcases along the west wall hold the library (chapter VII).',
         "**The DungeonMaster's quarters**, at the back right under the DUNGEONMASTER sign. Press [[E]] on his bench to see what he is working on.",
         '**The bar**, in the middle of the hall, with kegs and bottles behind it. The cat likes to sit on it.',
         '**The hearth** and two feasting tables, towards the south end.',
@@ -41,6 +41,7 @@ export const CHAPTERS: GuideChapter[] = [
         '**The notice board** on the far wall, facing you as you come in: the chamber\'s issues and pull requests (chapter IV).',
         "**The coders' workbenches**, each with a slate on an easel showing that coder's live terminal (chapter V). While they work they write in the ledger on their bench, the quill pinched between thumb and forefinger. The ink goes down as they write, laid out like code, they dip in the inkwell now and then, and turn the page when it's full.",
         '**The assay room**: the testers in aprons along the east wall, who check every pull request before it is merged.',
+        '**A bookcase** on the west wall, with more books from the library (chapter VII).',
         '**The gauges** on the far wall, right of the SHIP IT sign: how hard this computer is working (processor, memory, disk) and how Claude usage stands. Press [[E]] on them for the full readout, refreshed every five seconds. The bottom line, **Today at API prices**, adds up every session since midnight: the tokens, and what they would cost at API list prices. A subscription doesn\'t charge by the token, so this isn\'t what you pay; it shows how much work went through. Codex and OpenCode report no figures, so their sessions aren\'t in it.',
         "**The framed screen** on the left wall: the project's own app. Press [[E]] on it and the app starts by itself on the default branch, and you use it right there. You can switch it to any open pull request. If you press **Stop**, it stays stopped the next time you open the screen, until you start it again.",
       ),
@@ -258,6 +259,13 @@ export const CHAPTERS: GuideChapter[] = [
         "Under the DungeonMaster's trophies in the great hall's north-east corner stands the chest of spoils. Press [[E]] on it: the lid lifts and a scroll lists the guild's latest merged pull requests, newest first, each one a link to GitHub. Close the scroll and the lid shuts. On the shelves above it a chalice stands for every pull request merged, up to eight.",
       ),
       p('Mind your fingers the first time you open it. And now and then something comes out of it that is not spoils.'),
+      h('The library'),
+      p(
+        "The bookcases in your study, and the one in every chamber, hold the classics of computing: Knuth's The Art of Computer Programming, the Dragon Book, Gödel, Escher, Bach and more, with two of the dungeon's own among them. Walk up to a shelf and press [[E]] on a book with a title on its spine to read a line or two about it.",
+      ),
+      p(
+        "On your table, on top of the stack of books, lies the Overlord's Daybook. Press [[E]] on it for today in the dungeon: the pull requests merged since midnight and in which chambers, who is at work right now, and today's work in tokens and what it would cost at API prices.",
+      ),
       h('The tavern'),
       p(
         "Coders and testers with nothing to do don't sit at their benches: they go to the great hall's bar and feasting tables, where Wystan the Tapster keeps the ale coming. They talk, drink and wait for work. When an issue or a pull request comes for them they're back at their bench at once; while they're away, their slate says where they went. The tables are laid with bread, cheese and fruit, and between pours Wystan wipes the bar down with his towel or talks with his hands.",

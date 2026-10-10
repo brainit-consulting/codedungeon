@@ -2838,3 +2838,14 @@ input.inline:focus {
   font-size: 0.8rem;
   letter-spacing: 0.04em;
 }
+
+/* ---------- a book from the library (world/Books.tsx) ---------- */
+.book-page {
+  max-width: 520px;
+  font-size: 18px;
+  line-height: 1.55;
+}
+.book-by {
+  font-style: italic;
+  margin-top: 0;
+}

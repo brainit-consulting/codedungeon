@@ -13,6 +13,7 @@ import { Model } from './models';
 import { WallSign } from './OfficeFloor';
 import { FIRE } from './lightPool';
 import { Bookshelf, Couch, CoffeeTable, GlassWall, Plant, Rug, WallClock } from './Props';
+import { Daybook } from './Books';
 import { Shell, torchesOn } from './Shell';
 
 // Torches where the walls are clear: not over the bookshelf, the trophy cabinet, the CEO's board, the waiting-room
@@ -115,6 +116,8 @@ function ManagerComputer() {
       <Model name="props/Scroll_1" position={[-0.6, 0.77, 0.25]} rotation={[0, 0.4, 0]} />
       <Model name="props/Chalice" position={[0.95, 0.77, 0.15]} />
       <Model name="props/Book_Stack_1" position={[-1.0, 0.77, -0.25]} />
+      {/* on top of the stack (0.215 m tall), the Overlord's Daybook: E opens today's page */}
+      <Daybook position={[-1.0, 0.985, -0.25]} rotationY={0.25} />
       {/* your chair: the high-backed one */}
       <Model name="props/Chair_1" position={[0, 0, -1.1]} scale={1.2} />
     </group>

@@ -18,7 +18,9 @@ export type Overlay =
   | { kind: 'guide'; chapter?: string }
   | { kind: 'system' }
   | { kind: 'ship'; repoId: string }
-  | { kind: 'spoils' };
+  | { kind: 'spoils' }
+  | { kind: 'book'; bookId: string }
+  | { kind: 'daybook' };
 
 export type ManagerTab = 'floors' | 'ceo' | 'team' | 'issues' | 'settings';
 

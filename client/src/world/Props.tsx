@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import * as THREE from 'three';
 import { FIRE, Flame, useFireLight, type FireLook } from './lightPool';
 import { Model } from './models';
+import { Bookcase } from './Books';
 
 // The dungeon's furnishings. The names are the office's old ones (a "plant" is now a floor candle stand, the
 // "kitchenette" the ale corner) so the rooms that place them didn't have to change; each keeps its old footprint,
@@ -107,12 +108,12 @@ export function WallClock({ position, rotationY = 0 }: { position: P; rotationY?
   );
 }
 
-/** Three bookcases side by side, 4.4 m along local X, backs to the wall (was: the bookshelf). */
+/** Three bookcases side by side, 4.4 m along local X, backs to the wall, filled with the library (Books.tsx). */
 export function Bookshelf({ position, rotationY = 0 }: { position: P; rotationY?: number }) {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      {[-1.47, 0, 1.47].map((x) => (
-        <Model key={x} name="props/Bookcase_2" position={[x, 0, 0]} />
+      {[-1.47, 0, 1.47].map((x, i) => (
+        <Bookcase key={x} position={[x, 0, 0]} seed={i + 1} offset={i * 15} />
       ))}
     </group>
   );
