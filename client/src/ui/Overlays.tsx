@@ -1,4 +1,6 @@
-import { useEffect, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { api } from '../api';
+import { ledgerDays, type LedgerView } from '../../../shared/ledger';
 import { useStore } from '../store';
 import { SENSITIVITY_MAX, SENSITIVITY_MIN, useLookPrefs } from '../world/look';
 import { CEO_ID } from '../../../shared/types';
@@ -118,6 +120,7 @@ function MouseSettings() {
 function BookPage({ bookId }: { bookId: string }) {
   const book = LIBRARY.find((b) => b.id === bookId);
   if (!book) return null;
+  if (book.id === 'ledger') return <LedgerPage />;
   return (
     <Panel title={book.title} className="panel-book">
       <div className="book-page">
@@ -126,6 +129,60 @@ function BookPage({ bookId }: { bookId: string }) {
         </p>
         <p>{book.about}</p>
         {book.dungeon && <p className="muted small">One of the dungeon's own books.</p>}
+      </div>
+    </Panel>
+  );
+}
+
+/** The Overlord's Ledger, Volume I (shared/ledger.ts): every chamber's merged pull requests, day by day, for five days. */
+function LedgerPage() {
+  const [view, setView] = useState<LedgerView | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    api
+      .ledger()
+      .then((v) => alive && setView(v))
+      .catch(() => alive && setFailed(true));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const days = view ? ledgerDays(view.merges, Date.now()) : [];
+  return (
+    <Panel title="The Overlord's Ledger: the last five days" className="panel-book">
+      <div className="book-page ledger">
+        {failed ? (
+          <p>The ledger couldn't be read just now: GitHub didn't answer. Try again in a minute.</p>
+        ) : !view ? (
+          <p className="muted">Turning the pages…</p>
+        ) : (
+          days.map((d) => (
+            <section key={d.date} className="ledger-day">
+              <h3>{d.date}</h3>
+              {d.chambers.length === 0 ? (
+                <p className="muted">A quiet day in the dungeon.</p>
+              ) : (
+                d.chambers.map((c) => (
+                  <div key={c.name} className="ledger-chamber">
+                    <strong>{c.name}</strong>: {c.count} merged
+                    <ul>
+                      {c.shown.map((p) => (
+                        <li key={p.number}>
+                          <a href={p.url} target="_blank" rel="noopener noreferrer">
+                            #{p.number} {p.title}
+                          </a>
+                        </li>
+                      ))}
+                      {c.more > 0 && <li className="muted">and {c.more} more</li>}
+                    </ul>
+                  </div>
+                ))
+              )}
+            </section>
+          ))
+        )}
+        {view && view.failed.length > 0 && <p className="muted small">GitHub didn't answer for {view.failed.join(' and ')}, so {view.failed.length > 1 ? 'they are' : 'it is'} missing here.</p>}
       </div>
     </Panel>
   );
@@ -224,7 +281,7 @@ function Help() {
         </p>
         <h3>The library</h3>
         <p>
-          The bookcases in your study, and one in every chamber, hold the classics of computing. Press <kbd>E</kbd> on a book with a title on its spine to read a line or two about it. The Daybook on your table tells you about today.
+          The bookcases in your study, and one in every chamber, hold the classics of computing. Press <kbd>E</kbd> on a book with a title on its spine to read a line or two about it. The glowing Ledger on the middle bookcase holds the last five days of merged work, chamber by chamber, and the Daybook on your table tells you about today.
         </p>
         <h3>Sound</h3>
         <p>

@@ -47,6 +47,18 @@ const pushFails = new Set<string>(process.env.SWARM_DEMO_PUSH_FAIL ? [process.en
 const missingBrowser = process.env.SWARM_DEMO_MISSING_BROWSER === '1' || process.env.SWARM_DEMO_MISSING_BROWSER === 'foreign';
 const foreignPlaywright = process.env.SWARM_DEMO_MISSING_BROWSER === 'foreign';
 const fakeInstalled = new Set<string>();
+/** Made-up merges for the days before the demo started (the Overlord's Ledger, shared/ledger.ts). */
+const DEMO_HISTORY = [
+  'Keyboard shortcuts for every list',
+  'Fix the date shown in the wrong time zone',
+  'Empty states with a hint of what to do',
+  'Cache the last forecast for an hour',
+  'Remember the chosen sort order',
+  'Retry a failed request once before showing an error',
+  'Bigger tap targets on phones',
+  'Tests for the export to CSV',
+  'Show the units next to every reading',
+];
 const DEMO_MISSING_WEBKIT = [
   "Error: browserType.launch: Executable doesn't exist at C:\\demo\\ms-playwright\\webkit-2359\\Playwright.exe",
   '║ Looks like Playwright was just installed or updated.       ║',
@@ -482,6 +494,18 @@ export function createDemoBackend(): Backend {
     },
     listIssues: async (fullName) => [...(repos.get(fullName)?.issues ?? [])],
     listPulls: async (fullName) => [...(repos.get(fullName)?.pulls ?? [])],
+    mergedSince: async (fullName, since) => {
+      const r = repos.get(fullName);
+      if (!r) return [];
+      const real = r.pulls.flatMap((p) => (p.state === 'MERGED' && p.mergedAt && p.mergedAt >= since ? [{ number: p.number, title: p.title, url: p.url, mergedAt: p.mergedAt }] : []));
+      // the demo is born when it starts: its earlier days get made-up merges, so the ledger has a history to show
+      const seed = fullName.length;
+      const past = DEMO_HISTORY.slice(seed % 3, (seed % 3) + 7).map((title, i) => {
+        const number = 90 - i;
+        return { number, title, url: `https://github.com/${fullName}/pull/${number}`, mergedAt: new Date(Date.now() - (1 + (i % 4)) * 86_400_000 - (i + 1) * 3_600_000).toISOString() };
+      });
+      return [...real, ...past.filter((p) => p.mergedAt >= since)];
+    },
     createIssue: async (fullName, title, body, labels = []) => {
       const r = repos.get(fullName);
       if (!r) throw new Error('Unknown repo');

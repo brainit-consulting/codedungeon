@@ -88,7 +88,7 @@ function random(seed: number) {
  * flat, a gap with the last book leaning into it, and a few titled spines spread among plain ones. Titles come from
  * LIBRARY in order from `offset`, so neighbouring shelves show different books.
  */
-export function shelfRow(seed: number, width: number, clear: number, offset: number): PlacedBook[] {
+export function shelfRow(seed: number, width: number, clear: number, offset: number, feature?: string): PlacedBook[] {
   const r = random(seed);
   const pick = <T,>(xs: T[]) => xs[Math.floor(r() * xs.length)];
   const maxTop = clear - 0.02;
@@ -150,7 +150,17 @@ export function shelfRow(seed: number, width: number, clear: number, offset: num
   const count = Math.min(candidates.length - 1, 4 + Math.floor(r() * 3));
   for (let k = 0; k < count; k++) {
     const b = candidates[Math.floor(((k + 0.5) / count) * candidates.length)];
-    b.book = LIBRARY[(offset + k) % LIBRARY.length];
+    b.book = SHELVED[(offset + k) % SHELVED.length];
+  }
+  // a featured book stands upright near the middle of the board, in place of whatever was there
+  const featured = feature ? LIBRARY.find((b) => b.id === feature) : undefined;
+  if (featured) {
+    const upright = out.filter((b) => !b.lying && b.lean === 0);
+    upright[Math.floor(upright.length / 2)].book = featured;
   }
   return out;
 }
+
+/** Books that stand only where they're placed (Books.tsx `feature`): the Ledger, which glows in the study. */
+const PLACED_ONLY = new Set(['ledger']);
+const SHELVED = LIBRARY.filter((b) => !PLACED_ONLY.has(b.id));

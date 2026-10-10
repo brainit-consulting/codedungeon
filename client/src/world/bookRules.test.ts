@@ -48,6 +48,13 @@ describe('shelfRow', () => {
     expect(JSON.stringify(shelfRow(7, width, clear, 3))).not.toEqual(JSON.stringify(shelfRow(8, width, clear, 3)));
   });
 
+  it("puts the Overlord's Ledger only where it is placed, never by chance", () => {
+    for (let seed = 0; seed < 60; seed++) expect(shelfRow(seed, width, clear, seed * 3).some((b) => b.book?.id === 'ledger')).toBe(false);
+    const placed = shelfRow(5, width, clear, 0, 'ledger');
+    expect(placed.filter((b) => b.book?.id === 'ledger')).toHaveLength(1);
+    expect(placed.find((b) => b.book?.id === 'ledger')!.lying).toBe(false);
+  });
+
   it('works through the library from the offset it is given, so shelves side by side show different titles', () => {
     const a = shelfRow(1, width, clear, 0).flatMap((b) => (b.book ? [b.book.id] : []));
     const b = shelfRow(2, width, clear, a.length).flatMap((x) => (x.book ? [x.book.id] : []));

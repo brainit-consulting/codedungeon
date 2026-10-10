@@ -2849,3 +2849,18 @@ input.inline:focus {
   font-style: italic;
   margin-top: 0;
 }
+.ledger {
+  max-height: 64vh;
+  overflow-y: auto;
+}
+.ledger-day h3 {
+  margin: 14px 0 6px;
+  border-bottom: 1.5px solid rgba(42, 29, 20, 0.15);
+}
+.ledger-day:first-child h3 {
+  margin-top: 0;
+}
+.ledger-chamber ul {
+  margin: 2px 0 8px;
+  padding-left: 22px;
+}

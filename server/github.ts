@@ -117,6 +117,13 @@ export async function listPulls(fullName: string): Promise<PullInfo[]> {
   return [...open, ...merged].map(toPull);
 }
 
+/** Pull requests merged on or after `since` (ISO), newest first, up to 100: the Overlord's Ledger. */
+export async function mergedSince(fullName: string, since: string): Promise<{ number: number; title: string; url: string; mergedAt: string }[]> {
+  const day = since.slice(0, 10); // GitHub's search takes a date; the page trims to the exact hour
+  const list = await ghJson<{ number: number; title: string; url: string; mergedAt: string | null }[]>(['pr', 'list', '-R', fullName, '--state', 'merged', '--search', `merged:>=${day}`, '--limit', '100', '--json', 'number,title,url,mergedAt']);
+  return list.filter((p): p is typeof p & { mergedAt: string } => !!p.mergedAt && p.mergedAt >= since);
+}
+
 interface HeadGraphql {
   data: { repository: { ref: { target: { oid: string; statusCheckRollup: { contexts: { nodes: Check[] } } | null } } | null } };
 }

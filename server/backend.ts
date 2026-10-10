@@ -18,6 +18,8 @@ export interface Backend {
   repoMeta(fullName: string): Promise<github.RepoMeta>;
   listIssues(fullName: string): Promise<IssueInfo[]>;
   listPulls(fullName: string): Promise<PullInfo[]>;
+  /** Pull requests merged since `since` (ISO), up to 100, for the Overlord's Ledger (shared/ledger.ts). */
+  mergedSince(fullName: string, since: string): Promise<{ number: number; title: string; url: string; mergedAt: string }[]>;
   createIssue(fullName: string, title: string, body: string, labels?: string[]): Promise<number>;
   /** OPEN or CLOSED; null when there is no such issue. */
   issueState(fullName: string, number: number): Promise<'OPEN' | 'CLOSED' | null>;
@@ -86,6 +88,7 @@ export const realBackend: Backend = {
   repoMeta: github.repoMeta,
   listIssues: github.listIssues,
   listPulls: github.listPulls,
+  mergedSince: github.mergedSince,
   createIssue: github.createIssue,
   issueState: github.issueState,
   editIssue: github.editIssue,

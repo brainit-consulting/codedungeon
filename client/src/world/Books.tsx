@@ -2,6 +2,7 @@
 // canvas per board, and E on a titled spine opens a page about that book (the 'book' panel). Drawn in code: a model
 // pack's books carry no titles.
 import { useMemo } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useCanvasTexture, useInteractable } from './interact';
 import { shelfRow, type PlacedBook } from './bookRules';
@@ -30,20 +31,26 @@ const CLEAR = 0.29;
 /** A spine's face as it shows on the shelf: width along the board and height. */
 const spineSize = (b: PlacedBook) => (b.lying ? { w: b.h, h: b.t } : { w: b.t, h: b.h });
 
-/** One bookcase, filled. `seed` makes it look its own; `offset` is where in the library its titles start. */
-export function Bookcase({ position, rotationY = 0, seed, offset }: { position: P; rotationY?: number; seed: number; offset: number }) {
+/**
+ * One bookcase, filled. `seed` makes it look its own; `offset` is where in the library its titles start; `feature` puts
+ * a placed-only book (the glowing Ledger) on the eye-level board.
+ */
+export function Bookcase({ position, rotationY = 0, seed, offset, feature }: { position: P; rotationY?: number; seed: number; offset: number; feature?: string }) {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <Model name="props/Bookcase_2" />
       {BOARDS.map((y, i) => (
-        <BookRow key={i} seed={seed * 7 + i} offset={offset + i * 5} position={[0, y, 0]} />
+        <BookRow key={i} seed={seed * 7 + i} offset={offset + i * 5} position={[0, y, 0]} feature={i === EYE_BOARD ? feature : undefined} />
       ))}
     </group>
   );
 }
 
-function BookRow({ seed, offset, position }: { seed: number; offset: number; position: P }) {
-  const row = useMemo(() => shelfRow(seed, BOARD_W, CLEAR, offset), [seed, offset]);
+/** The board nearest eye height (1.65 m): where a featured book stands. */
+const EYE_BOARD = 2;
+
+function BookRow({ seed, offset, position, feature }: { seed: number; offset: number; position: P; feature?: string }) {
+  const row = useMemo(() => shelfRow(seed, BOARD_W, CLEAR, offset, feature), [seed, offset, feature]);
   // every spine side by side on one canvas: where each sits (u along it, in metres)
   const layout = useMemo(() => {
     let u = 0;
@@ -113,7 +120,9 @@ function BookRow({ seed, offset, position }: { seed: number; offset: number; pos
 }
 
 function Book({ b, cell, total, tall, tex, id }: { b: PlacedBook; cell: { u: number; w: number; h: number }; total: number; tall: number; tex: THREE.Texture; id: string }) {
-  const ref = useInteractable<THREE.Group>(b.book ? { id, label: `Read "${b.book.spine}"`, action: { kind: 'book', bookId: b.book.id } } : null, 2.6);
+  const glows = b.book?.id === 'ledger';
+  const label = glows ? "Read the Overlord's Ledger: the last five days" : `Read "${b.book?.spine}"`;
+  const ref = useInteractable<THREE.Group>(b.book ? { id, label, action: { kind: 'book', bookId: b.book.id } } : null, 2.6);
   const cover = leather(b.color);
   // box faces: +x, -x, +y, -y, +z (the spine, under its lettered face), -z
   const materials = useMemo(
@@ -139,6 +148,7 @@ function Book({ b, cell, total, tall, tex, id }: { b: PlacedBook; cell: { u: num
       <mesh geometry={face} position={[0, 0, b.d / 2 + 0.0008]}>
         <meshStandardMaterial map={tex} roughness={0.6} />
       </mesh>
+      {glows && <Glow w={cell.w} h={cell.h} z={b.d / 2 + 0.004} />}
     </>
   );
   if (b.lean) {
@@ -189,5 +199,38 @@ export function Daybook({ position, rotationY = 0 }: { position: P; rotationY?: 
         <meshStandardMaterial map={cover} roughness={0.6} />
       </mesh>
     </group>
+  );
+}
+
+/**
+ * A gilt rim of light round a spine, in front of it: a soft glowing frame a little larger than the spine, blended so
+ * it lights the edges of the books beside it, breathing slowly so the eye finds it.
+ */
+function Glow({ w, h, z }: { w: number; h: number; z: number }) {
+  const pad = 0.028;
+  const W = 128;
+  const H = Math.round((W * (h + pad * 2)) / (w + pad * 2));
+  const tex = useCanvasTexture(
+    W,
+    H,
+    (ctx) => {
+      const inset = (pad / (w + pad * 2)) * W;
+      ctx.shadowColor = '#ffcf5a';
+      ctx.shadowBlur = inset * 0.9;
+      ctx.strokeStyle = '#ffd879';
+      ctx.lineWidth = inset * 0.35;
+      ctx.strokeRect(inset * 0.85, inset * 0.85, W - inset * 1.7, H - inset * 1.7);
+      ctx.strokeRect(inset * 0.85, inset * 0.85, W - inset * 1.7, H - inset * 1.7);
+    },
+    [W, H, w, h],
+  );
+  const mat = useMemo(() => new THREE.MeshBasicMaterial({ map: tex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }), [tex]);
+  useFrame(({ clock }) => {
+    mat.opacity = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(clock.elapsedTime * 1.6));
+  });
+  return (
+    <mesh material={mat} position={[0, 0, z]} renderOrder={2}>
+      <planeGeometry args={[w + pad * 2, h + pad * 2]} />
+    </mesh>
   );
 }

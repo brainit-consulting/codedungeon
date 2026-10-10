@@ -1,6 +1,7 @@
 import { useStore } from './store';
 import type { AgentCli, GhRepoSummary, OfficeUpdateView, PreviewView, ProjectFolderView, RepoView, SwarmSettings } from '../../shared/types';
 import type { ShipView } from '../../shared/ship';
+import type { LedgerView } from '../../shared/ledger';
 
 async function call<T = unknown>(method: string, url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -27,6 +28,7 @@ export interface FloorOptions {
 
 export const api = {
   githubRepos: (owner?: string) => call<GhRepoSummary[]>('GET', `/api/github/repos${owner ? `?owner=${encodeURIComponent(owner)}` : ''}`),
+  ledger: () => call<LedgerView>('GET', '/api/ledger'),
   connectRepo: (fullName: string, floor: FloorOptions = {}) => call<RepoView>('POST', '/api/repos', { fullName, ...floor }),
   createRepo: (body: FloorOptions & { name: string; description: string; visibility: 'private' | 'public'; owner?: string }) =>
     call<RepoView>('POST', '/api/repos/new', body),

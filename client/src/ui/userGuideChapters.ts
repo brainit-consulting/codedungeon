@@ -264,6 +264,9 @@ export const CHAPTERS: GuideChapter[] = [
         "The bookcases in your study, and the one in every chamber, hold the classics of computing: Knuth's The Art of Computer Programming, the Dragon Book, Gödel, Escher, Bach and more, with two of the dungeon's own among them. Walk up to a shelf and press [[E]] on a book with a title on its spine to read a line or two about it.",
       ),
       p(
+        "One book glows gold on the middle bookcase in your study: the Overlord's Ledger. Press [[E]] on it for the last five days, newest first: each chamber's merged pull requests, day by day, each one a link to GitHub. It asks GitHub when you open it, so it reaches further back than the chest of spoils.",
+      ),
+      p(
         "On your table, on top of the stack of books, lies the Overlord's Daybook. Press [[E]] on it for today in the dungeon: the pull requests merged since midnight and in which chambers, who is at work right now, and today's work in tokens and what it would cost at API prices.",
       ),
       h('The tavern'),

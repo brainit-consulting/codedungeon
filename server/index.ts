@@ -62,6 +62,7 @@ app.get(
 );
 
 app.get('/api/github/repos', route((req) => swarm.listGithubRepos(str(req.query.owner) || undefined)));
+app.get('/api/ledger', route(() => swarm.ledger()));
 
 // What happens once a project moves in: the CEO's brief, and whether work starts on its own.
 const floorOptions = (req: Request) => ({ mission: str(req.body.mission), autoAssign: req.body.autoAssign === true });

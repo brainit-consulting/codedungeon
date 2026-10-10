@@ -21,6 +21,7 @@ import { CARRY_ON, carryOnPlan, type CarryAgent } from '../shared/carryOn.ts';
 import { ASK_RULE, overlordAsk } from './overlordAsk.ts';
 import { scratchRule } from './permissionGate.ts';
 import { nextChamber } from '../shared/chambers.ts';
+import { ledgerSince, type LedgerView } from '../shared/ledger.ts';
 import { blockers, holdUps, issueSpecialty } from '../shared/issues.ts';
 import { forTheScroll, letterProblem } from '../shared/letters.ts';
 import { effectiveModel } from '../shared/models.ts';
@@ -922,6 +923,33 @@ export class Swarm {
 
   listGithubRepos(owner?: string) {
     return this.backend.listMyRepos(owner);
+  }
+
+  private ledgerCache: { at: number; view: LedgerView } | null = null;
+
+  /**
+   * The Overlord's Ledger (shared/ledger.ts): every chamber's pull requests merged over the last LEDGER_DAYS days,
+   * from GitHub. The dungeon keeps only each chamber's latest few merges, so it asks; the answer is kept five minutes.
+   */
+  async ledger(): Promise<LedgerView> {
+    if (this.ledgerCache && Date.now() - this.ledgerCache.at < 5 * 60_000) return this.ledgerCache.view;
+    const since = ledgerSince(Date.now());
+    const failed: string[] = [];
+    const lists = await Promise.all(
+      this.state.repos.map(async (r) => {
+        const chamber = r.fullName.split('/').pop() ?? r.fullName;
+        try {
+          return (await this.backend.mergedSince(r.fullName, since)).map((p) => ({ chamber, ...p }));
+        } catch (err) {
+          console.warn(`ledger: ${r.fullName}: ${(err as Error).message}`);
+          failed.push(chamber);
+          return [];
+        }
+      }),
+    );
+    const view = { since, merges: lists.flat(), failed };
+    if (!failed.length) this.ledgerCache = { at: Date.now(), view };
+    return view;
   }
 
   /**

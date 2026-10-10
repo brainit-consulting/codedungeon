@@ -113,7 +113,7 @@ export function Bookshelf({ position, rotationY = 0 }: { position: P; rotationY?
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       {[-1.47, 0, 1.47].map((x, i) => (
-        <Bookcase key={x} position={[x, 0, 0]} seed={i + 1} offset={i * 15} />
+        <Bookcase key={x} position={[x, 0, 0]} seed={i + 1} offset={i * 15} feature={i === 1 ? 'ledger' : undefined} />
       ))}
     </group>
   );
