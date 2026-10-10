@@ -30,3 +30,16 @@ describe('currentVersion', () => {
     expect(currentVersion()).toBe(pkg.version);
   });
 });
+
+describe('devPage', () => {
+  it('is the live page the launcher names in --dev', async () => {
+    const { devPage } = await import('./config.ts');
+    expect(devPage({ SWARM_DEV_PAGE: 'http://localhost:5417' })).toBe('http://localhost:5417');
+  });
+  it('is nothing without one, or for anything but a localhost address with a port', async () => {
+    const { devPage } = await import('./config.ts');
+    expect(devPage({})).toBeNull();
+    for (const bad of ['http://evil.example:5417', 'http://localhost', 'localhost:5417', 'http://localhost:5417/x'])
+      expect(devPage({ SWARM_DEV_PAGE: bad }), bad).toBeNull();
+  });
+});

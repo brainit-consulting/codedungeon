@@ -166,7 +166,7 @@ The guide's chapter X lists every key.
 - **Data:** a `codedungeon-home` folder next to the repo: settings, clones of your repos, one working copy per coder,
   and logs. Set `SWARM_HOME` to use another folder.
 - **Ports:** 4417 for the server, and 5417 for the page in `npm run dev`. Set `SWARM_PORT` and `SWARM_CLIENT_PORT`
-  to change them.
+  to change them. In `npm run dev`, opening 4417 sends you to 5417: the server's own page is the last build.
 
 ## Good to know
 

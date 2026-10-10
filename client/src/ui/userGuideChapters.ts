@@ -327,6 +327,10 @@ export const CHAPTERS: GuideChapter[] = [
       p(
         'The dungeon reaches GitHub only through the `gh` command. Open a terminal and run `gh auth login`, then `gh auth status` to check. Restart the dungeon afterwards. `npx codedungeon@latest doctor` checks Node, git, `gh` and the Claude login in one go (from a copy of the code, `npm run doctor` in its folder).',
       ),
+      h('The dungeon looks out of date'),
+      p(
+        'Run from a copy of the code with `npm run dev`, the live dungeon is at **http://localhost:5417**. Port 4417 is its server: opening it sends you on to 5417. If yours shows 4417 and is missing things you know are there, such as the coders\' quills, it is an older version that still shows its last build there: open 5417.',
+      ),
       h('A coder waits for a permission answer'),
       p(
         'Claude Code asks before some removals, such as a folder at the top of a drive, your home folder, or the folder it works in. The dungeon answers yes only when every path being removed sits inside its own tmp folder, the scratch folder coders are told to use. Anything else waits for you: after ten minutes the coder shows **needs you** and your scroll says what Claude Code wants to remove. Open their terminal ([[E]] on their bench), check the path, and answer.',

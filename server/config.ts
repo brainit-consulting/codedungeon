@@ -32,6 +32,15 @@ export const HOME_DIR = process.env.SWARM_HOME ?? defaultHome(ROOT);
 }
 export const WORKSPACE_ROOT = path.join(HOME_DIR, 'workspaces');
 export const DEMO = process.argv.includes('--demo') || process.env.SWARM_DEMO === '1' || process.env.SWARM_DEMO === 'true';
+/**
+ * In development (`npm run dev`), the live page Vite serves, named by the launcher (scripts/officeSteps.mjs
+ * devPageUrl). The server's own page is then the last build, which can be days old: browsers are sent here instead.
+ */
+export function devPage(env: NodeJS.ProcessEnv): string | null {
+  const url = env.SWARM_DEV_PAGE ?? '';
+  return /^http:\/\/localhost:\d+$/.test(url) ? url : null;
+}
+export const DEV_PAGE = devPage(process.env);
 export const STATE_FILE = path.join(HOME_DIR, DEMO ? 'demo-state.json' : 'state.json');
 
 // How often each connected repo's issues and PRs are refreshed from GitHub.

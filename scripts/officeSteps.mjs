@@ -28,6 +28,14 @@ export function clientPort(env = process.env) {
   return Number(env.SWARM_CLIENT_PORT || CLIENT_PORT);
 }
 
+/**
+ * In --dev, the live page's address (Vite's), given to the server as SWARM_DEV_PAGE: its own page is the last build,
+ * which can be days old, so it sends browsers here instead. Null in start mode, where the server's page is current.
+ */
+export function devPageUrl(opts, env = process.env) {
+  return opts.dev ? `http://localhost:${clientPort(env)}` : null;
+}
+
 /** The default branch from `git ls-remote --symref origin HEAD` ("ref: refs/heads/main\tHEAD"), or null. */
 export function parseSymref(output) {
   return /^ref: refs\/heads\/(\S+)\s+HEAD$/m.exec(output)?.[1] ?? null;

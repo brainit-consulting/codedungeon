@@ -1,6 +1,16 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { clientPort, isUpdateCommand, parseOfficeArgs, parseSymref, refusal, rollbackPlan, stepsFor, swarmHome } from './officeSteps.mjs';
+import { clientPort, devPageUrl, isUpdateCommand, parseOfficeArgs, parseSymref, refusal, rollbackPlan, stepsFor, swarmHome } from './officeSteps.mjs';
+
+describe('devPageUrl', () => {
+  it("is Vite's page in --dev, so the server can send its own stale page there (Emile opened 4417's 4 Oct build, 9 Oct)", () => {
+    expect(devPageUrl({ dev: true }, {})).toBe('http://localhost:5417');
+    expect(devPageUrl({ dev: true }, { SWARM_CLIENT_PORT: '5460' })).toBe('http://localhost:5460');
+  });
+  it('is nothing in start mode, where the server serves the page itself', () => {
+    expect(devPageUrl({ dev: false }, {})).toBeNull();
+  });
+});
 
 describe('parseOfficeArgs', () => {
   it('is start mode, opening the browser, with no flags', () => {

@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
-import { clientPort, isUpdateCommand, parseOfficeArgs, parseSymref, refusal, rollbackPlan, stepsFor, swarmHome } from './officeSteps.mjs';
+import { clientPort, devPageUrl, isUpdateCommand, parseOfficeArgs, parseSymref, refusal, rollbackPlan, stepsFor, swarmHome } from './officeSteps.mjs';
 import { SERVER_PORT, liveOfficeConflict, localRules } from '../shared/dungeon.mjs';
 
 const HELP = `
@@ -100,7 +100,8 @@ function startServer() {
   const args = opts.dev
     ? ['--import', 'tsx', path.join('server', 'index.ts'), ...demo]
     : [path.join('bin', 'codedungeon.js'), ...demo, ...(opts.open && firstStart ? [] : ['--no-open'])];
-  const child = spawnChild('server', args, { ipc: true, env: { ...process.env, SWARM_LAUNCHER: '1' } });
+  const page = devPageUrl(opts);
+  const child = spawnChild('server', args, { ipc: true, env: { ...process.env, SWARM_LAUNCHER: '1', ...(page ? { SWARM_DEV_PAGE: page } : {}) } });
   child.proc.on('message', (msg) => {
     if (msg?.type === 'office:update') void update(`the office asked, from ${short(String(msg.from ?? ''))}`);
   });

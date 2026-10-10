@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import type { AddressInfo } from 'node:net';
 import { WebSocketServer } from 'ws';
-import { DEMO, HOME_DIR, PORT, STATE_FILE, VERSION, WORKSPACE_ROOT } from './config.ts';
+import { DEMO, DEV_PAGE, HOME_DIR, PORT, STATE_FILE, VERSION, WORKSPACE_ROOT } from './config.ts';
 import { realBackend } from './backend.ts';
 import { handleHook, handleMcp, liveCliCounts, setOfficeUrl } from './cliRunner.ts';
 import { createDemoBackend } from './demo.ts';
@@ -210,9 +210,12 @@ app.post(
 );
 app.post('/api/requests/:id/reject', route((req) => swarm.rejectRequest(String(req.params.id), str(req.body?.note))));
 
-// Serve the built client: the published package, or `npm start` after `npm run build`.
+// Serve the built client: the published package, or `npm start` after `npm run build`. In development the build can
+// be days old (on 9 Oct a browser on this port showed 4 Oct's dungeon), so pages go to Vite's live one instead.
 const dist = path.resolve(import.meta.dirname, '../dist');
-if (fs.existsSync(dist)) {
+if (DEV_PAGE) {
+  app.get(/^(?!\/api).*/, (req, res) => res.redirect(302, DEV_PAGE + req.originalUrl));
+} else if (fs.existsSync(dist)) {
   app.use(express.static(dist));
   app.get(/^(?!\/api).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')));
 }
@@ -241,7 +244,8 @@ server.on('upgrade', (req, socket, head) => {
 
 server.listen(PORT, '127.0.0.1', () => {
   setOfficeUrl(`http://127.0.0.1:${(server.address() as AddressInfo).port}`);
-  console.log(`\n  🏰 Code Dungeon v${VERSION} on http://localhost:${PORT}${DEMO ? '  (DEMO MODE: fake GitHub + fake agents)' : ''}`);
+  const page = DEV_PAGE ? `${DEV_PAGE}  (server on ${PORT})` : `http://localhost:${PORT}`;
+  console.log(`\n  🏰 Code Dungeon v${VERSION} on ${page}${DEMO ? '  (DEMO MODE: fake GitHub + fake agents)' : ''}`);
   console.log(`     state: ${STATE_FILE}`);
   console.log(`     workspaces: ${WORKSPACE_ROOT}\n`);
 });
