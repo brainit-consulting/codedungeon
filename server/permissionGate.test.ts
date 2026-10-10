@@ -126,12 +126,21 @@ describe('PromptWait', () => {
     vi.useFakeTimers();
     const told: (string | null)[] = [];
     const w = new PromptWait((t) => told.push(t));
+    w.clear(); // the session's first sign of life
     w.start('');
     vi.advanceTimersByTime(60_000);
     w.clear();
     vi.advanceTimersByTime(PERMISSION_WAIT_MS);
-    expect(told).toEqual([]);
+    expect(told).toEqual([null]);
     vi.useRealTimers();
+  });
+  it("says it's answered at a session's first sign of life, once: the flag may be from before a restart (Godric, 9 Oct)", () => {
+    const told: (string | null)[] = [];
+    const w = new PromptWait((t) => told.push(t));
+    w.clear();
+    w.clear();
+    w.clear();
+    expect(told).toEqual([null]);
   });
   it('keeps the most specific description it was given', () => {
     vi.useFakeTimers();

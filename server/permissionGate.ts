@@ -178,11 +178,14 @@ export const waitingText = (what: string) => `Claude Code is asking before it ru
 
 /**
  * One session's unanswered prompt: `told` hears the text once it has waited PERMISSION_WAIT_MS, and null when the
- * prompt is answered after that. start() again for the same prompt (its later notification) changes nothing.
+ * prompt is answered after that. start() again for the same prompt (its later notification) changes nothing. The
+ * first clear() (the session's first sign of life) also says null: a flag raised before a restart has no other way
+ * down, and Godric showed "needs you" for hours while he worked on 9 Oct.
  */
 export class PromptWait {
   private timer: NodeJS.Timeout | undefined;
   private toldOverlord = false;
+  private fresh = true;
   private what = '';
 
   constructor(private readonly told: (text: string | null) => void) {}
@@ -200,8 +203,9 @@ export class PromptWait {
   clear() {
     clearTimeout(this.timer);
     this.timer = undefined;
-    if (this.toldOverlord) this.told(null);
+    if (this.toldOverlord || this.fresh) this.told(null);
     this.toldOverlord = false;
+    this.fresh = false;
     this.what = '';
   }
 }
