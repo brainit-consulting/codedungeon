@@ -37,9 +37,16 @@ export function prUrlIn(text: string, fullName: string): { number: number; url: 
 }
 
 /**
- * Whether an issue session that just ended sends its PR to QA. Only a PR QA hasn't taken further: a late finish (a
- * turn held open by background work) must not re-test a commit that failed, or undo a fix round or a pass.
+ * Whether an issue session that just ended sends its PR to QA. Never into a round under way; for a PR QA already
+ * judged, only when it has new commits since: a late finish (a turn held open by background work) mustn't re-test
+ * the commit that failed, but a follow-up pushed to a PR that passed must be tested.
  */
-export function queueQaAfterIssue(status: 'queued' | 'testing' | 'passed' | 'failed' | 'fixing' | 'needs-human' | undefined): boolean {
-  return status === undefined || status === 'queued';
+export function queueQaAfterIssue(o: {
+  status: 'queued' | 'testing' | 'passed' | 'failed' | 'fixing' | 'needs-human' | undefined;
+  testedSha: string | null;
+  headSha: string | null;
+}): boolean {
+  if (o.status === undefined || o.status === 'queued') return true;
+  if (o.status === 'testing' || o.status === 'fixing') return false;
+  return fixChangedPr(o.testedSha, o.headSha);
 }

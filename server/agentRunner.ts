@@ -7,6 +7,7 @@ import type { UsageWarning } from './pacing.ts';
 import { modelTokens, NO_TOKENS, UsageTally, type Tokens } from './usageMeter.ts';
 import type { AgentTerminal } from './terminal.ts';
 import { VERSION } from './config.ts';
+import { PHONE_BROWSER_CONFIG } from './phoneReady.ts';
 
 // One Claude Code instance (via the Claude Agent SDK) working one issue in its own git worktree.
 // The CEO runs through here too, with the office tools instead of a shell.
@@ -18,7 +19,7 @@ export interface SessionOptions {
   model: string; // e.g. 'claude-opus-5-5'
   effort: EffortLevel;
   browserTesting: boolean;
-  /** QA with phone checks: the browser emulates a touch phone (Playwright MCP --mobile) so pointer: coarse applies. */
+  /** QA with phone checks: a second, touch-only browser (the MCP server named phone) for window.__phoneCheck(). */
   phoneBrowser?: boolean;
   /** Terminal runtime: whether a turn that ended with background work still running already delivered its result. */
   resultReady?: (text: string) => boolean | Promise<boolean>;
@@ -327,8 +328,10 @@ export function startSession(opts: SessionOptions, callbacks: SessionCallbacks):
   const mcpServers: Options['mcpServers'] = {};
   if (opts.browserTesting) {
     // browser-init.js keeps pages from taking the real mouse with pointer lock (headless Chrome does on Windows).
-    const args = ['-y', '@playwright/mcp@latest', '--headless', '--isolated', ...(opts.phoneBrowser ? ['--mobile'] : []), '--init-script', path.join(import.meta.dirname, 'browser-init.js')];
-    mcpServers.playwright = process.platform === 'win32' ? { command: 'cmd', args: ['/c', 'npx', ...args] } : { command: 'npx', args };
+    const args = ['-y', '@playwright/mcp@latest', '--headless', '--isolated', '--init-script', path.join(import.meta.dirname, 'browser-init.js')];
+    const server = (a: string[]) => (process.platform === 'win32' ? { command: 'cmd', args: ['/c', 'npx', ...a] } : { command: 'npx', args: a });
+    mcpServers.playwright = server(args);
+    if (opts.phoneBrowser) mcpServers.phone = server([...args.slice(0, 4), '--config', PHONE_BROWSER_CONFIG, ...args.slice(4)]);
   }
   if (opts.office) mcpServers.office = opts.office.server;
   // The CEO reads repositories and acts through the office tools; it never runs commands.

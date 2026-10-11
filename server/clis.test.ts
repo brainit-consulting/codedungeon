@@ -135,6 +135,18 @@ describe('launchArgs', () => {
     expect(args.slice(args.indexOf('--disallowedTools'), args.indexOf('--'))).toEqual(['--disallowedTools', 'AskUserQuestion', 'EnterPlanMode', 'ExitPlanMode', 'Bash', 'PowerShell', 'NotebookEdit']);
   });
 
+  it('gives Codex and OpenCode the phone browser beside the usual one, only when asked', () => {
+    const browser = { command: 'npx', args: ['@playwright/mcp@latest'] };
+    const phoneBrowser = { command: 'npx', args: ['@playwright/mcp@latest', '--config', 'phone-browser.json'] };
+    const codex = launchArgs('codex', ctx({ browser, phoneBrowser })).args;
+    expect(codex.some((x) => x.startsWith('mcp_servers.playwright='))).toBe(true);
+    expect(codex.find((x) => x.startsWith('mcp_servers.phone='))).toContain('phone-browser.json');
+    expect(launchArgs('codex', ctx({ browser })).args.some((x) => x.startsWith('mcp_servers.phone='))).toBe(false);
+    const open = launchArgs('opencode', ctx({ browser, phoneBrowser }));
+    const cfg = JSON.parse(open.env.OPENCODE_CONFIG_CONTENT ?? '{}');
+    expect(Object.keys(cfg.mcp ?? {})).toEqual(['playwright', 'phone']);
+  });
+
   it("runs Codex without its sandbox or approvals, and resumes Codex's thread", () => {
     const fresh = launchArgs('codex', ctx()).args;
     expect(fresh).toContain('--dangerously-bypass-approvals-and-sandbox');

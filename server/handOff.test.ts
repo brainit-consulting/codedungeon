@@ -65,10 +65,18 @@ describe('the pull request a turn names', () => {
 
 describe('QA after an issue session ends', () => {
   it('queues a PR QA has never seen, and one already waiting', () => {
-    expect(queueQaAfterIssue(undefined)).toBe(true);
-    expect(queueQaAfterIssue('queued')).toBe(true);
+    expect(queueQaAfterIssue({ status: undefined, testedSha: null, headSha: 'aaa' })).toBe(true);
+    expect(queueQaAfterIssue({ status: 'queued', testedSha: null, headSha: 'aaa' })).toBe(true);
   });
-  it("leaves a PR QA already took further alone: a late finish doesn't re-test the commit that failed (11 October, PR #70)", () => {
-    for (const s of ['testing', 'failed', 'fixing', 'passed', 'needs-human'] as const) expect(queueQaAfterIssue(s)).toBe(false);
+  it("doesn't re-test the commit QA already judged: a late finish on a failed PR (11 October, PR #70)", () => {
+    for (const status of ['failed', 'passed', 'needs-human'] as const) expect(queueQaAfterIssue({ status, testedSha: 'aaa1111', headSha: 'aaa1111' })).toBe(false);
+  });
+  it('does re-test new commits: a follow-up pushed to a PR that passed, failed or needs you', () => {
+    for (const status of ['failed', 'passed', 'needs-human'] as const) expect(queueQaAfterIssue({ status, testedSha: 'aaa1111', headSha: 'bbb2222' })).toBe(true);
+  });
+  it('never interrupts a round under way, and re-tests when it cannot tell the commits apart', () => {
+    for (const status of ['testing', 'fixing'] as const) expect(queueQaAfterIssue({ status, testedSha: 'aaa', headSha: 'bbb' })).toBe(false);
+    expect(queueQaAfterIssue({ status: 'passed', testedSha: null, headSha: 'bbb' })).toBe(true);
+    expect(queueQaAfterIssue({ status: 'passed', testedSha: 'aaa', headSha: null })).toBe(true);
   });
 });

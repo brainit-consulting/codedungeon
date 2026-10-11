@@ -2150,8 +2150,9 @@ export class Swarm {
     if (a.task === 'fix')
       return async () => {
         const rec = this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === a.prNumber);
-        if (!a.prNumber || !rec?.testedSha) return false;
-        return fixChangedPr(rec.testedSha, (await this.backend.prDetails(repo.fullName, a.prNumber)).headSha);
+        const from = this.fixFrom.get(a.id) ?? rec?.testedSha ?? null;
+        if (!a.prNumber || !from) return false;
+        return fixChangedPr(from, (await this.backend.prDetails(repo.fullName, a.prNumber)).headSha);
       };
     return (text) => !!prUrlIn(text, repo.fullName);
   }
@@ -2178,8 +2179,9 @@ export class Swarm {
     a.status = 'done';
     this.appendLog(a, [{ kind: 'done', text: `✔ Finished in ${this.minutes(a)}m · ${a.turns} turns${a.prNumber ? ` · PR #${a.prNumber}` : ' · no PR found'}` }]);
     const rec = a.prNumber ? this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === a.prNumber) : undefined;
-    if (a.prNumber && rec && !queueQaAfterIssue(rec.status)) {
-      // a late finish (held open by background work): QA already took this PR further
+    const headSha = rec && a.prNumber ? ((await this.backend.prDetails(repo.fullName, a.prNumber).catch(() => null))?.headSha ?? null) : null;
+    if (a.prNumber && rec && !queueQaAfterIssue({ status: rec.status, testedSha: rec.testedSha, headSha })) {
+      // a late finish (held open by background work): QA already took this PR further, on this same commit
       this.appendLog(a, [{ kind: 'system', text: `📨 PR #${a.prNumber} is already with QA (${rec.status}).` }]);
     } else if (a.prNumber) {
       this.queueQa(repo, a.prNumber, a, a.issueNumber);
@@ -2528,6 +2530,8 @@ export class Swarm {
       if (rec.status === 'fixing') this.setQa(rec, { status: 'failed' });
       return;
     }
+    // what "pushed a fix" is measured against (QA's commit can be older: the update-branch step moves the head)
+    this.fixFrom.set(dev.id, (await this.backend.prDetails(repo.fullName, rec.prNumber).catch(() => null))?.headSha ?? rec.testedSha ?? null);
     const failed = rec.checks.filter((c) => c.result === 'fail');
     const takeover = original ? '' : ' A teammate wrote it, so read the PR and the linked issue first.';
     const push = `push to the same branch: git push origin HEAD:${headRef}`;
@@ -2772,6 +2776,7 @@ export class Swarm {
   private scheduleOffset = 0;
   private issueFailures = new Map<string, number>(); // `${repoId}#${issue}` → failed sessions on it
   private nudged = new Set<string>(); // `${repoId}#${issue}`: its developer was asked once to finish the missing PR
+  private fixFrom = new Map<string, string | null>(); // agent id → the PR's head when its fix round started
   private pausedUntil = 0; // Claude's usage limit was hit: nothing new starts before this
   private pacingUntil = 0; // Claude warned about usage: new issues are paced until this
   private lastUsage = '';
@@ -3545,6 +3550,7 @@ export class Swarm {
           preview: { command: r.preview.command, env: r.preview.env, status: this.previews.view(r).status },
           autoAssign: r.autoAssign,
           autoMerge: r.autoMerge,
+          phoneReadyChecks: r.browserTesting && r.phoneReady,
           folderSync: rt.folderSync,
           capacity: {
             developers: this.state.agents.filter((a) => a.repoId === r.id && a.role === 'dev').length,

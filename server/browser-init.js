@@ -30,14 +30,19 @@
 window.__phoneCheck = () => {
   const vw = document.documentElement.clientWidth;
   const vh = window.innerHeight;
-  // touch rules up to tablet width (the skill's 1200px line): QA's browser is touch at every size, a laptop isn't
+  // touch rules up to tablet width (the skill's 1200px line): the phone browser is touch at every size, a laptop isn't
   const touch = window.matchMedia('(pointer: coarse)').matches && window.innerWidth < 1200;
   const label = (e) => (e.getAttribute('aria-label') || e.innerText || e.getAttribute('name') || e.tagName).replace(/\s+/g, ' ').trim().slice(0, 40);
+  // a screen-reader-only control (a skip link, a hidden file input behind a label) is a 1px clipped box: not a target
   const shown = (e) => {
     const r = e.getBoundingClientRect();
     const s = getComputedStyle(e);
+    if (r.width <= 1 && r.height <= 1) return false;
+    if (/rect\(0(px)?,?\s*0(px)?,?\s*0(px)?,?\s*0(px)?\)/.test(s.clip) || /inset\(50%\)/.test(s.clipPath)) return false;
     return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none';
   };
+  // the fields Safari zooms into: ones you type in, and drop-downs (not buttons, files, sliders or colours)
+  const TYPED = 'input:not([type]), input[type=text], input[type=email], input[type=password], input[type=search], input[type=tel], input[type=url], input[type=number], input[type=date], input[type=datetime-local], input[type=month], input[type=time], input[type=week], select, textarea';
   const inSentence = (e) =>
     e.tagName === 'A' && getComputedStyle(e).display === 'inline' && (e.parentElement?.innerText || '').trim().length > (e.innerText || '').trim().length;
   const problems = [];
@@ -50,7 +55,7 @@ window.__phoneCheck = () => {
     const r = e.getBoundingClientRect();
     if (touch && !e.matches('input[type=checkbox], input[type=radio]') && !inSentence(e) && (r.height < 44 || r.width < 44))
       problems.push(`"${label(e)}" is ${Math.round(r.width)}x${Math.round(r.height)}px, under 44px`);
-    if (touch && e.matches('input:not([type=checkbox]):not([type=radio]), select, textarea')) {
+    if (touch && e.matches(TYPED)) {
       const px = parseFloat(getComputedStyle(e).fontSize);
       if (px < 16) problems.push(`field "${label(e)}" has ${px}px text, under 16px (Safari zooms in)`);
     }
@@ -58,10 +63,11 @@ window.__phoneCheck = () => {
       for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) {
         const s = getComputedStyle(p);
         if (/(auto|scroll)/.test(s.overflowY + s.overflowX) && (p.scrollHeight > p.clientHeight || p.scrollWidth > p.clientWidth)) break;
-        if (s.position === 'fixed' || s.position === 'sticky') {
-          problems.push(`"${label(e)}" is off the screen in a part that doesn't scroll`);
-          break;
-        }
+        // a sticky part scrolls with the page until it pins: the control is out of reach only if it can't fit then
+        const pinnedRoom = vh - (parseFloat(s.top) || 0);
+        const stuck = s.position === 'fixed' || (s.position === 'sticky' && r.bottom - p.getBoundingClientRect().top > pinnedRoom);
+        if (stuck) problems.push(`"${label(e)}" is off the screen in a part that doesn't scroll`);
+        if (s.position === 'fixed' || s.position === 'sticky') break;
       }
     }
   }

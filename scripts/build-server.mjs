@@ -24,4 +24,5 @@ await build({
 // Loaded by path at runtime: agentRunner.ts hands it to each agent's Playwright browser.
 fs.copyFileSync(path.join(root, 'server', 'browser-init.js'), path.join(out, 'browser-init.js'));
 fs.cpSync(path.join(root, 'server', 'skills'), path.join(out, 'skills'), { recursive: true });
+fs.copyFileSync(path.join(root, 'server', 'phone-browser.json'), path.join(out, 'phone-browser.json'));
 console.log(`built ${path.relative(root, out)}/index.js`);

@@ -38,6 +38,15 @@ test.describe('on a touch phone', () => {
     const r = await check(page, '<header style="position:sticky;top:0;height:100vh;overflow-y:auto"><div style="height:700px"></div><button style="height:44px;width:100px">Sign out</button></header>');
     expect(r.problems.join()).not.toMatch(/off the screen/);
   });
+  test('a sticky table header below the fold is reachable by scrolling', async ({ page }) => {
+    const r = await check(page, '<div style="height:900px"></div><table><thead><tr><th style="position:sticky;top:0;background:#fff"><button style="height:44px;width:100px">Sort</button></th></tr></thead><tbody><tr><td>x</td></tr></tbody></table>');
+    expect(r.problems.join()).not.toMatch(/off the screen/);
+  });
+  test('screen-reader-only controls and non-text inputs are not judged as thumb targets or zooming fields', async ({ page }) => {
+    const srOnly = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0';
+    const r = await check(page, `<a href="#main" style="${srOnly}">Skip to content</a><input type="file" style="${srOnly}" aria-label="Logo"><input type="submit" value="Send" style="min-height:44px;min-width:88px">`);
+    expect(r).toMatchObject({ ok: true, problems: [] });
+  });
   test('multi-line label', async ({ page }) => {
     const r = await check(page, '<button style="height:30px">Save<br>"draft"</button>');
     expect(r.problems[0]).toMatch(/^"Save "draft"" is \d+x30px, under 44px$/);

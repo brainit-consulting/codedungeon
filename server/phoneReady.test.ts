@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PHONE_CHECK, PHONE_SIZES, enforcePhoneCheck, phoneCoderLine, phoneQaStep } from './phoneReady.ts';
+import { PHONE_CHECK, PHONE_PLAN_CLAUSE, PHONE_SIZES, enforcePhoneCheck, phoneCoderLine, phoneQaStep } from './phoneReady.ts';
 
 const report = (checks: { name: string; result: 'pass' | 'fail' | 'skip'; details: string }[], verdict: 'pass' | 'fail' = 'pass') => ({
   verdict,
@@ -49,5 +49,25 @@ describe('phone-ready QA', () => {
   it('off changes nothing', () => {
     const r = report([{ name: PHONE_CHECK, result: 'fail', details: 'x' }]);
     expect(enforcePhoneCheck(r, false)).toBe(r);
+  });
+});
+
+describe('phone-ready, after the first real QA rounds and the review', () => {
+  it("the DungeonMaster's clause applies only where the chamber has the switch on", () => {
+    expect(PHONE_PLAN_CLAUSE).toMatch(/phoneReadyChecks/);
+  });
+  it('enforces a phone check whatever the tester called it, and any failed row fails the round', () => {
+    const named = enforcePhoneCheck(report([{ name: 'Phone ready (375x667)', result: 'fail', details: 'page is 64px wider' }]), true);
+    expect(named.verdict).toBe('fail');
+    expect(named.checks).toHaveLength(1);
+    const two = enforcePhoneCheck(report([{ name: 'Phone-ready', result: 'pass', details: 'ok' }, { name: 'phone-ready: tablet', result: 'fail', details: '810x1080: x' }]), true);
+    expect(two.verdict).toBe('fail');
+    expect(two.fixInstructions).toContain('810x1080: x');
+  });
+  it('the phone check runs in its own touch browser; the usual browser is left as it was', () => {
+    const t = phoneQaStep();
+    expect(t).toContain('the MCP server named phone');
+    expect(t).toMatch(/your usual browser/i);
+    expect(t).not.toMatch(/Your browser is a touch phone/);
   });
 });

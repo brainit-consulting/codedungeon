@@ -25,6 +25,7 @@ import {
 import type { OfficeTools } from './ceo.ts';
 import type { AgentTerminal } from './terminal.ts';
 import { keepWaitingForBackground, workingAloneAfter } from './handOff.ts';
+import { PHONE_BROWSER_CONFIG } from './phoneReady.ts';
 import { permissionAnswer, PromptWait } from './permissionGate.ts';
 import { FileMeter, promptBaseline, statusUsage, UsageTally } from './usageMeter.ts';
 import type { AgentCli } from '../shared/types.ts';
@@ -125,9 +126,12 @@ const shellArg = (p: string) => `"${p.replaceAll('\\', '/')}"`;
 
 const HOOK_EVENTS = ['UserPromptSubmit', 'PreToolUse', 'PermissionRequest', 'PostToolUse', 'PostToolUseFailure', 'Stop', 'StopFailure', 'Notification'];
 
-/** The browser for a session. Its snapshots and unnamed screenshots go to the session's folder, not the worktree. */
+/**
+ * The browser for a session. Its snapshots and unnamed screenshots go to the session's folder, not the worktree.
+ * The phone browser (QA's phone check) is touch-only through its config; the usual one keeps hover and its own look.
+ */
 function playwrightServer(outputDir: string, phone = false) {
-  const args = ['-y', '@playwright/mcp@latest', '--headless', '--isolated', ...(phone ? ['--mobile'] : []), '--output-dir', outputDir, '--init-script', path.join(import.meta.dirname, 'browser-init.js')];
+  const args = ['-y', '@playwright/mcp@latest', '--headless', '--isolated', ...(phone ? ['--config', PHONE_BROWSER_CONFIG] : []), '--output-dir', outputDir, '--init-script', path.join(import.meta.dirname, 'browser-init.js')];
   return process.platform === 'win32' ? { command: 'cmd', args: ['/c', 'npx', ...args] } : { command: 'npx', args };
 }
 
@@ -487,6 +491,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
     if (cli !== 'claude') cb.output?.(term.screen());
     cb.tool(null);
     clearTimeout(finishTimer);
+    turnSeq++; // a check still waiting on GitHub for an earlier stop must not finish this turn
     finishTimer = setTimeout(() => void endOfTurn(), FINISH_GRACE_MS);
   };
   let waitingSince = 0;
@@ -510,7 +515,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
       finishTimer = setTimeout(() => void endOfTurn(), BACKGROUND_RECHECK_MS);
       return;
     }
-    if (background && ready) log([{ kind: 'system', text: '⏹ Its work is done; the background work it left running is stopped.' }]);
+    if (background && ready) log([{ kind: 'system', text: "⏹ Its result is in, so the turn ends without waiting for its background work; the dungeon stops what it left on its port or in its desk." }]);
     finish({ ok: !turnError, text: lastText, errors: turnError ? [turnError] : [] }, true);
   };
   const busy = () => {
@@ -762,7 +767,8 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   // Through the keeper, a hook waits while the office restarts instead of failing: the CLIs allow it longer.
   const keeper = keeperHookUrl();
   const hookUrl = `${keeper ?? officeUrl}/api/hooks/${token}`;
-  const browser = opts.browserTesting ? playwrightServer(path.join(dir, 'browser'), opts.phoneBrowser) : null;
+  const browser = opts.browserTesting ? playwrightServer(path.join(dir, 'browser')) : null;
+  const phoneBrowser = opts.browserTesting && opts.phoneBrowser ? playwrightServer(path.join(dir, 'phone-browser'), true) : null;
   let prompt = opts.prompt;
   if (opts.outputSchema) {
     prompt += `\n\nWhen you are done, end your final message with your report as one JSON object in a \`\`\`json block, matching this JSON schema:\n${JSON.stringify(opts.outputSchema)}`;
@@ -777,6 +783,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
     };
     const servers: Record<string, unknown> = {};
     if (browser) servers.playwright = browser;
+    if (phoneBrowser) servers.phone = phoneBrowser;
     if (opts.office) servers.office = { type: 'http', url: `${officeUrl}/api/mcp/${token}` };
     files = { settings: path.join(dir, 'settings.json'), mcp: Object.keys(servers).length ? path.join(dir, 'mcp.json') : null, system: path.join(dir, 'instructions.md') };
     fs.writeFileSync(files.settings, JSON.stringify(settings, null, 2));
@@ -809,6 +816,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
     codexHook: path.join(BIN_DIR, 'codex-hook.cjs'),
     plugin: pathToFileURL(path.join(BIN_DIR, 'opencode-plugin.mjs')).href,
     browser,
+    phoneBrowser,
   });
 
   // Each agent must be a clean instance on the account its CLI is logged into: no API keys (they would switch Claude
