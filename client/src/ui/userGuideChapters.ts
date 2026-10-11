@@ -319,7 +319,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       p('With the first two, Vercel also builds every pull request and gives it a preview link of its own.'),
       h('Launching'),
-      p('When the app is ready, **Launch** gives it its own address, such as `myapp.example.com` (set your own domain in the ledger\'s Settings and Launch suggests one under it), and from then on merges wait for **Ship it** instead of going live by themselves. The first ship of any chamber asks you first, because it makes the app public.'),
+      p('When the app is ready, **Launch** gives it its own address, such as `myapp.example.com` (set your own domain in the ledger\'s Settings and Launch suggests one under it), and from then on merges wait for **Ship it** instead of going live by themselves. The first ship of any chamber asks you first and lists the pull requests it puts live; if the app isn\'t live anywhere yet, it says the app becomes public.'),
       h('What the panel shows'),
       list(
         '**Live now**: the address, the commit, and since when.',

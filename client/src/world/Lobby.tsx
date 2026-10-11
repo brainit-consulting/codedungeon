@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { Billboard } from '@react-three/drei';
-import { pendingRequests, useStore, type Agent } from '../store';
+import { pendingRequests, qaKey, useStore, type Agent } from '../store';
+import { prCounts } from '../prCounts';
 import { CEO_ID, type HireRequestView } from '../../../shared/types';
 import { Character } from './Character';
 import { Desk } from './Desk';
@@ -53,9 +54,9 @@ function useOfficeStats() {
       working: list.filter((a) => a.repoId === r.id && (a.status === 'working' || a.status === 'preparing')).length,
       prs: r.pulls.filter((p) => p.state === 'OPEN').length,
     }));
-    const qaList = Object.values(qa);
-    const inQa = qaList.filter((q) => q.status !== 'passed').length;
-    const readyToMerge = qaList.filter((q) => q.status === 'passed').length;
+    const counts = repos.map((r) => prCounts(r.pulls, (n) => qa[qaKey(r.id, n)]?.status));
+    const inQa = counts.reduce((n, c) => n + c.inQa, 0);
+    const readyToMerge = counts.reduce((n, c) => n + c.ready, 0);
     const pending = pendingRequests(requests).length;
     return { repos: repos.length, agents: list.length, working, openPrs, inQa, readyToMerge, merged, issues, floors, max: settings.sessionLimit, pending };
   }, [repos, agents, settings, qa, requests]);

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { repoOnFloor, usePhoneBadge, useStore } from '../store';
+import { qaKey, repoOnFloor, usePhoneBadge, useStore } from '../store';
+import { prCounts } from '../prCounts';
 import { CEO_ID } from '../../../shared/types';
 import { HeldHint } from './HeldHint';
 import { WorkersPanel } from './WorkersPanel';
@@ -67,7 +68,7 @@ export function HUD() {
   const running = useMemo(() => Object.values(agents).filter((a) => a.status === 'working' || a.status === 'preparing').length, [agents]);
   const floorAgents = repo ? Object.values(agents).filter((a) => a.repoId === repo.id) : [];
   const qa = useStore((s) => s.qa);
-  const floorQa = repo ? Object.values(qa).filter((q) => q.repoId === repo.id) : [];
+  const prs = repo ? prCounts(repo.pulls, (n) => qa[qaKey(repo.id, n)]?.status) : null;
 
   return (
     <div className="hud">
@@ -77,7 +78,7 @@ export function HUD() {
           <div className="floor-name">{repo ? repo.fullName : `${settings.companyName || 'Code Dungeon'} · Great hall`}</div>
           <div className="floor-sub">
             {repo
-              ? `${floorAgents.length} in the guild · ${floorAgents.filter((a) => a.status === 'working' || a.status === 'preparing').length} working · ${floorQa.filter((q) => q.status !== 'passed').length} in QA · ${floorQa.filter((q) => q.status === 'passed').length} ready to merge`
+              ? `${floorAgents.length} in the guild · ${floorAgents.filter((a) => a.status === 'working' || a.status === 'preparing').length} working · ${prs!.inQa} in QA · ${prs!.ready} ready to merge`
               : `${repos.length} chamber${repos.length === 1 ? '' : 's'} off the gallery`}
           </div>
         </div>

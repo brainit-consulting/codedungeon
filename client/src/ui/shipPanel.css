@@ -65,3 +65,8 @@
 .ship-launch input {
   min-width: 18rem;
 }
+.ship-what {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  text-align: left;
+}

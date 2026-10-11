@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { RepoView } from '../../../shared/types';
-import { agentsOnRepo, useStore } from '../store';
+import { agentsOnRepo, qaKey, useStore } from '../store';
+import { prCounts } from '../prCounts';
 import { AppMonitor } from './AppMonitor';
 import { Desk } from './Desk';
 import { drawSign } from './draw';
@@ -75,8 +76,7 @@ export function OfficeFloor({ repo }: { repo: RepoView }) {
   const qaBySlot = useMemo(() => new Map(agents.filter((a) => a.role === 'qa').map((a) => [a.desk, a])), [agents]);
   const working = agents.filter((a) => a.status === 'working' || a.status === 'preparing').length;
   const qaRecords = useStore((s) => s.qa);
-  const inQa = Object.values(qaRecords).filter((q) => q.repoId === repo.id && q.status !== 'passed').length;
-  const ready = Object.values(qaRecords).filter((q) => q.repoId === repo.id && q.status === 'passed').length;
+  const { inQa, ready } = prCounts(repo.pulls, (n) => qaRecords[qaKey(repo.id, n)]?.status);
 
   return (
     <group>

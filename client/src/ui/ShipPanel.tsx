@@ -172,9 +172,27 @@ export function ShipPanel({ repoId }: { repoId: string }) {
 
   const ship = async () => {
     if (!s.firstShipDone) {
+      const address = s.domains[0] ?? 'its Vercel address';
       const yes = await confirmDialog({
-        title: `Put ${name} on the internet?`,
-        body: <p>This is the first ship of this chamber: the app becomes public at {s.domains[0] ?? 'its Vercel address'}.</p>,
+        // a site already live (set up from a Vercel project that was) isn't going public: say what goes live instead
+        title: s.live ? `Ship to ${address}?` : `Put ${name} on the internet?`,
+        body: (
+          <>
+            {!s.live && <p>This is the first ship of this chamber: the app becomes public at {address}.</p>}
+            {s.waiting.length > 0 && (
+              <>
+                <p>This puts live:</p>
+                <ul className="ship-what">
+                  {s.waiting.map((w) => (
+                    <li key={w.number}>
+                      #{w.number} {w.title}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </>
+        ),
         confirm: 'Ship it',
         tone: 'warn',
       });
