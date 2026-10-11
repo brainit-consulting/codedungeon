@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { FIRE, Flame, useFireLight, type FireLook } from './lightPool';
 import { Model } from './models';
 import { Bookcase } from './Books';
+import { useCanvasTexture } from './interact';
 
 // The dungeon's furnishings. The names are the office's old ones (a "plant" is now a floor candle stand, the
 // "kitchenette" the ale corner) so the rooms that place them didn't have to change; each keeps its old footprint,
@@ -95,6 +96,146 @@ export function Rug({ position, size, color }: { position: P; size: [number, num
     <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>
       <planeGeometry args={size} />
       <meshStandardMaterial color={c} roughness={1} />
+    </mesh>
+  );
+}
+
+// ---------- the wolf's rug ----------
+
+const RUG_PX = 160; // canvas pixels to the metre
+/** How deep the fringe at each short end is (m), part of the rug's length. */
+const FRINGE = 0.07;
+
+/**
+ * A knotted wool rug in the old style, painted on a canvas: a madder-red field with a stepped lozenge medallion and a
+ * lattice of small diamonds, a deep indigo border of ochre lozenges between pale guard stripes, the weave showing
+ * through, a little worn, and a fringe of loose warp threads at both short ends (drawn on transparent canvas, cut out
+ * by alphaTest), W by H canvas pixels.
+ */
+function paintRug(ctx: CanvasRenderingContext2D, W: number, H: number) {
+  let seed = 7;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+  const f = Math.round(FRINGE * RUG_PX);
+  const C = { field: '#8e2f22', indigo: '#28304a', ochre: '#c8913a', cream: '#d8c39a', dark: '#3b1712', green: '#4d5a32' };
+  // the fringe: warp threads, a little uneven, knotted in bunches at the rug's edge
+  for (const top of [true, false]) {
+    for (let x = 4; x < W - 3; x += 5) {
+      const len = f * (0.75 + rand() * 0.25);
+      ctx.strokeStyle = C.cream;
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(x, top ? f : H - f);
+      ctx.lineTo(x + (rand() - 0.5) * 3, top ? f - len : H - f + len);
+      ctx.stroke();
+    }
+    ctx.fillStyle = C.cream;
+    for (let x = 6; x < W - 6; x += 15) ctx.fillRect(x - 4, top ? f - 7 : H - f + 1, 8, 6);
+  }
+  const x0 = 0;
+  const y0 = f;
+  const w = W;
+  const h = H - 2 * f;
+  const diamond = (cx: number, cy: number, rx: number, ry: number) => {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - ry);
+    ctx.lineTo(cx + rx, cy);
+    ctx.lineTo(cx, cy + ry);
+    ctx.lineTo(cx - rx, cy);
+    ctx.closePath();
+  };
+  // the field, its lattice of small diamonds
+  ctx.fillStyle = C.field;
+  ctx.fillRect(x0, y0, w, h);
+  const B = 34; // the border's width
+  const G = 6; // a guard stripe
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(B + 2 * G, y0 + B + 2 * G, w - 2 * (B + 2 * G), h - 2 * (B + 2 * G));
+  ctx.clip();
+  for (let y = y0 + 20; y < y0 + h; y += 28)
+    for (let x = ((y - y0) / 28) % 2 ? 14 : 0; x < w + 14; x += 28) {
+      diamond(x, y, 6, 8);
+      ctx.fillStyle = C.dark;
+      ctx.fill();
+      diamond(x, y, 2.5, 3.5);
+      ctx.fillStyle = C.ochre;
+      ctx.fill();
+    }
+  // the medallion: stepped lozenges, one in another, and a small one above and below it
+  const cx = w / 2;
+  const cy = y0 + h / 2;
+  [
+    [70, 108, C.cream],
+    [64, 100, C.indigo],
+    [50, 80, C.ochre],
+    [42, 68, C.field],
+    [30, 50, C.indigo],
+    [18, 30, C.cream],
+    [9, 15, C.field],
+  ].forEach(([rx, ry, c]) => {
+    diamond(cx, cy, rx as number, ry as number);
+    ctx.fillStyle = c as string;
+    ctx.fill();
+  });
+  for (const s of [-1, 1]) {
+    diamond(cx, cy + s * 140, 26, 26);
+    ctx.fillStyle = C.indigo;
+    ctx.fill();
+    diamond(cx, cy + s * 140, 12, 12);
+    ctx.fillStyle = C.green;
+    ctx.fill();
+  }
+  ctx.restore();
+  // the border: guard stripe, indigo band of ochre lozenges, guard stripe
+  const band = (inset: number, width: number, colour: string) => {
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = width;
+    ctx.strokeRect(x0 + inset + width / 2, y0 + inset + width / 2, w - 2 * inset - width, h - 2 * inset - width);
+  };
+  band(0, G, C.cream);
+  band(G, B, C.indigo);
+  band(G + B, G, C.cream);
+  const mid = G + B / 2;
+  const along = (len: number, at: (t: number) => [number, number]) => {
+    const n = Math.round(len / 30);
+    for (let i = 0; i < n; i++) {
+      const [x, y] = at((i + 0.5) / n);
+      diamond(x, y, 11, 11);
+      ctx.fillStyle = C.ochre;
+      ctx.fill();
+      diamond(x, y, 4, 4);
+      ctx.fillStyle = C.field;
+      ctx.fill();
+    }
+  };
+  along(w - 2 * mid, (t) => [mid + t * (w - 2 * mid), y0 + mid]);
+  along(w - 2 * mid, (t) => [mid + t * (w - 2 * mid), y0 + h - mid]);
+  along(h - 2 * mid, (t) => [mid, y0 + mid + t * (h - 2 * mid)]);
+  along(h - 2 * mid, (t) => [w - mid, y0 + mid + t * (h - 2 * mid)]);
+  // the weave: fine rows of knots, and wear, most where the wolf lies
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = '#000';
+  for (let y = y0; y < y0 + h; y += 3) ctx.fillRect(x0, y, w, 1);
+  ctx.globalAlpha = 1;
+  for (let i = 0; i < 2600; i++) {
+    const x = rand() * w;
+    const y = y0 + rand() * h;
+    const near = 1 - Math.min(1, Math.hypot((x - cx) / w, (y - cy) / h) * 2.2);
+    ctx.globalAlpha = 0.06 + 0.12 * near;
+    ctx.fillStyle = rand() < 0.5 ? '#000' : C.cream;
+    ctx.fillRect(x, y, 1 + rand() * 3, 1 + rand() * 2);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** The wolf's rug (Wolf.tsx), `size` [across, long] in metres, lying flat, its fringe at the long ends. */
+export function WovenRug({ position, size }: { position: P; size: [number, number] }) {
+  const tex = useCanvasTexture(Math.round(size[0] * RUG_PX), Math.round(size[1] * RUG_PX), (ctx) => paintRug(ctx, ctx.canvas.width, ctx.canvas.height), []);
+  return (
+    <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={size} />
+      {/* toned down to sit in the firelight like the rest of the hall */}
+      <meshStandardMaterial map={tex} color="#6a5a50" roughness={1} alphaTest={0.5} />
     </mesh>
   );
 }

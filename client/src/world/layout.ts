@@ -130,6 +130,13 @@ export const HEARTH = { z: 4, w: 3.4, d: 0.9 };
 export const WOLF = { x: -HALF_W + 1.85, z: HEARTH.z };
 export const WOLF_RUG = { x: WOLF.x, z: WOLF.z + 0.25, w: 1.4, d: 1.8 };
 export const WOLF_SOLID = rect(WOLF.x + 0.45, WOLF.z + 0.25, 0.7, 1.8, 0.6);
+// Firewood against the west wall on the hearth's north side, clear of the cauldron: a stack of logs, ends to the
+// room, and a tied bundle lying along the wall past it. The cat's pile of kills is on the hearth's south side
+// (Rats.tsx); firewood.test.ts keeps the two apart and her ways clear. x and z are the middle of each footprint.
+export const FIREWOOD = {
+  stack: { x: -HALF_W + 0.27, z: HEARTH.z - HEARTH.w / 2 - 0.55, w: 0.54, d: 0.84, h: 0.5 },
+  bundle: { x: -HALF_W + 0.17, z: HEARTH.z - HEARTH.w / 2 - 1.45, w: 0.34, d: 0.7, h: 0.3 },
+};
 export const FEAST_TABLES = [
   { x: -4.5, z: 5 },
   { x: 6, z: 5 },
@@ -164,6 +171,7 @@ export function lobbyColliders(): Rect[] {
   for (const s of BAR_STOOLS) out.push(rect(s.x, s.z, 0.42, 0.42, 0.8)); // tall bar stools (tavernRules STOOL_SEAT)
   out.push(rect(-HALF_W + HEARTH.d / 2, HEARTH.z, HEARTH.d, HEARTH.w)); // the hearth's chimney breast
   out.push(WOLF_SOLID); // the wolf asleep in front of it
+  for (const f of Object.values(FIREWOOD)) out.push(rect(f.x, f.z, f.w, f.d, f.h)); // the firewood beside it
   for (const t of FEAST_TABLES) {
     out.push(rect(t.x, t.z, 2.85, 1.1, 0.81));
     for (const dz of [-0.85, 0.85]) out.push(rect(t.x, t.z + dz, 2.78, 0.5, 0.53)); // benches

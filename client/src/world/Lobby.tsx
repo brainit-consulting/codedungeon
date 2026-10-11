@@ -5,7 +5,7 @@ import { pendingRequests, useStore, type Agent } from '../store';
 import { CEO_ID, type HireRequestView } from '../../../shared/types';
 import { Character } from './Character';
 import { Desk } from './Desk';
-import { Bar, FeastTables, Hearth } from './GreatHall';
+import { Bar, FeastTables, Firewood, Hearth } from './GreatHall';
 import { drawCandidateTag, drawSign, roundRect, SANS, TITLE } from './draw';
 import { useCanvasTexture, useInteractable } from './interact';
 import { CEO_DESK, CEO_ROOM, HALF_D, HALF_W, MANAGER_DESK, MANAGER_ROOM, OFFICE_CANDELABRUM, WAITING, WAITING_ROTATION } from './layout';
@@ -427,6 +427,7 @@ export function Lobby() {
       {/* the tavern */}
       <Bar />
       <Hearth />
+      <Firewood />
       <Wolf />
       <FeastTables />
       <Tavern />

@@ -8,7 +8,7 @@ import { theCat } from './Cat';
 import { disposeSkinned } from './disposeSkinned';
 import { HandPose } from './handPose';
 import { WOLF, WOLF_RUG } from './layout';
-import { Rug } from './Props';
+import { WovenRug } from './Props';
 import { createWolf, stepWolf, type Wolf as WolfState, type WolfEnv } from './wolfBrain';
 import { wolfSounds } from './wolfSounds';
 
@@ -317,7 +317,7 @@ export function Wolf() {
 
   return (
     <>
-      <Rug position={[WOLF_RUG.x, 0.006, WOLF_RUG.z]} size={[WOLF_RUG.w, WOLF_RUG.d]} color="#6b4a2e" />
+      <WovenRug position={[WOLF_RUG.x, 0.006, WOLF_RUG.z]} size={[WOLF_RUG.w, WOLF_RUG.d]} />
       <group position={[WOLF.x, 0, WOLF.z]}>
         <Suspense fallback={null}>
           <WolfBody brain={brain} />

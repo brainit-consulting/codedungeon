@@ -8,6 +8,7 @@ import { GALLERY, chamber, drawnFor, dungeonColliders, galleryEnd, inDungeon, to
 import { GreatSpider } from './GreatSpider';
 import { GREAT, createLair, stepLair, type Lair, type LairEnv } from './lairBrain';
 import { CEO_DESK, DESK_ROWS, ELEVATOR, HALF_D, HALF_W, HEARTH, RECEPTION, WALL_H, deskPosition } from './layout';
+import { Model } from './models';
 import { makeNav, type Pt } from './nav';
 import { RAT, createWarren, releaseRat, stepWarren, type Warren, type WarrenEnv } from './ratBrain';
 import { DeadRat, PILE_DROP, Rats } from './Rats';
@@ -293,10 +294,8 @@ function BarMug({ brain }: { brain: React.RefObject<CatState | null> }) {
   });
   return (
     <group ref={g}>
-      <mesh position={[0, 0.06, 0]}>
-        <cylinderGeometry args={[0.045, 0.04, 0.12, 12]} />
-        <meshStandardMaterial color="#5a3d26" roughness={0.7} />
-      </mesh>
+      {/* the same wooden tankard the drinkers hold, its handle towards the back bar */}
+      <Model name="props/Mug" rotation={[0, 2.2, 0]} />
     </group>
   );
 }
