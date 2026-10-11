@@ -155,3 +155,20 @@ describe('the Vercel project that already builds a repo', () => {
     expect(shipModule.projectBuilding(projects, 'brainit-consulting/library-workshops')?.id).toBe('site');
   });
 });
+
+describe('what is live now', () => {
+  const d = (id: string, state: Deployment['state'], createdAt: number): Deployment => ({ id, url: `${id}.vercel.app`, sha: id, state, createdAt });
+  it("is Vercel's production build only once it's ready", () => {
+    expect(shipModule.liveBuild(d('a', 'READY', 2), [], [])?.id).toBe('a');
+  });
+  it('stays on the last build seen live while a new one builds or after it fails, never a held-back one', () => {
+    const builds = [d('new', 'ERROR', 4), d('held', 'READY', 3), d('old', 'READY', 2), d('older', 'READY', 1)];
+    expect(shipModule.liveBuild(d('new', 'ERROR', 4), builds, ['old', 'older'])?.id).toBe('old');
+    expect(shipModule.liveBuild(d('new', 'BUILDING', 4), builds, ['old', 'older'])?.id).toBe('old');
+  });
+  it('is nothing when the first build is still building or failed', () => {
+    expect(shipModule.liveBuild(d('first', 'BUILDING', 1), [d('first', 'BUILDING', 1)], [])).toBeNull();
+    expect(shipModule.liveBuild(d('first', 'ERROR', 1), [d('first', 'ERROR', 1)], ['first'])).toBeNull();
+    expect(shipModule.liveBuild(null, [], [])).toBeNull();
+  });
+});

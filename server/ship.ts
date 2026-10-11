@@ -7,6 +7,7 @@ import {
   SHIP_LOG_MAX,
   buildFor,
   earlierLive,
+  liveBuild,
   prNumbersFromSubjects,
   projectBuilding,
   sameRepo,
@@ -195,11 +196,11 @@ export class Shipyard {
 
   /** Take in what Vercel says, and remember every deployment seen live (Undo may go back only to those). */
   private saw(r: ShipRepo, rt: Rt, info: VercelProjectInfo, deployments: Deployment[]) {
-    rt.live = info.live;
+    rt.live = liveBuild(info.live, deployments, r.ship.seenLive);
     rt.domains = info.domains;
     rt.autoAssign = info.autoAssign;
     rt.deployments = deployments;
-    const id = info.live?.id;
+    const id = rt.live?.id;
     if (id && r.ship.seenLive[0] !== id) {
       r.ship.seenLive = [id, ...r.ship.seenLive.filter((x) => x !== id)].slice(0, SHIP_LOG_MAX);
       this.hooks.save();

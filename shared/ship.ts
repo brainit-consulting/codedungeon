@@ -205,3 +205,10 @@ export function projectBuilding<P extends { repo: string | null; createdAt?: num
   const building = projects.filter((p) => p.repo !== null && sameRepo(p.repo, fullName));
   return building.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))[0] ?? null;
 }
+
+/** What is live now. Vercel's production target points at the newest production build even while it builds or after
+ *  it failed (measured on a first build), so that counts only once ready; until then, the last build seen live. */
+export function liveBuild(production: Deployment | null, deployments: Deployment[], seenLive: string[]): Deployment | null {
+  if (production?.state === 'READY') return production;
+  return deployments.filter((d) => d.state === 'READY' && seenLive.includes(d.id)).sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
+}
