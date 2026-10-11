@@ -148,6 +148,9 @@ export const CHAPTERS: GuideChapter[] = [
         'A free tester checks out the pull request, reads it and its issue, reviews the diff, runs the tests, linters and build, and tries the change in a real browser with screenshots. The dungeon posts the report on the pull request as a comment: the verdict, a table of checks, the commands run and the screenshots.',
       ),
       p(
+        "With **Phone-ready checks** on (the default), the tester measures every page a pull request changes at four sizes: a phone (375 × 667), a phone on its side (844 × 390), a tablet (810 × 1080) and a laptop (1280 × 800). A page that scrolls sideways, a control a thumb can't hit (under 44 px), a field under 16 px (iPhone Safari zooms into those) or a button you can't reach fails the round, and the coder gets the numbers. Problems on pages the pull request didn't change are listed but don't fail it. The tester's browser imitates a phone; it isn't Safari, so try your app on a real phone before you launch it.",
+      ),
+      p(
         'If QA fails, the report goes back to the coder who wrote it. They fix the branch and it goes back to QA. After three failed rounds the pull request is marked **needs you**.',
       ),
       p(
@@ -212,7 +215,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('Chambers & repos'),
       p(
-        'One row per chamber. **Visit** walks you there. Switches for **Auto-assign issues**, **Auto-merge** and **Browser testing** (testers use a real browser through Playwright). You can dye the chamber one of eight period colours (ochre, woad, moss and the rest), link it to other chambers so its coders can read those repos, and **Disconnect** it: everyone in it is let go, nothing is deleted on GitHub, and the folder stays on disk.',
+        'One row per chamber. **Visit** walks you there. Switches for **Auto-assign issues**, **Auto-merge**, **Browser testing** (testers use a real browser through Playwright) and **Phone-ready checks** (testers measure changed pages at phone, tablet and laptop sizes; on by default, turn it off for repos with no screen). You can dye the chamber one of eight period colours (ochre, woad, moss and the rest), link it to other chambers so its coders can read those repos, and **Disconnect** it: everyone in it is let go, nothing is deleted on GitHub, and the folder stays on disk.',
       ),
       p(
         'Each row also shows whether your project folder is up to date with GitHub. After a merge it fast-forwards when that is safe; if it can\'t (local changes, another branch checked out), it says why, and **Sync now** tries again. Nothing is ever stashed or thrown away.',
