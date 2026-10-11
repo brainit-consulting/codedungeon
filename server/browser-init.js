@@ -30,7 +30,8 @@
 window.__phoneCheck = () => {
   const vw = document.documentElement.clientWidth;
   const vh = window.innerHeight;
-  const touch = window.matchMedia('(pointer: coarse)').matches;
+  // touch rules up to tablet width (the skill's 1200px line): QA's browser is touch at every size, a laptop isn't
+  const touch = window.matchMedia('(pointer: coarse)').matches && window.innerWidth < 1200;
   const label = (e) => (e.getAttribute('aria-label') || e.innerText || e.getAttribute('name') || e.tagName).replace(/\s+/g, ' ').trim().slice(0, 40);
   const shown = (e) => {
     const r = e.getBoundingClientRect();

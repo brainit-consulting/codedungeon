@@ -48,6 +48,17 @@ test.describe('on a touch phone', () => {
   });
 });
 
+test.describe('in the touch browser at laptop size', () => {
+  // QA's whole session is a touch browser (--mobile), so its laptop-size pass is touch too; a real laptop has a mouse
+  test.use({ viewport: { width: 1280, height: 800 }, hasTouch: true, isMobile: true });
+  test('touch rules do not apply from 1200px wide, overflow still does', async ({ page }) => {
+    const ok = await check(page, '<button style="height:30px">Copy</button><input style="font-size:13px">');
+    expect(ok).toMatchObject({ ok: true, problems: [] });
+    const wide = await check(page, '<div style="width:1400px">wide</div>');
+    expect(wide.problems.join()).toMatch(/120px wider than the screen/);
+  });
+});
+
 test.describe('on a laptop', () => {
   test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false });
   test('touch rules do not apply, overflow still does', async ({ page }) => {

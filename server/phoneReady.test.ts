@@ -20,6 +20,12 @@ describe('phone-ready QA', () => {
     expect(t).toContain('window.__phoneCheck()');
     for (const s of PHONE_SIZES) expect(t).toContain(`${s.width}x${s.height}`);
   });
+  it('fails only what this PR causes; problems already there are listed, even on a page the PR changed', () => {
+    const t = phoneQaStep();
+    expect(t).toMatch(/fail only for problems this PR causes/i);
+    expect(t).toContain('"already there"');
+    expect(t).not.toMatch(/pages this PR didn't change/);
+  });
   it('points coders at the skill on one line', () => {
     const l = phoneCoderLine('X:/skills/mobile-web-polish/SKILL.md');
     expect(l).toContain('X:/skills/mobile-web-polish/SKILL.md');
