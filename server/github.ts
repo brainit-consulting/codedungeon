@@ -273,6 +273,9 @@ export async function commentPull(fullName: string, number: number, body: string
 
 // QA screenshots live on an orphan branch so evidence never lands in the default branch when a PR is merged.
 export const EVIDENCE_BRANCH = 'swarm-qa-evidence';
+/** On the evidence branch itself: Vercel skips its commits (one per screenshot), which nothing reads; GitHub serves
+ *  the screenshots. Measured on the reference CRM: no deployment and no commit status for a commit carrying it. */
+export const EVIDENCE_VERCEL_JSON = JSON.stringify({ $schema: 'https://openapi.vercel.sh/vercel.json', git: { deploymentEnabled: { [EVIDENCE_BRANCH]: false } } }, null, 2) + '\n';
 const evidenceReady = new Set<string>();
 
 const ghApiJson = <T>(method: string, endpoint: string, body: unknown) =>
@@ -288,10 +291,25 @@ async function ensureEvidenceBranch(fullName: string) {
     const readme =
       '# QA evidence\n\nScreenshots attached to pull request QA reports by Code Dungeon QA agents.\nThis branch has no shared history with the code and is never merged.\n';
     const newTree = await ghApiJson<{ sha: string }>('POST', `repos/${fullName}/git/trees`, {
-      tree: [{ path: 'README.md', mode: '100644', type: 'blob', content: readme }],
+      tree: [
+        { path: 'README.md', mode: '100644', type: 'blob', content: readme },
+        { path: 'vercel.json', mode: '100644', type: 'blob', content: EVIDENCE_VERCEL_JSON },
+      ],
     });
     const commit = await ghApiJson<{ sha: string }>('POST', `repos/${fullName}/git/commits`, { message: 'QA evidence branch (Code Dungeon)', tree: newTree.sha, parents: [] });
     await ghApiJson('POST', `repos/${fullName}/git/refs`, { ref: `refs/heads/${EVIDENCE_BRANCH}`, sha: commit.sha });
+    evidenceReady.add(fullName);
+    return;
+  }
+  // a branch made before 0.18 has no vercel.json: add it once; a refusal never stops the screenshot
+  try {
+    await gh(['api', `repos/${fullName}/contents/vercel.json?ref=${EVIDENCE_BRANCH}`]);
+  } catch {
+    await ghApiJson('PUT', `repos/${fullName}/contents/vercel.json`, {
+      message: 'QA evidence branch: no Vercel deployments (Code Dungeon)',
+      content: Buffer.from(EVIDENCE_VERCEL_JSON).toString('base64'),
+      branch: EVIDENCE_BRANCH,
+    }).catch(() => {});
   }
   evidenceReady.add(fullName);
 }
