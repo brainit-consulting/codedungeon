@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { noise, tone } from '../ui/sfx';
 import { theCat } from './Cat';
+import { disposeSkinned } from './disposeSkinned';
 import { HandPose } from './handPose';
 import { WOLF, WOLF_RUG } from './layout';
 import { Rug } from './Props';
@@ -133,6 +134,7 @@ function WolfBody({ brain }: { brain: React.RefObject<WolfState | null> }) {
     });
     return s;
   }, [gltf]);
+  useEffect(() => () => disposeSkinned(scene), [scene]);
   const bones = useMemo(() => findBones(scene), [scene]);
   // The bones nudged by hand on top of the clips (see handPose.ts for why the nudges come off as they do).
   const hand = useMemo(

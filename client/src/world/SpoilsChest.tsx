@@ -6,6 +6,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import { useStore } from '../store';
 import { noise, tone } from '../ui/sfx';
 import { letOutRat, letOutSpider, roomForRat, roomForSpider } from './Cat';
+import { disposeSkinned } from './disposeSkinned';
 import { useInteractable } from './interact';
 import type { Spider } from './spiderBrain';
 import { chestOpening, type Surprise } from './spoils';
@@ -69,6 +70,7 @@ export function SpoilsChest({ position }: { position: [number, number, number] }
     });
     return s;
   }, [gltf]);
+  useEffect(() => () => disposeSkinned(scene), [scene]);
   const mixer = useMemo(() => new THREE.AnimationMixer(scene), [scene]);
   const actions = useMemo(() => {
     const out = {} as Record<Clip, THREE.AnimationAction>;

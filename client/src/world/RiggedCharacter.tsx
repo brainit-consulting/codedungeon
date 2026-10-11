@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { Agent } from '../store';
 import { hashId } from './appearance';
+import { disposeSkinned } from './disposeSkinned';
 import { Quill } from './Quill';
 import { useWritingHands } from './writingHands';
 
@@ -48,6 +49,7 @@ function variantFor(agent: Agent): string {
 
 /** Materials per variant are shared by every copy; hair is tinted per person, so it gets its own. */
 const darkened = new WeakSet<THREE.Material>();
+const perPerson = new WeakSet<THREE.Material>();
 function prepare(scene: THREE.Object3D, hair: string) {
   scene.traverse((o) => {
     const m = o as THREE.SkinnedMesh;
@@ -57,6 +59,7 @@ function prepare(scene: THREE.Object3D, hair: string) {
     if (/hair|beard|eyebrow/i.test(mat.name)) {
       const own = mat.clone();
       own.color.set(hair).multiply(GRIME);
+      perPerson.add(own);
       m.material = own;
     } else if (!darkened.has(mat)) {
       mat.color.multiply(GRIME);
@@ -79,6 +82,7 @@ export function useRiggedBody(who: { id: string; look: Agent['look']; role: Agen
     prepare(s, who.hair);
     return s;
   }, [gltf, who.hair]);
+  useEffect(() => () => disposeSkinned(scene, (m) => perPerson.has(m)), [scene]);
   const mixer = useMemo(() => new THREE.AnimationMixer(scene), [scene]);
   useEffect(() => () => void mixer.stopAllAction(), [mixer]);
   return { scene, mixer, clips: anims.animations };
