@@ -35,7 +35,19 @@ export const HOLD = {
   /** The tip (rad) as the rim reaches the lips, and at the deepest of the sip. */
   lipTilt: 0.35,
   sipTilt: 1.05,
+  /** How far (rad) the handle is turned forward from square on the wood, so the hand follows the forearm. */
+  turn: 0.5,
 };
+
+/**
+ * Which way the drinking arm's elbow goes from the shoulder (m along down, out to the right, and back): back and a little
+ * out, so the forearm comes in level from behind. Pulled down instead, it rose steeply to the mug and the wrist bent
+ * about 40° (the Overlord saw it as twisted); with HOLD.turn, measured 15° to 20° at rest and at the sip.
+ */
+export const ELBOW = { down: 0, out: 0.3, back: 1.4 };
+
+/** The resting hand's thumb tip on the wood (m): out from the first knuckle, back towards the wrist, and up off the top. */
+const THUMB_ON_WOOD = { out: 0.02, back: 0.025, lift: 0.009 };
 
 /** Where the lips are in the head bone's frame when a body's face can't be read: between the men's and the women's. */
 const LIPS_FALLBACK = new THREE.Vector3(0, 0.03, 0.106);
@@ -114,6 +126,9 @@ export function createDrinkingHands(scene: THREE.Object3D, seat: Seat) {
     a: new THREE.Vector3(),
     thumb: new THREE.Vector3(),
     thumbPole: new THREE.Vector3(),
+    lt: new THREE.Vector3(),
+    lp: new THREE.Vector3(),
+    side: new THREE.Vector3(),
     m: new THREE.Matrix4(),
     basis: new THREE.Matrix4(),
     one: new THREE.Vector3(1, 1, 1),
@@ -152,13 +167,28 @@ export function createDrinkingHands(scene: THREE.Object3D, seat: Seat) {
       reachWith(b.upperL, b.lowerL, b.left.hand, v.target, v.pole, w);
       facePalm(b.left, DOWN, w);
       closeFingers(b.left, 0.12 * w, 0.05 * w);
+      // its thumb lies along the wood beside the first finger, instead of hanging down through the top
+      if (w >= 1) {
+        b.left.hand.updateMatrixWorld(true);
+        b.left.fingers[0][0].getWorldPosition(v.lt);
+        b.left.fingers[3][0].getWorldPosition(v.side);
+        v.side.subVectors(v.lt, v.side).setY(0).normalize(); // across the hand, towards the thumb
+        b.left.hand.getWorldPosition(v.lp).sub(v.lt).setY(0).normalize(); // back along the hand, towards the wrist
+        v.lt.addScaledVector(v.side, THUMB_ON_WOOD.out).addScaledVector(v.lp, THUMB_ON_WOOD.back);
+        v.lt.y = seat.mug.y + THUMB_ON_WOOD.lift;
+        b.left.thumb[1].getWorldPosition(v.lp).addScaledVector(UP, 0.05);
+        reachThumb(b.left, v.lt, v.lp);
+      }
 
       // Where the mug should be: on the wood, or its near rim on its way to the lips, tipping back as it goes and
       // pivoting on the lower lip for the sip.
       const tilt = d.toMouth * HOLD.lipTilt + d.tilt * (HOLD.sipTilt - HOLD.lipTilt);
-      v.q.copy(yawQ).multiply(new THREE.Quaternion().setFromAxisAngle(X, tilt));
+      // on the wood the handle is turned out towards the drinking hand, so the hand carries on the forearm's line; it turns
+      // square again on the way to the lips
+      const turned = new THREE.Quaternion().setFromAxisAngle(UP, HOLD.turn * (1 - d.toMouth));
+      v.q.copy(yawQ).multiply(turned).multiply(new THREE.Quaternion().setFromAxisAngle(X, tilt));
       v.o.set(seat.mug.x, seat.mug.y, seat.mug.z);
-      onMug(yawQ, v.o, 0, MUG.rim, MUG.rimR, v.cRest);
+      onMug(yawQ.clone().multiply(turned), v.o, 0, MUG.rim, MUG.rimR, v.cRest);
       v.cLip.copy(lips).applyMatrix4(b.head.matrixWorld).addScaledVector(fwd, 0.003);
       v.c.lerpVectors(v.cRest, v.cLip, d.toMouth);
       v.o.copy(v.c).sub(v.rimNear.clone().applyQuaternion(v.q));
@@ -171,7 +201,7 @@ export function createDrinkingHands(scene: THREE.Object3D, seat: Seat) {
       onMug(v.q, v.o, MUG.bar.x, HOLD.gripY, MUG.bar.z, v.grip);
       onMug(v.q, v.o, MUG.bar.x - 0.005, MUG.handleTop + 0.01, MUG.bar.z, v.thumb);
       b.upperR.getWorldPosition(v.shoulder);
-      v.pole.copy(v.shoulder).addScaledVector(UP, -1).addScaledVector(rt, 0.6).addScaledVector(fwd, -0.3);
+      v.pole.copy(v.shoulder).addScaledVector(UP, -ELBOW.down).addScaledVector(rt, ELBOW.out).addScaledVector(fwd, -ELBOW.back);
       v.target.copy(offset).applyQuaternion(v.q).add(v.grip);
       for (let pass = 0; pass < 2; pass++) {
         reachWith(b.upperR, b.lowerR, b.right.hand, v.target, v.pole, w);
@@ -194,7 +224,7 @@ export function createDrinkingHands(scene: THREE.Object3D, seat: Seat) {
       // The mug from the hand as it is: settled, it goes wherever the hand has it (so the two can't drift apart).
       if (w < 1) {
         m.position.set(seat.mug.x, seat.mug.y, seat.mug.z);
-        m.quaternion.copy(yawQ);
+        m.quaternion.copy(yawQ).multiply(new THREE.Quaternion().setFromAxisAngle(UP, HOLD.turn));
       } else {
         palmNormal(b.right, v.n);
         v.x.copy(v.n).negate();

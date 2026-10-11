@@ -203,6 +203,36 @@ describe.each(['Male_Peasant', 'Male_Ranger', 'Female_Peasant', 'Female_Ranger']
       expect(worst.depth, `${(worst.depth * 1000).toFixed(1)} mm into the mug (${worst.bone}, frame ${worst.frame})`).toBe(0);
     });
 
+    it(`${where}: neither hand goes into the wood, from the wood to the sip and back`, async () => {
+      const s = await seated(outfit, seat);
+      let worst = { depth: 0, bone: '', frame: -1 };
+      let frame = 0;
+      const check = () => {
+        for (const v of vertices(s)) {
+          if (!/^(hand|index|middle|ring|pinky|thumb)/.test(v.bone)) continue;
+          const depth = seat.mug.y - v.p.y;
+          if (depth > worst.depth) worst = { depth, bone: v.bone, frame };
+        }
+      };
+      check();
+      aDrink(s, () => {
+        frame++;
+        if (frame % 3 === 0) check(); // every tenth of a second
+      });
+      expect(worst.depth, `${(worst.depth * 1000).toFixed(1)} mm below the wood (${worst.bone}, frame ${worst.frame})`).toBeLessThan(0.001);
+    });
+
+    it(`${where}: the hand on the mug carries on the line of the forearm, the wrist bent no more than 25°`, async () => {
+      const s = await seated(outfit, seat);
+      for (const d of [REST, SIP]) {
+        for (let i = 0; i < 4; i++) s.frameAt(1 / 30, d);
+        const fore = s.at('hand_r').sub(s.at('lowerarm_r')).normalize();
+        const along = s.hand.fingers[1][0].getWorldPosition(new THREE.Vector3()).sub(s.at('hand_r')).normalize();
+        const bend = (fore.angleTo(along) * 180) / Math.PI;
+        expect(bend, d === REST ? 'at rest' : 'at the sip').toBeLessThan(25);
+      }
+    });
+
     it(`${where}: the other hand lies flat on the wood beside the mug`, async () => {
       const s = await seated(outfit, seat);
       const left = findHand(s.body, 'l')!;
