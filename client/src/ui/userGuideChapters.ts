@@ -274,14 +274,14 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('The tavern'),
       p(
-        "Coders and testers with nothing to do don't sit at their benches: they go to the great hall's bar and feasting tables, where Wystan the Tapster keeps the ale coming. They talk, drink and wait for work. When an issue or a pull request comes for them they're back at their bench at once; while they're away, their slate says where they went. The tables are laid with bread, cheese and fruit, and between pours Wystan wipes the bar down with his towel or talks with his hands.",
+        "Coders and testers with nothing to do don't sit at their benches: they go to the great hall's bar and feasting tables, where Wystan the Tapster keeps the ale coming. They talk, drink and wait for work. When an issue or a pull request comes for them they're back at their bench at once; while they're away, their slate says where they went. The tables are laid with bread, cheese, ham, grapes and fruit, a log fire burns in the hearth with firewood stacked beside it, and between pours Wystan wipes the bar down with his towel or talks with his hands.",
       ),
       p(
         "Stand near the bar and you'll hear some of what they say, in speech bubbles, and some of it is about the guild's real work. Press [[E]] on any of them, or on Wystan, for a word of your own.",
       ),
       h('The wolf by the hearth'),
       p(
-        'A wolf sleeps on a hide rug by the great hall\'s fire. He stirs now and then, lifts his head when you come close, and sometimes yawns or gets up to stretch before lying down again. He makes no sound but his breathing, and you can\'t walk through him.',
+        'A wolf sleeps on a woven rug by the great hall\'s fire. He stirs now and then, lifts his head when you come close, and sometimes yawns or gets up to stretch before lying down again. He makes no sound but his breathing, and you can\'t walk through him.',
       ),
       h('The black cat'),
       p(
