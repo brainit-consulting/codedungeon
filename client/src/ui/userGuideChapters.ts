@@ -150,6 +150,9 @@ export const CHAPTERS: GuideChapter[] = [
       p(
         'If QA fails, the report goes back to the coder who wrote it. They fix the branch and it goes back to QA. After three failed rounds the pull request is marked **needs you**.',
       ),
+      p(
+        'QA only tests a fix that changed something: if a fix round ends with the branch still on the commit QA failed, it goes back for another fix instead, and after two such rounds it waits for you. A coder whose terminal is still finishing something on its own is not given new work until it stops.',
+      ),
       h('Merging'),
       p(
         'With **auto-merge** on (the default), a pull request merges itself once QA has passed its latest commit and GitHub\'s checks are green. If checks fail or it conflicts with the default branch, a coder fixes it and QA tests it again. With auto-merge off, read the pull request and its QA comment on GitHub, then press **Merge** on the notice board. Merging something that hasn\'t passed QA asks you to confirm first.',

@@ -216,10 +216,12 @@ function fakeSession(opts: SessionOptions, cb: SessionCallbacks, fullName: strin
   let stopped = false;
   // like Claude Code, it says which session it is; resumed, it's the same one, on the same task
   const id = opts.resumeSessionId ?? `demo-${crypto.randomUUID()}`;
-  const asked = (opts.resumeSessionId && askedOf.get(opts.resumeSessionId)) || opts.prompt;
+  // a fix round resumes the coder's conversation with a new prompt: that prompt is the job, as for the real CLI
+  const isFix = (text: string) => /FAILED|taking over pull request|git push origin HEAD:/.test(text);
+  const asked = (!isFix(opts.prompt) && opts.resumeSessionId && askedOf.get(opts.resumeSessionId)) || opts.prompt;
   askedOf.set(id, asked);
   cb.sessionId(id);
-  const kind = opts.role === 'qa' ? 'qa' : /FAILED|taking over pull request|git push origin HEAD:/.test(asked) ? 'fix' : 'issue';
+  const kind = opts.role === 'qa' ? 'qa' : isFix(asked) ? 'fix' : 'issue';
   const prMatch = asked.match(/pull request #(\d+)(?::\s*(.+))?/);
   const issueMatch = asked.match(/#(\d+):\s*(.+)/);
   const number = Number((kind === 'issue' ? issueMatch?.[1] : prMatch?.[1]) ?? 0);
@@ -612,9 +614,12 @@ export function createDemoBackend(): Backend {
     },
     removeDesk: async () => undefined,
     releaseDesk: async () => undefined,
+    cliWorkingAlone: () => false, // the demo's fake sessions never wake on their own
     startSession: (opts, cb) => {
       if (++sessionsStarted === USAGE_WARNING_AT) fakeUsageWarning(cb);
-      return inTerminal(opts, cb, (c) => (opts.role === 'ceo' ? ceoSession(opts, c) : fakeSession(opts, c, deskRepo.get(opts.cwd) ?? [...repos.keys()][0])));
+      // a desk's path names its repo (deskDir), also for sessions started without preparing the desk again
+      const ofDesk = deskRepo.get(opts.cwd) ?? opts.cwd.match(/^\/demo\/(.+)\/desks\//)?.[1];
+      return inTerminal(opts, cb, (c) => (opts.role === 'ceo' ? ceoSession(opts, c) : fakeSession(opts, c, ofDesk ?? [...repos.keys()][0])));
     },
     terminals: true,
     reconnectClis: async () => [], // fake sessions end with the office

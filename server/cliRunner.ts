@@ -24,6 +24,7 @@ import {
 } from './agentRunner.ts';
 import type { OfficeTools } from './ceo.ts';
 import type { AgentTerminal } from './terminal.ts';
+import { workingAloneAfter } from './handOff.ts';
 import { permissionAnswer, PromptWait } from './permissionGate.ts';
 import { FileMeter, promptBaseline, statusUsage, UsageTally } from './usageMeter.ts';
 import type { AgentCli } from '../shared/types.ts';
@@ -189,6 +190,8 @@ interface LiveCli {
   costSeen: number | null;
   /** Where its session stood when the manager typed a prompt at it while it waited: the start of that job. */
   typedBase?: ReturnType<typeof promptBaseline>;
+  /** Working on its own while it waits (a turn the office didn't start): its developer isn't free until it stops. */
+  alone?: boolean;
 }
 const lives = new Map<AgentTerminal, LiveCli>();
 /** How to trust Codex's hooks was said once this run (Codex asks at the start of every session until they are). */
@@ -230,6 +233,12 @@ export function liveCliCounts(): { working: number; waiting: number } {
   let waiting = 0;
   for (const l of lives.values()) if (l.proc) l.session ? working++ : waiting++;
   return { working, waiting };
+}
+
+/** Whether this agent's CLI is working on its own at its prompt (handOff.ts): they aren't free for new work yet. */
+export function cliWorkingAlone(agentId: string): boolean {
+  for (const l of lives.values()) if (l.agentId === agentId && l.proc && !l.session && l.alone) return true;
+  return false;
 }
 
 /** What the keeper holds with a CLI's terminal, so the office can pick it up again after a restart. */
@@ -328,7 +337,9 @@ export async function releaseClis(restart: boolean): Promise<void> {
 
 /** A CLI waiting at its prompt: what the manager types there becomes a follow-up. */
 function idleHook(live: LiveCli, b: Record<string, unknown>): Record<string, unknown> {
-  switch (String(b.hook_event_name ?? '')) {
+  const event = String(b.hook_event_name ?? '');
+  live.alone = workingAloneAfter(!!live.alone, event);
+  switch (event) {
     case 'PreToolUse':
       return ALLOW;
     case 'PermissionRequest':
@@ -707,6 +718,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
     clearTimeout(live.idleTimer);
     term.releaseIdle = null;
     live.session = { hook, exited };
+    live.alone = false;
     Object.assign(live, { statusLine });
     if (opts.typed && live.typedBase) {
       // typed at its prompt: the job began when the prompt went in, before this session was started

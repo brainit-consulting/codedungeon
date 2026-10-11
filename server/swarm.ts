@@ -7,6 +7,7 @@ import type { LogEntry, SessionHandle, SessionResult } from './agentRunner.ts';
 import type { PrDetails } from './github.ts';
 import { currentVersion, defaultProjectsDir, HOME_DIR, LOG_BUFFER, SCHEDULER_INTERVAL_MS, STATE_FILE, SYNC_INTERVAL_MS, WORKSPACE_ROOT } from './config.ts';
 import { ceoJobPrompt, ceoSystemPrompt, createOfficeTools, dungeonMasterTitle, IssueCap, jobLabel, planRoute, specialtyLabel, specialtySlug, type CeoJob, type OfficeTools } from './ceo.ts';
+import { fixChangedPr } from './handOff.ts';
 import { HttpError } from './httpError.ts';
 import { CHECKS_ALERT_MS, MAX_MERGE_FIXES, MERGE_RETRY_MS, mergeStep } from './mergeGate.ts';
 import { orphanedQa } from './qaOrphans.ts';
@@ -2518,11 +2519,25 @@ export class Swarm {
       this.toast('info', `${a.name} fixed PR #${rec.prNumber}; it merges once it passes again`);
       return;
     }
-    this.appendLog(a, [{ kind: 'done', text: `✔ Fix pushed for PR #${a.prNumber} in ${this.minutes(a)}m. Back to QA.` }]);
-    if (rec) {
-      this.setQa(rec, { status: 'queued', round: rec.round + 1, devSessionId: a.sessionId ?? rec.devSessionId });
-      this.toast('info', `${a.name} pushed fixes for PR #${rec.prNumber}; QA round ${rec.round} is queued`);
+    if (rec) void this.backToQa(a, repo, rec, this.minutes(a), a.sessionId ?? rec.devSessionId);
+  }
+
+  /** After a QA fix round: back to QA, unless the PR's head is still the commit QA failed (handOff.ts). */
+  private async backToQa(a: PersistedAgent, repo: PersistedRepo, rec: QaRecord, minutes: number, devSessionId: string | null) {
+    const head = await this.backend.prDetails(repo.fullName, rec.prNumber).then(
+      (d) => d.headSha,
+      () => null,
+    );
+    if (!fixChangedPr(rec.testedSha, head)) {
+      const failures = rec.sessionFailures + 1;
+      const next = failures >= 2 ? 'needs-human' : 'failed';
+      this.appendLog(a, [{ kind: 'error', text: `✘ No new commit on PR #${rec.prNumber}: it's still the one QA failed. ${next === 'failed' ? 'It goes back for another fix.' : 'It waits for the Overlord.'}` }]);
+      this.setQa(rec, { status: next, sessionFailures: failures, devSessionId });
+      return;
     }
+    this.appendLog(a, [{ kind: 'done', text: `✔ Fix pushed for PR #${rec.prNumber} in ${minutes}m. Back to QA.` }]);
+    this.setQa(rec, { status: 'queued', round: rec.round + 1, devSessionId });
+    this.toast('info', `${a.name} pushed fixes for PR #${rec.prNumber}; QA round ${rec.round} is queued`);
   }
 
   /** A message for an agent: sent into their running session, or a follow-up that resumes it. typed: the manager typed it at their CLI's prompt, where it's already running. */
@@ -2679,6 +2694,8 @@ export class Swarm {
     const now = Date.now();
     return this.state.agents
       .filter((a) => a.repoId === repo.id && a.role === role && (FREE.includes(a.status) || (a.status === 'error' && now - (a.endedAt ?? 0) >= ERROR_COOLDOWN_MS)))
+      // done, but their CLI is finishing something on its own at its prompt: not free until it stops (handOff.ts)
+      .filter((a) => !this.backend.cliWorkingAlone(a.id))
       .sort((x, y) => x.desk - y.desk);
   }
 

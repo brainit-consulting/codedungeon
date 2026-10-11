@@ -2,7 +2,7 @@ import * as browsers from './browsers.ts';
 import * as github from './github.ts';
 import * as workspace from './workspace.ts';
 import { startSession, type SessionCallbacks, type SessionHandle, type SessionOptions } from './agentRunner.ts';
-import { hooksReady, officeProcesses, reconnectClis, releaseClis, startCliSession, terminalsAvailable, type ReconnectedCli } from './cliRunner.ts';
+import { cliWorkingAlone, hooksReady, officeProcesses, reconnectClis, releaseClis, startCliSession, terminalsAvailable, type ReconnectedCli } from './cliRunner.ts';
 import { detectClis } from './clis.ts';
 import { realPreviews, type PreviewBackend } from './previewRunner.ts';
 import { realOffice, type OfficeHost } from './officeUpdate.ts';
@@ -65,6 +65,8 @@ export interface Backend {
   releaseDesk(fullName: string, agentSlug: string, port: number): Promise<void>;
   /** An agent session: the real CLI in the agent's terminal when opts.terminal is set, else an Agent SDK session. */
   startSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle;
+  /** The agent's CLI is working on its own at its prompt (a background command woke it): not free for new work yet. */
+  cliWorkingAlone(agentId: string): boolean;
   /** Terminals can run here (the native pseudo-terminal module loaded). */
   terminals: boolean;
   /** The office started: the CLIs its terminal keeper kept running through a restart, back in their agents' terminals. */
@@ -121,6 +123,7 @@ export const realBackend: Backend = {
   removeDesk: workspace.removeDesk,
   releaseDesk: (fullName, agentSlug, port) => workspace.releaseDesk(fullName, agentSlug, port, officeProcesses()),
   startSession: (opts, cb) => (opts.terminal ? startCliSession(opts, cb) : startSession(opts, cb)),
+  cliWorkingAlone,
   terminals: terminalsAvailable,
   reconnectClis: (terminalFor) => (terminalsAvailable ? reconnectClis(terminalFor) : Promise.resolve([])),
   hooksReady,
