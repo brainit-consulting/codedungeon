@@ -16,6 +16,7 @@ import { Panel } from './Overlays';
 import { Resume, Seal } from './Phone';
 import { ProjectPicker } from './ProjectPicker';
 import { StatusPill } from './TerminalView';
+import { useSystemFeed } from '../systemFeed';
 
 const MODELS = ['claude-opus-5-5', 'claude-opus-5', 'claude-fable-5-1', 'claude-sonnet-5', 'claude-haiku-4-5'];
 const EFFORTS: EffortLevel[] = ['low', 'medium', 'high', 'xhigh', 'max'];
@@ -665,6 +666,7 @@ function IssuesTab({ initialRepo }: { initialRepo?: string }) {
 
 function SettingsTab() {
   const settings = useStore((s) => s.settings);
+  const suggested = useSystemFeed().latest?.sessions.suggested;
   const clis = useStore((s) => s.clis);
   const user = useStore((s) => s.user);
   const workspaceRoot = useStore((s) => s.workspaceRoot);
@@ -719,8 +721,9 @@ function SettingsTab() {
           <input type="number" min={0} placeholder="No limit" defaultValue={settings.sessionLimit || ''} onBlur={(e) => set({ sessionLimit: Number(e.target.value) || 0 })} />
         </label>
         <p className="muted small">
+          {suggested ? `This computer carries about ${suggested} at once (its memory and cores). ` : ''}
           Leave empty so every coder with work runs at once. Coders on the same coding agent share its subscription's usage limits, and each one is its own process on this PC, so set a limit if
-          you hit either.
+          you hit either. Whatever the limit, no new session starts while the computer is short of memory.
         </p>
         <label className="field">
           <span>Sessions while pacing</span>

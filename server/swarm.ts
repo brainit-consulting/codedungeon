@@ -7,7 +7,9 @@ import type { LogEntry, SessionHandle, SessionResult } from './agentRunner.ts';
 import type { PrDetails } from './github.ts';
 import { currentVersion, defaultProjectsDir, HOME_DIR, LOG_BUFFER, SCHEDULER_INTERVAL_MS, STATE_FILE, SYNC_INTERVAL_MS, WORKSPACE_ROOT } from './config.ts';
 import { ceoJobPrompt, ceoSystemPrompt, createOfficeTools, dungeonMasterTitle, IssueCap, jobLabel, planRoute, specialtyLabel, specialtySlug, type CeoJob, type OfficeTools } from './ceo.ts';
+import os from 'node:os';
 import { fixChangedPr } from './handOff.ts';
+import { nextHold, suggestedSessions, type MemoryHold } from './loadBalance.ts';
 import { fixBrief, sendBackRefusal, stillFailedCommit } from '../shared/sendBack.ts';
 import { HttpError } from './httpError.ts';
 import { CHECKS_ALERT_MS, MAX_MERGE_FIXES, MERGE_RETRY_MS, mergeStep } from './mergeGate.ts';
@@ -396,7 +398,7 @@ export { HttpError };
 export class Swarm {
   private state: Persisted = {
     settings: {
-      sessionLimit: 0,
+      sessionLimit: suggestedSessions(os.totalmem(), os.cpus().length), // a new dungeon starts at what this computer can carry
       defaultModel: DEFAULT_MODEL,
       defaultEffort: 'medium',
       runtime: 'terminal',
@@ -806,7 +808,7 @@ export class Swarm {
   load() {
     const { sessionLimit, pacingSessions } = this.state.settings;
     const today = addToDay(this.state.usageToday, 0, 0, Date.now()); // a new day reads 0 without a write
-    return { running: this.running(), agents: this.state.agents.length, limit: sessionLimit, pacingSessions, usage: this.usageNow(), today: { tokens: today.tokens, costUsd: today.costUsd } };
+    return { running: this.running(), agents: this.state.agents.length, limit: sessionLimit, ...this.machineLoad(), pacingSessions, usage: this.usageNow(), today: { tokens: today.tokens, costUsd: today.costUsd } };
   }
 
   screenshot(agentId: string) {
@@ -2846,6 +2848,29 @@ export class Swarm {
     return Date.now() < this.pausedUntil;
   }
 
+  private memHold: MemoryHold = { holding: false, calmSince: null };
+  /** Free memory is low: start nothing new until it recovers (loadBalance.ts). Sessions already running carry on. */
+  private holdForMemory(): boolean {
+    const free = os.freemem();
+    const next = nextHold(this.memHold, free, Date.now());
+    if (next.holding !== this.memHold.holding) {
+      const gb = (free / 1024 ** 3).toFixed(1);
+      this.postMessage(
+        'office',
+        next.holding
+          ? `⏳ Holding new work: only ${gb} GB of the computer's memory is free. Sessions already running carry on; new ones start once more than 2 GB has stayed free for 3 minutes.`
+          : `✔ Memory is back (${gb} GB free): new work starts again.`,
+      );
+    }
+    this.memHold = next;
+    return next.holding;
+  }
+
+  /** For the gauges: the hold on new work, and the session limit this computer can carry. */
+  machineLoad() {
+    return { holding: this.memHold.holding, suggested: suggestedSessions(os.totalmem(), os.cpus().length) };
+  }
+
   /** Claude turned a session away for the usage limit: start nothing new until it resets, rather than failing agent after agent. */
   private pauseForLimit(resetsAt: number | null) {
     const until = (resetsAt ?? Date.now() + LIMIT_PAUSE_MS) + 30_000;
@@ -2913,6 +2938,7 @@ export class Swarm {
     this.tickUsage();
     if (this.officeUpdateTick()) return; // draining for the office's own update
     if (this.limited()) return;
+    if (this.holdForMemory()) return;
     // Management first: the CEO's jobs are short and shape everyone else's work.
     this.maybeHeartbeat();
     this.startCeoWork();

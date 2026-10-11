@@ -132,7 +132,17 @@ export function SystemPanel() {
         <dt>Sessions</dt>
         <dd>
           {s.running} running{s.limit > 0 ? ` of ${s.limit} allowed` : ''} · {s.agents} in the guild
+          <span className="muted">
+            {' '}
+            · this computer carries about {s.suggested} at once{s.limit === 0 || s.limit > s.suggested ? ': set the session limit in the ledger\'s Settings' : ''}
+          </span>
         </dd>
+        {s.holding && (
+          <>
+            <dt>New work</dt>
+            <dd className="high">Held: memory is low. Sessions already running carry on; new ones start once more than 2 GB has stayed free for 3 minutes.</dd>
+          </>
+        )}
         <dt>Agent CLIs</dt>
         <dd>
           {s.clisWorking} working · {s.clisWaiting} waiting at their prompt

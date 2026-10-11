@@ -63,7 +63,7 @@ describe('formatting', () => {
 });
 
 describe('createSystemMonitor', () => {
-  const load: OfficeLoad = { running: 2, agents: 5, limit: 0, clisWorking: 1, clisWaiting: 1, usage: { state: 'normal', until: null }, pacingSessions: 3, today: { tokens: 0, costUsd: 0 } };
+  const load: OfficeLoad = { running: 2, agents: 5, limit: 0, suggested: 8, holding: false, clisWorking: 1, clisWaiting: 1, usage: { state: 'normal', until: null }, pacingSessions: 3, today: { tokens: 0, costUsd: 0 } };
 
   it('takes one sample for many callers and reuses it', async () => {
     const office = vi.fn(() => load);
@@ -77,7 +77,7 @@ describe('createSystemMonitor', () => {
     expect(a.cpu.cores).toHaveLength(a.host.cores);
     expect(a.memory.total).toBe(os.totalmem());
     expect(a.disk?.total).toBeGreaterThan(0);
-    expect(a.sessions).toEqual({ running: 2, agents: 5, limit: 0, clisWorking: 1, clisWaiting: 1 });
+    expect(a.sessions).toEqual({ running: 2, agents: 5, limit: 0, suggested: 8, holding: false, clisWorking: 1, clisWaiting: 1 });
     expect(a.usage).toEqual({ state: 'normal', until: null, pacingSessions: 3 });
   });
 });

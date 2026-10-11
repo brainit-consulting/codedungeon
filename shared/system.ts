@@ -17,7 +17,7 @@ export interface SystemView {
   disk: { path: string; free: number; total: number } | null;
   uptime: { system: number; office: number };
   /** Agents in a session (preparing or working), everyone hired, the manager's cap (0 = none), the CLIs in terminals. */
-  sessions: { running: number; agents: number; limit: number; clisWorking: number; clisWaiting: number };
+  sessions: { running: number; agents: number; limit: number; suggested: number; holding: boolean; clisWorking: number; clisWaiting: number };
   /** Claude's usage as the office knows it from Claude's warnings, and how many sessions pacing allows. */
   usage: UsageView & { pacingSessions: number };
   /** Every session since local midnight, at API prices (the usage meter). */

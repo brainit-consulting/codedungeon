@@ -233,7 +233,7 @@ export const CHAPTERS: GuideChapter[] = [
       h('Settings'),
       list(
         '**Default coding agent, model and effort** for everyone (each person can override them in the Guild tab).',
-        '**Session limit**: how many agents may work at once. Empty means no limit.',
+        '**Session limit**: how many agents may work at once. Empty means no limit. A new dungeon starts at what this computer can carry, worked out from its memory and processor cores, and the gauges show that figure.',
         '**Sessions while pacing**: how many may run when Claude warns that usage is high (chapter IX).',
         '**Recruiting**: approve every recruit, or auto-approve up to the **guild cap per chamber**.',
         '**Dungeon review every** so many minutes: how often the DungeonMaster looks over everything (0 turns it off).',
@@ -359,6 +359,9 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       p(
         'If Claude turns a session away because the limit is reached, the dungeon starts no new work until the time Claude gives, and tells you on your scroll. Sessions already running carry on. To use less at once, set a **Session limit** in the ledger\'s Settings.',
+      ),
+      p(
+        'The same goes for the computer itself: when less than 1 GB of memory is free, the dungeon holds new work and says so on your scroll and the gauges. Nothing that is running is stopped. New work starts again once more than 2 GB has stayed free for 3 minutes. A browser tab left open for days can hold a lot of memory: closing it and opening the dungeon in a new tab gives it back.',
       ),
       h('A GitHub link says "Page not found"'),
       p(

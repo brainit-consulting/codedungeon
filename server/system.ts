@@ -52,6 +52,10 @@ export interface OfficeLoad {
   running: number;
   agents: number;
   limit: number;
+  /** New work is held because free memory is low (loadBalance.ts). */
+  holding: boolean;
+  /** The session limit this computer can carry. */
+  suggested: number;
   clisWorking: number;
   clisWaiting: number;
   usage: UsageView;
@@ -103,7 +107,7 @@ export function createSystemMonitor(opts: { diskPath: string; office: () => Offi
       process: { rss: mem.rss, heapUsed: mem.heapUsed },
       disk,
       uptime: { system: Math.round(os.uptime()), office: Math.round(process.uptime()) },
-      sessions: { running: office.running, agents: office.agents, limit: office.limit, clisWorking: office.clisWorking, clisWaiting: office.clisWaiting },
+      sessions: { running: office.running, agents: office.agents, limit: office.limit, suggested: office.suggested, holding: office.holding, clisWorking: office.clisWorking, clisWaiting: office.clisWaiting },
       usage: { ...office.usage, pacingSessions: office.pacingSessions },
       today: office.today,
     };
