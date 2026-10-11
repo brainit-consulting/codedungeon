@@ -57,7 +57,7 @@ export const api = {
   startPreview: (repoId: string, pr?: number, auto = false) => call<PreviewView>('POST', `${r(repoId)}/preview`, auto ? { auto } : pr ? { pr } : {}),
   shipCheck: (repoId: string) => call<ShipView>('POST', `${r(repoId)}/ship/check`),
   shipOptions: (scope?: string) =>
-    call<{ loggedInAs: string | null; teams: { slug: string; name: string }[]; scope: string | null; projects: { id: string; name: string; repo: string | null }[] }>(
+    call<{ loggedInAs: string | null; teams: { slug: string; name: string }[]; scope: string | null; projects: { id: string; name: string; repo: string | null; createdAt: number }[] }>(
       'GET',
       `/api/ship/options${scope ? `?scope=${encodeURIComponent(scope)}` : ''}`,
     ),

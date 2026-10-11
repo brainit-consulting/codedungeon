@@ -199,7 +199,9 @@ export function sameRepo(linked: string, fullName: string): boolean {
   return a.includes('/') ? a === b : a === b.split('/').pop();
 }
 
-/** The Vercel project that already builds `fullName` from GitHub, or null: a chamber ships through it, never a second one. */
-export function projectBuilding<P extends { repo: string | null }>(projects: P[], fullName: string): P | null {
-  return projects.find((p) => p.repo !== null && sameRepo(p.repo, fullName)) ?? null;
+/** The Vercel project that already builds `fullName` from GitHub, or null: a chamber ships through it, never a second one.
+ *  When two do, the oldest: the newer one is the stray (Vercel lists the most recently changed first). */
+export function projectBuilding<P extends { repo: string | null; createdAt?: number }>(projects: P[], fullName: string): P | null {
+  const building = projects.filter((p) => p.repo !== null && sameRepo(p.repo, fullName));
+  return building.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))[0] ?? null;
 }

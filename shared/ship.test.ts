@@ -146,4 +146,12 @@ describe('the Vercel project that already builds a repo', () => {
     expect(shipModule.projectBuilding(projects, 'brainit-consulting/library-workshops')?.id).toBe('p2');
     expect(shipModule.projectBuilding(projects, 'brainit-consulting/nothing')).toBeNull();
   });
+
+  it('picks the oldest when two projects build the same repo, however Vercel lists them', () => {
+    const projects = [
+      { id: 'stray', name: 'library-workshops', repo: 'brainit-consulting/library-workshops', createdAt: 2000 },
+      { id: 'site', name: 'brainit-aiworkshops', repo: 'brainit-consulting/library-workshops', createdAt: 1000 },
+    ];
+    expect(shipModule.projectBuilding(projects, 'brainit-consulting/library-workshops')?.id).toBe('site');
+  });
 });

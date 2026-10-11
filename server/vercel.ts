@@ -20,7 +20,7 @@ export interface VercelBackend {
   whoami(): Promise<string>;
   teams(): Promise<{ slug: string; name: string }[]>;
   /** The team's projects, each with the GitHub repo it builds from ("owner/name", or the name alone), or null. */
-  projects(scope: string): Promise<{ id: string; name: string; repo: string | null }[]>;
+  projects(scope: string): Promise<{ id: string; name: string; repo: string | null; createdAt: number }[]>;
   createProject(name: string, scope: string): Promise<{ id: string; name: string }>;
   /** Link a checkout to the project (writes its .vercel folder). */
   link(dir: string, p: VercelProjectRef): Promise<void>;
@@ -71,8 +71,8 @@ type RawLink = { org?: string; repo?: string };
 const repoOfLink = (link?: RawLink) => (link?.repo ? (link.org ? `${link.org}/${link.repo}` : link.repo) : null);
 
 /** A project in the team's list, with the repo it builds. */
-export function listedProject(raw: { id: string; name: string; link?: RawLink }): { id: string; name: string; repo: string | null } {
-  return { id: raw.id, name: raw.name, repo: repoOfLink(raw.link) };
+export function listedProject(raw: { id: string; name: string; createdAt?: number; link?: RawLink }): { id: string; name: string; repo: string | null; createdAt: number } {
+  return { id: raw.id, name: raw.name, repo: repoOfLink(raw.link), createdAt: raw.createdAt ?? 0 };
 }
 
 /** The deploy hook just made, from the project Vercel answers with: the newest of that name. */
@@ -151,7 +151,7 @@ export const realVercel: VercelBackend = {
     return out.teams.map((t) => ({ slug: t.slug, name: t.name }));
   },
   async projects(scope) {
-    const out = await api<{ projects: { id: string; name: string; link?: RawLink }[] }>('/v10/projects?limit=100', scope);
+    const out = await api<{ projects: { id: string; name: string; createdAt?: number; link?: RawLink }[] }>('/v10/projects?limit=100', scope);
     return out.projects.map(listedProject);
   },
   async createProject(name, scope) {

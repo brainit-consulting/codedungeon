@@ -12,6 +12,7 @@ interface FakeProject {
   name: string;
   scope: string;
   repo: string | null;
+  createdAt: number;
   autoAssign: boolean;
   live: string | null;
   deployments: Deployment[];
@@ -32,7 +33,7 @@ export function createFakeVercel(opts: { buildMs: number; headOf(fullName: strin
     const repo = f ? null : (opts.repoFor?.(p.name) ?? null);
     if (!f && repo) {
       // a project from before the demo restarted
-      f = { id: p.id, name: p.name, scope: p.scope, repo, autoAssign: true, live: null, deployments: [], domains: [`${p.name}.vercel.app`] };
+      f = { id: p.id, name: p.name, scope: p.scope, repo, createdAt: 0, autoAssign: true, live: null, deployments: [], domains: [`${p.name}.vercel.app`] };
       projects.set(f.id, f);
       f.live = build(f, opts.headOf(repo), false).id;
     }
@@ -60,10 +61,10 @@ export function createFakeVercel(opts: { buildMs: number; headOf(fullName: strin
       return [{ slug: 'demo-team', name: 'Demo team' }];
     },
     async projects(scope) {
-      return [...projects.values()].filter((p) => p.scope === scope).map((p) => ({ id: p.id, name: p.name, repo: p.repo }));
+      return [...projects.values()].filter((p) => p.scope === scope).map((p) => ({ id: p.id, name: p.name, repo: p.repo, createdAt: p.createdAt }));
     },
     async createProject(name, scope) {
-      const f: FakeProject = { id: `prj_demo${++n}`, name, scope, repo: null, autoAssign: true, live: null, deployments: [], domains: [`${name}.vercel.app`] };
+      const f: FakeProject = { id: `prj_demo${++n}`, name, scope, repo: null, createdAt: Date.now() + n, autoAssign: true, live: null, deployments: [], domains: [`${name}.vercel.app`] };
       projects.set(f.id, f);
       return { id: f.id, name };
     },

@@ -77,7 +77,7 @@ describe('the first build', () => {
   });
 
   it('lists projects with the repo each builds', () => {
-    expect(listedProject({ id: 'p', name: 'aiw', link: { org: 'brainit-consulting', repo: 'library-workshops' } })).toEqual({ id: 'p', name: 'aiw', repo: 'brainit-consulting/library-workshops' });
-    expect(listedProject({ id: 'q', name: 'x' })).toEqual({ id: 'q', name: 'x', repo: null });
+    expect(listedProject({ id: 'p', name: 'aiw', createdAt: 5, link: { org: 'brainit-consulting', repo: 'library-workshops' } })).toEqual({ id: 'p', name: 'aiw', repo: 'brainit-consulting/library-workshops', createdAt: 5 });
+    expect(listedProject({ id: 'q', name: 'x' })).toEqual({ id: 'q', name: 'x', repo: null, createdAt: 0 });
   });
 });
