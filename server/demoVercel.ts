@@ -1,7 +1,7 @@
 // A Vercel that lives in memory, for demo mode and the SHIP IT tests. It behaves the way the real one was measured
 // to (docs/superpowers/specs/2026-10-03-ship-it-design.md): with auto-assign off, production builds wait to be
-// promoted; a rollback turns auto-assign off. A project connected to a repo goes live with that repo's current
-// `main` at once (the real one waits for the next push), so the demo has something live to show. It lives only in
+// promoted; a rollback turns auto-assign off. Connecting a project to a repo builds nothing, as the real one waits
+// for the next push; firstBuild builds `main` as a push would. It lives only in
 // memory, so after the demo restarts it takes back a project it doesn't know, connected to the demo repo of that name.
 
 import type { Deployment, VercelProjectRef } from '../shared/ship.ts';
@@ -60,7 +60,7 @@ export function createFakeVercel(opts: { buildMs: number; headOf(fullName: strin
       return [{ slug: 'demo-team', name: 'Demo team' }];
     },
     async projects(scope) {
-      return [...projects.values()].filter((p) => p.scope === scope).map((p) => ({ id: p.id, name: p.name }));
+      return [...projects.values()].filter((p) => p.scope === scope).map((p) => ({ id: p.id, name: p.name, repo: p.repo }));
     },
     async createProject(name, scope) {
       const f: FakeProject = { id: `prj_demo${++n}`, name, scope, repo: null, autoAssign: true, live: null, deployments: [], domains: [`${name}.vercel.app`] };
@@ -73,7 +73,6 @@ export function createFakeVercel(opts: { buildMs: number; headOf(fullName: strin
     async gitConnect(dir, p) {
       const f = get(p);
       f.repo = repoOf(dir);
-      if (!f.deployments.length) f.live = build(f, opts.headOf(f.repo), false).id;
     },
     async project(p) {
       const f = get(p);
@@ -99,6 +98,11 @@ export function createFakeVercel(opts: { buildMs: number; headOf(fullName: strin
       const f = get(p);
       const d = build(f, opts.headOf(repoOf(dir)), prod);
       return d.url;
+    },
+    async firstBuild(p) {
+      const f = get(p);
+      if (!f.repo) throw new Error(`${f.name} isn't connected to a GitHub repo.`);
+      build(f, opts.headOf(f.repo), f.autoAssign);
     },
     async addDomain(p, domain) {
       get(p).domains.unshift(domain);

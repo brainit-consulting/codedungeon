@@ -310,6 +310,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('Setting a chamber up'),
       p('The first time, the panel asks how this chamber ships and which Vercel project it uses (it can create one named after the repo). It uses the Vercel command line on this machine, logged in as you; if it isn\'t, run `vercel login` in a terminal and press **Check**.'),
+      p('If a Vercel project already builds the repo, the panel picks it and says so: the dungeon never makes a second one, which would build every merge twice. Setting up has Vercel build `main` straight away, and until that build is done **Live now** says where the app will be, such as `myapp.vercel.app`.'),
       p('If you aren\'t sure, start with the first. Launch moves you to the second when the app gets its own address, so most chambers never need to choose again.'),
       list(
         '**Every merge goes live** (start here): Vercel builds each merge to `main` from GitHub and puts it live on the free vercel.app address. Nothing to press. Pick it while you build something new that nobody relies on yet. The catch: a merge that breaks the app is live at once, until you press **Undo last ship**.',

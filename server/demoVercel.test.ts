@@ -9,13 +9,25 @@ const setup = async (autoAssign: boolean) => {
   await v.link(fakeShipDir('demo-keep/todo'), p);
   await v.gitConnect(fakeShipDir('demo-keep/todo'), p);
   await v.setAutoAssign(p, autoAssign);
+  await v.firstBuild(p, 'main');
+  if (!autoAssign) await v.promote(p, (await v.deployments(p))[0]); // these tests start from main's first commit live
   return { v, p, push: (sha: string) => ((head = sha), v.merged('demo-keep/todo', sha)) };
 };
 
 describe('the fake Vercel', () => {
-  it('goes live with the current main when first connected', async () => {
-    const { v, p } = await setup(true);
+  it('builds nothing when connected, as Vercel waits for a push; the first build goes live, or waits while auto-assign is off', async () => {
+    const v = createFakeVercel({ buildMs: 0, headOf: () => 'aaa' });
+    const p = { ...(await v.createProject('todo', 'demo-team')), scope: 'demo-team' };
+    await v.gitConnect(fakeShipDir('demo-keep/todo'), p);
+    expect(await v.deployments(p)).toEqual([]);
+    await v.firstBuild(p, 'main');
     expect((await v.project(p)).live?.sha).toBe('aaa');
+    const q = { ...(await v.createProject('held', 'demo-team')), scope: 'demo-team' };
+    await v.gitConnect(fakeShipDir('demo-keep/todo'), q);
+    await v.setAutoAssign(q, false);
+    await v.firstBuild(q, 'main');
+    expect((await v.project(q)).live).toBeNull();
+    expect((await v.deployments(q))[0]).toMatchObject({ sha: 'aaa', state: 'READY' });
   });
 
   it('holds production builds back while auto-assign is off, and promote puts one live', async () => {

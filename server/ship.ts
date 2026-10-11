@@ -8,6 +8,8 @@ import {
   buildFor,
   earlierLive,
   prNumbersFromSubjects,
+  projectBuilding,
+  sameRepo,
   sameSha,
   shipBlocked,
   validDomain,
@@ -272,21 +274,26 @@ export class Shipyard {
     if (opts.method === 'git-auto' && !opts.confirmed) throw new HttpError(409, 'Every merge will go live, public, as soon as it builds: confirm to set this up.');
     return this.step(r, 'setting-up', async () => {
       if (!(await this.whoami(true))) throw new HttpError(409, this.who.error ?? 'The Vercel CLI is not logged in: run `vercel login` in a terminal.');
+      if (opts.create) {
+        // one project per repo: a second one would build every merge twice
+        const builder = projectBuilding(await this.deps.vercel.projects(opts.scope), r.fullName);
+        if (builder) throw new HttpError(409, `Vercel project ${builder.name} already builds ${r.fullName}: pick it instead of making another.`);
+      }
       const made = opts.create ? await this.deps.vercel.createProject(opts.create, opts.scope) : opts.project;
       if (!made) throw new HttpError(400, 'Pick a Vercel project, or create one.');
       const p: VercelProjectRef = { id: made.id, name: made.name, scope: opts.scope };
       if (!opts.create) {
         // never take over another app's project: connecting it here would point its builds at this repo
         const linked = (await this.deps.vercel.project(p)).repo;
-        const name = (x: string) => x.toLowerCase().split('/').pop();
-        const same = !linked || (linked.includes('/') ? linked.toLowerCase() === r.fullName.toLowerCase() : name(linked) === name(r.fullName));
-        if (!same) throw new HttpError(409, `That Vercel project is connected to ${linked}. Pick another, or create one.`);
+        if (linked && !sameRepo(linked, r.fullName)) throw new HttpError(409, `That Vercel project is connected to ${linked}. Pick another, or create one.`);
       }
       const dir = await this.deps.prepareShipCheckout(r.fullName, r.defaultBranch);
       await this.deps.vercel.link(dir, p);
       if (opts.method !== 'cli') {
         await this.deps.vercel.gitConnect(dir, p);
         await this.deps.vercel.setAutoAssign(p, opts.method === 'git-auto');
+        // Vercel builds a newly connected project only on the next push: build main now, so there's an address
+        if (!(await this.deps.vercel.deployments(p)).length) await this.deps.vercel.firstBuild(p, r.defaultBranch);
       }
       r.ship.method = opts.method;
       r.ship.project = p;

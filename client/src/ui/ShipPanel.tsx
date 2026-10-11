@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { EXAMPLE_LAUNCH, launchSuggestion, splitTicks, type ShipMethod, type ShipView } from '../../../shared/ship';
+import { EXAMPLE_LAUNCH, launchSuggestion, projectBuilding, splitTicks, type ShipMethod, type ShipView } from '../../../shared/ship';
 import { api } from '../api';
 import { useStore } from '../store';
 import { confirmDialog } from './Confirm';
@@ -42,6 +42,15 @@ const Msg = ({ text }: { text: string }) => (
   </>
 );
 
+/** What happens before the first address works, for a chamber with nothing live. */
+const notLiveYet = (s: ShipView) => {
+  const state = s.latest?.state;
+  const building = state === 'BUILDING' || state === 'QUEUED';
+  if (s.method !== 'git-auto') return building ? 'Vercel is building it. Then Ship it puts it live at' : 'Ship it puts it live at';
+  if (state === 'ERROR' || state === 'CANCELED') return "Vercel's build failed (the project on Vercel says why). It goes live at";
+  return building ? 'Vercel is building it, and it goes live at' : "It goes live after Vercel's first build, at";
+};
+
 const short = (sha: string | null) => (sha ? sha.slice(0, 7) : '–');
 const when = (at: number) => new Date(at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -66,7 +75,8 @@ function Setup({ repoId, fullName, onDone }: { repoId: string; fullName: string;
         </button>
       </div>
     );
-  const existing = opts.projects.find((p) => p.name === name);
+  const builder = projectBuilding(opts.projects, fullName);
+  const existing = builder ?? opts.projects.find((p) => p.name === name);
   const chosen = project || (existing ? existing.id : '__new');
   const go = async () => {
     const p = opts.projects.find((x) => x.id === chosen);
@@ -135,6 +145,11 @@ function Setup({ repoId, fullName, onDone }: { repoId: string; fullName: string;
           </select>
         </label>
       </div>
+      {builder && (
+        <p className="muted small">
+          Vercel project <b>{builder.name}</b> already builds this repo, so this chamber ships through it.
+        </p>
+      )}
       <button className="btn btn-primary" disabled={busy} onClick={() => void go()}>
         {busy ? 'Setting up…' : 'Set up'}
       </button>
@@ -208,7 +223,10 @@ export function ShipPanel({ repoId }: { repoId: string }) {
                 · <code>{short(s.live.sha)}</code> · since {when(s.live.createdAt)}
               </p>
             ) : (
-              <p className="muted">Nothing is live yet.</p>
+              <p className="muted">
+                Nothing is live yet.
+                {s.domains[0] && <> {notLiveYet(s)} <b>{s.domains[0]}</b>.</>}
+              </p>
             )}
             <p className="muted small">
               {METHODS.find((m) => m.id === s.method)?.name} · Vercel project <b>{s.project?.name}</b> · <code>main</code> at <code>{short(s.mainSha)}</code>, checks {s.mainChecks}
@@ -228,8 +246,12 @@ export function ShipPanel({ repoId }: { repoId: string }) {
                   </li>
                 ))}
               </ul>
-            ) : (
+            ) : s.live ? (
               <p className="muted">Nothing: the live site is on <code>main</code>.</p>
+            ) : (
+              <p className="muted">
+                All of <code>main</code>, as nothing is live yet.
+              </p>
             )}
           </section>
 

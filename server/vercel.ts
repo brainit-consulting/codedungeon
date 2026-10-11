@@ -19,7 +19,8 @@ export interface VercelBackend {
   /** Who the CLI is logged in as; throws when it isn't (or isn't installed). */
   whoami(): Promise<string>;
   teams(): Promise<{ slug: string; name: string }[]>;
-  projects(scope: string): Promise<{ id: string; name: string }[]>;
+  /** The team's projects, each with the GitHub repo it builds from ("owner/name", or the name alone), or null. */
+  projects(scope: string): Promise<{ id: string; name: string; repo: string | null }[]>;
   createProject(name: string, scope: string): Promise<{ id: string; name: string }>;
   /** Link a checkout to the project (writes its .vercel folder). */
   link(dir: string, p: VercelProjectRef): Promise<void>;
@@ -33,6 +34,8 @@ export interface VercelBackend {
   rollback(p: VercelProjectRef, d: Deployment): Promise<void>;
   /** Deploy a checkout; returns the new deployment's host name. */
   deploy(dir: string, p: VercelProjectRef, prod: boolean): Promise<string>;
+  /** Have Vercel build `ref` from GitHub, as a push would (a just-connected project waits for the next push). */
+  firstBuild(p: VercelProjectRef, ref: string): Promise<void>;
   addDomain(p: VercelProjectRef, domain: string): Promise<void>;
 }
 
@@ -64,15 +67,31 @@ export function toDeployment(d: RawDeployment): Deployment {
   return { id: d.uid ?? d.id ?? '', url: d.url, sha: d.meta?.githubCommitSha ?? null, state, createdAt: d.createdAt ?? d.created ?? 0 };
 }
 
+type RawLink = { org?: string; repo?: string };
+const repoOfLink = (link?: RawLink) => (link?.repo ? (link.org ? `${link.org}/${link.repo}` : link.repo) : null);
+
+/** A project in the team's list, with the repo it builds. */
+export function listedProject(raw: { id: string; name: string; link?: RawLink }): { id: string; name: string; repo: string | null } {
+  return { id: raw.id, name: raw.name, repo: repoOfLink(raw.link) };
+}
+
+/** The deploy hook just made, from the project Vercel answers with: the newest of that name. */
+export function parseNewHook(out: string, name: string): { id: string; url: string } {
+  const hooks = (jsonOf<{ link?: { deployHooks?: { id: string; name: string; url: string; createdAt: number }[] } }>(out).link?.deployHooks ?? []).filter((h) => h.name === name);
+  const hook = hooks.sort((a, b) => b.createdAt - a.createdAt)[0];
+  if (!hook) throw new Error("Vercel didn't make the deploy hook for the first build.");
+  return { id: hook.id, url: hook.url };
+}
+
 export function parseProject(
-  raw: { autoAssignCustomDomains?: boolean; targets?: { production?: RawDeployment }; link?: { org?: string; repo?: string } },
+  raw: { autoAssignCustomDomains?: boolean; targets?: { production?: RawDeployment }; link?: RawLink },
   domains: { domains?: { name: string }[] },
 ): VercelProjectInfo {
   const names = (domains.domains ?? []).map((d) => d.name);
   const vercelApp = (n: string) => n.endsWith('.vercel.app');
   return {
     autoAssign: raw.autoAssignCustomDomains !== false,
-    repo: raw.link?.repo ? (raw.link.org ? `${raw.link.org}/${raw.link.repo}` : raw.link.repo) : null,
+    repo: repoOfLink(raw.link),
     live: raw.targets?.production ? toDeployment(raw.targets.production) : null,
     domains: [...names.filter((n) => !vercelApp(n)), ...names.filter(vercelApp)],
   };
@@ -118,6 +137,8 @@ export async function vercel(args: string[], opts: { cwd?: string; timeoutMs?: n
 const api = async <T>(path: string, scope: string | null, extra: string[] = []) =>
   jsonOf<T>(await vercel(['api', path, ...(scope ? ['--scope', scope] : []), '--raw', ...extra]));
 
+const FIRST_BUILD_HOOK = 'code-dungeon-first-build';
+
 export const realVercel: VercelBackend = {
   async whoami() {
     const out = await vercel(['whoami'], { timeoutMs: 30_000 });
@@ -130,8 +151,8 @@ export const realVercel: VercelBackend = {
     return out.teams.map((t) => ({ slug: t.slug, name: t.name }));
   },
   async projects(scope) {
-    const out = await api<{ projects: { id: string; name: string }[] }>('/v10/projects?limit=100', scope);
-    return out.projects.map((p) => ({ id: p.id, name: p.name }));
+    const out = await api<{ projects: { id: string; name: string; link?: RawLink }[] }>('/v10/projects?limit=100', scope);
+    return out.projects.map(listedProject);
   },
   async createProject(name, scope) {
     await vercel(['project', 'add', name, '--scope', scope]);
@@ -167,6 +188,17 @@ export const realVercel: VercelBackend = {
   },
   async deploy(dir, p, prod) {
     return parseDeployUrl(await vercel(['deploy', ...(prod ? ['--prod'] : []), '--yes', '--scope', p.scope], { cwd: dir, timeoutMs: 900_000 }));
+  },
+  async firstBuild(p, ref) {
+    // A deploy hook builds from GitHub exactly as a push does, then goes: measured to keep the build when removed
+    // at once. Removing goes through the CLI, whose `api` refuses DELETE without a confirmation.
+    const hook = parseNewHook(await vercel(['api', `/v2/projects/${p.id}/deploy-hooks`, '-X', 'POST', '-F', `name=${FIRST_BUILD_HOOK}`, '-F', `ref=${ref}`, '--scope', p.scope, '--raw']), FIRST_BUILD_HOOK);
+    try {
+      const res = await fetch(hook.url, { method: 'POST' });
+      if (!res.ok) throw new Error(`Vercel didn't start the first build (${res.status}).`);
+    } finally {
+      await vercel(['deploy-hooks', 'remove', hook.id, '--project', p.id, '--scope', p.scope, '--yes']).catch(() => {});
+    }
   },
   async addDomain(p, domain) {
     await api(`/v10/projects/${p.id}/domains`, p.scope, ['-X', 'POST', '-f', `name=${domain}`]);

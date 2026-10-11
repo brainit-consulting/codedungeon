@@ -127,3 +127,23 @@ describe('your launch domain', () => {
     expect(cleanLaunchDomain('localhost')).toBeNull();
   });
 });
+
+describe('the Vercel project that already builds a repo', () => {
+  it('matches the repo by owner and name, or by name alone, in any case', () => {
+    expect(shipModule.sameRepo('brainit-consulting/library-workshops', 'brainit-consulting/library-workshops')).toBe(true);
+    expect(shipModule.sameRepo('Brainit-Consulting/Library-Workshops', 'brainit-consulting/library-workshops')).toBe(true);
+    expect(shipModule.sameRepo('library-workshops', 'brainit-consulting/library-workshops')).toBe(true);
+    expect(shipModule.sameRepo('brainit-consulting/other', 'brainit-consulting/library-workshops')).toBe(false);
+    expect(shipModule.sameRepo('someone-else/library-workshops', 'brainit-consulting/library-workshops')).toBe(false);
+  });
+
+  it('finds the project building the repo even when its name differs from the repo', () => {
+    const projects = [
+      { id: 'p1', name: 'library-workshops', repo: null },
+      { id: 'p2', name: 'brainit-aiworkshops', repo: 'brainit-consulting/library-workshops' },
+      { id: 'p3', name: 'guide', repo: 'brainit-consulting/codedungeon-guide' },
+    ];
+    expect(shipModule.projectBuilding(projects, 'brainit-consulting/library-workshops')?.id).toBe('p2');
+    expect(shipModule.projectBuilding(projects, 'brainit-consulting/nothing')).toBeNull();
+  });
+});

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { run } from './exec.ts';
-import { commandFor, jsonOf, parseDeployUrl, parseProject, realVercel, toDeployment } from './vercel.ts';
+import { commandFor, jsonOf, listedProject, parseDeployUrl, parseNewHook, parseProject, realVercel, toDeployment } from './vercel.ts';
 
 // No real CLI in tests: the runner is replaced, so only the arguments and options it gets are checked.
 vi.mock('./exec.ts', () => ({ run: vi.fn(async () => 'Production: https://g-new.vercel.app [3s]') }));
@@ -62,5 +62,22 @@ describe('reading Vercel output', () => {
   it("takes the deployment's address from `vercel deploy` output", () => {
     expect(parseDeployUrl('Inspect: https://vercel.com/x/y [1s]\nProduction: https://g-abc123.vercel.app [12s]')).toBe('g-abc123.vercel.app');
     expect(() => parseDeployUrl('Error!')).toThrow(/address/);
+  });
+});
+
+describe('the first build', () => {
+  it('reads the new deploy hook from the project Vercel sends back, the newest of that name', () => {
+    const out = 'Vercel CLI 60.1.3\n' + JSON.stringify({ link: { deployHooks: [
+      { id: 'old', name: 'code-dungeon-first-build', ref: 'main', url: 'https://api.vercel.com/v1/integrations/deploy/prj_1/a', createdAt: 1 },
+      { id: 'cms', name: 'cms', ref: 'main', url: 'https://api.vercel.com/v1/integrations/deploy/prj_1/b', createdAt: 3 },
+      { id: 'new', name: 'code-dungeon-first-build', ref: 'main', url: 'https://api.vercel.com/v1/integrations/deploy/prj_1/c', createdAt: 2 },
+    ] } });
+    expect(parseNewHook(out, 'code-dungeon-first-build')).toEqual({ id: 'new', url: 'https://api.vercel.com/v1/integrations/deploy/prj_1/c' });
+    expect(() => parseNewHook('{"link":{}}', 'code-dungeon-first-build')).toThrow(/deploy hook/);
+  });
+
+  it('lists projects with the repo each builds', () => {
+    expect(listedProject({ id: 'p', name: 'aiw', link: { org: 'brainit-consulting', repo: 'library-workshops' } })).toEqual({ id: 'p', name: 'aiw', repo: 'brainit-consulting/library-workshops' });
+    expect(listedProject({ id: 'q', name: 'x' })).toEqual({ id: 'q', name: 'x', repo: null });
   });
 });

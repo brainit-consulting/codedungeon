@@ -191,3 +191,15 @@ export function splitTicks(message: string): { code: boolean; text: string }[] {
     .filter((part) => part !== '')
     .map((part) => (/^`[^`]+`$/.test(part) ? { code: true, text: part.slice(1, -1) } : { code: false, text: part }));
 }
+
+/** Whether the repo a Vercel project builds from ("owner/name", or the name alone) is `fullName`. */
+export function sameRepo(linked: string, fullName: string): boolean {
+  const a = linked.toLowerCase();
+  const b = fullName.toLowerCase();
+  return a.includes('/') ? a === b : a === b.split('/').pop();
+}
+
+/** The Vercel project that already builds `fullName` from GitHub, or null: a chamber ships through it, never a second one. */
+export function projectBuilding<P extends { repo: string | null }>(projects: P[], fullName: string): P | null {
+  return projects.find((p) => p.repo !== null && sameRepo(p.repo, fullName)) ?? null;
+}

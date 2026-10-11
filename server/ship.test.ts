@@ -44,6 +44,9 @@ function world(opts: { buildMs?: number } = {}) {
 const setUp = async (w: ReturnType<typeof world>, method: 'git-promote' | 'git-auto' | 'cli') => {
   const project = await w.vercel.createProject('todo', 'demo-team');
   await w.yard.setup(w.repo, { method, scope: 'demo-team', project, confirmed: true });
+  // these tests start from an app already live on main's first commit (a chamber where you ship holds it back)
+  const p = { ...project, scope: 'demo-team' };
+  if (method === 'git-promote') await w.vercel.promote(p, (await w.vercel.deployments(p))[0]);
 };
 
 afterEach(() => vi.useRealTimers());
@@ -262,5 +265,44 @@ describe('SHIP IT, after the final review', () => {
     const other = await w.vercel.createProject('other', 'demo-team');
     await w.vercel.gitConnect(fakeShipDir('demo-keep/other'), { ...other, scope: 'demo-team' });
     await expect(w.yard.setup(w.repo, { method: 'git-promote', scope: 'demo-team', project: other })).rejects.toThrow(/connected to demo-keep\/other/);
+  });
+});
+
+describe('setting a chamber up', () => {
+  it('starts the first build of main at once, and it goes live where every merge goes live', async () => {
+    const w = world();
+    const project = await w.vercel.createProject('todo', 'demo-team');
+    await w.yard.setup(w.repo, { method: 'git-auto', scope: 'demo-team', project, confirmed: true });
+    await w.yard.refresh(w.repo);
+    expect(w.yard.view(w.repo).live?.sha).toBe('s0');
+  });
+
+  it('holds that first build back for Ship it where you ship', async () => {
+    const w = world();
+    const project = await w.vercel.createProject('todo', 'demo-team');
+    await w.yard.setup(w.repo, { method: 'git-promote', scope: 'demo-team', project });
+    await w.yard.refresh(w.repo);
+    const v = w.yard.view(w.repo);
+    expect(v.live).toBeNull();
+    expect(v.latest).toMatchObject({ sha: 's0', state: 'READY' });
+    expect(v.blocked).toBeNull();
+  });
+
+  it('starts no build for a project Vercel has built before', async () => {
+    const w = world();
+    const made = await w.vercel.createProject('todo', 'demo-team');
+    const p = { ...made, scope: 'demo-team' };
+    await w.vercel.gitConnect(fakeShipDir('demo-keep/todo'), p);
+    await w.vercel.firstBuild(p, 'main');
+    await w.yard.setup(w.repo, { method: 'git-auto', scope: 'demo-team', project: made, confirmed: true });
+    expect(await w.vercel.deployments(p)).toHaveLength(1);
+  });
+
+  it("won't make a second Vercel project for a repo another one already builds, and names that one", async () => {
+    const w = world();
+    const aiw = await w.vercel.createProject('aiw', 'demo-team');
+    await w.vercel.gitConnect(fakeShipDir('demo-keep/todo'), { ...aiw, scope: 'demo-team' });
+    await expect(w.yard.setup(w.repo, { method: 'git-auto', scope: 'demo-team', create: 'todo', confirmed: true })).rejects.toThrow(/aiw already builds demo-keep\/todo/);
+    expect((await w.vercel.projects('demo-team')).map((p) => p.name)).toEqual(['aiw']);
   });
 });
