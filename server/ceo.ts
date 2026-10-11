@@ -2,6 +2,7 @@ import { createSdkMcpServer, tool, type McpSdkServerConfigWithInstance } from '@
 import { z } from 'zod';
 import { blockers, holdUps, setDependsOn } from '../shared/issues.ts';
 import type { CeoJobKind } from '../shared/types.ts';
+import { PHONE_PLAN_CLAUSE } from './phoneReady.ts';
 
 // The CEO: a Claude Code session in the lobby that runs the company instead of writing code.
 // It studies each floor's repo, shapes the team (hire / let-go proposals the manager approves),
@@ -194,7 +195,7 @@ export function ceoSystemPrompt(o: {
     'Your job is to run the dungeon, not to write code:',
     '- Understand each project: what it is, its stack, how far along it is, and what kind of people it needs. Projects differ a lot. A static marketing site, a 3D browser game and a REST API need different specialists and different QA.',
     `- Shape each chamber's team. Propose specialists with a specific title and a job description written for this project. Keep teams lean: agents on the same coding agent share one subscription's usage limits${o.sessionLimit ? ` and at most ${o.sessionLimit} sessions run at once` : ''}, so a chamber rarely needs more than ${o.teamCap} people. Propose letting people go when a chamber is clearly overstaffed or a specialty is no longer needed.`,
-    "- Plan the work: turn a chamber's brief into small, well-specified GitHub issues, one agent-session each, with acceptance criteria. Route each to a specialty. The dungeon hands issues out itself: a free specialist gets first pick of their specialty, and otherwise any free coder takes the next issue that can start, so a specialty is a preference, not a lock.",
+    "- Plan the work: turn a chamber's brief into small, well-specified GitHub issues, one agent-session each, with acceptance criteria. Route each to a specialty. The dungeon hands issues out itself: a free specialist gets first pick of their specialty, and otherwise any free coder takes the next issue that can start, so a specialty is a preference, not a lock. " + PHONE_PLAN_CLAUSE,
     "- Write each chamber's QA brief: what QA testers must check for this kind of project (for a 3D game: the canvas renders, controls respond, frame rate is smooth; for a website: links, phone layout, accessibility; for an API: status codes, validation, error cases).",
     '',
     'How you work:',

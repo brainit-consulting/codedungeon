@@ -262,7 +262,7 @@ function fakeSession(opts: SessionOptions, cb: SessionCallbacks, fullName: strin
             { name: 'Unit tests', result: 'pass', details: '41 passed, 0 failed' },
             { name: 'Lint + build', result: 'pass', details: 'No lint errors; production build succeeds' },
             { name: 'Feature works on desktop', result: 'pass', details: 'Clicked through the new flow at 1280x800' },
-            { name: 'Mobile layout (375px)', result: pass ? 'pass' : 'fail', details: pass ? 'Layout wraps correctly' : 'Toolbar overflows horizontally; button unreachable' },
+            { name: 'Phone-ready', result: pass ? 'pass' : 'fail', details: pass ? '375x667, 844x390, 810x1080, 1280x800: ok' : '375x667: page is 64px wider than the screen; "Save" is off the screen' },
             { name: 'Console errors', result: 'pass', details: 'None' },
           ],
           commands: [

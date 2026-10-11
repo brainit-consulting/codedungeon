@@ -127,8 +127,8 @@ const shellArg = (p: string) => `"${p.replaceAll('\\', '/')}"`;
 const HOOK_EVENTS = ['UserPromptSubmit', 'PreToolUse', 'PermissionRequest', 'PostToolUse', 'PostToolUseFailure', 'Stop', 'StopFailure', 'Notification'];
 
 /** The browser for a session. Its snapshots and unnamed screenshots go to the session's folder, not the worktree. */
-function playwrightServer(outputDir: string) {
-  const args = ['-y', '@playwright/mcp@latest', '--headless', '--isolated', '--output-dir', outputDir, '--init-script', path.join(import.meta.dirname, 'browser-init.js')];
+function playwrightServer(outputDir: string, phone = false) {
+  const args = ['-y', '@playwright/mcp@latest', '--headless', '--isolated', ...(phone ? ['--mobile'] : []), '--output-dir', outputDir, '--init-script', path.join(import.meta.dirname, 'browser-init.js')];
   return process.platform === 'win32' ? { command: 'cmd', args: ['/c', 'npx', ...args] } : { command: 'npx', args };
 }
 
@@ -751,7 +751,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   // Through the keeper, a hook waits while the office restarts instead of failing: the CLIs allow it longer.
   const keeper = keeperHookUrl();
   const hookUrl = `${keeper ?? officeUrl}/api/hooks/${token}`;
-  const browser = opts.browserTesting ? playwrightServer(path.join(dir, 'browser')) : null;
+  const browser = opts.browserTesting ? playwrightServer(path.join(dir, 'browser'), opts.phoneBrowser) : null;
   let prompt = opts.prompt;
   if (opts.outputSchema) {
     prompt += `\n\nWhen you are done, end your final message with your report as one JSON object in a \`\`\`json block, matching this JSON schema:\n${JSON.stringify(opts.outputSchema)}`;

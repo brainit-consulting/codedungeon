@@ -15,7 +15,7 @@ export const SKILL_PATH = path.join(import.meta.dirname, 'skills', 'mobile-web-p
 
 export function phoneQaStep(): string {
   const sizes = PHONE_SIZES.map((s) => `${s.width}x${s.height}`).join(', ');
-  return `Phone check: for every page this PR changes, browser_resize to each of ${sizes} and run browser_evaluate with () => window.__phoneCheck(). Report one check named "${PHONE_CHECK}": pass only if it returned ok at every size; otherwise fail, with each size's problems in details. Problems on pages this PR didn't change go in details as "elsewhere" and don't fail it.`;
+  return `Phone check: for every page this PR changes, browser_resize to each of ${sizes} and run browser_evaluate with () => window.__phoneCheck(). Report one check named "${PHONE_CHECK}": pass only if it returned ok at every size; otherwise fail, with each size's problems in details. Problems on pages this PR didn't change go in details as "elsewhere" and don't fail it. Your browser is a touch phone: browser_resize to 1280x800 for anything you test on a laptop.`;
 }
 
 export function phoneCoderLine(skill = SKILL_PATH): string {

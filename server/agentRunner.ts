@@ -18,6 +18,8 @@ export interface SessionOptions {
   model: string; // e.g. 'claude-opus-5-5'
   effort: EffortLevel;
   browserTesting: boolean;
+  /** QA with phone checks: the browser emulates a touch phone (Playwright MCP --mobile) so pointer: coarse applies. */
+  phoneBrowser?: boolean;
   additionalDirectories: string[]; // read-only reference clones of linked repos
   role: AgentRole;
   /** JSON schema for a structured final answer (QA reports). */
@@ -323,7 +325,7 @@ export function startSession(opts: SessionOptions, callbacks: SessionCallbacks):
   const mcpServers: Options['mcpServers'] = {};
   if (opts.browserTesting) {
     // browser-init.js keeps pages from taking the real mouse with pointer lock (headless Chrome does on Windows).
-    const args = ['-y', '@playwright/mcp@latest', '--headless', '--isolated', '--init-script', path.join(import.meta.dirname, 'browser-init.js')];
+    const args = ['-y', '@playwright/mcp@latest', '--headless', '--isolated', ...(opts.phoneBrowser ? ['--mobile'] : []), '--init-script', path.join(import.meta.dirname, 'browser-init.js')];
     mcpServers.playwright = process.platform === 'win32' ? { command: 'cmd', args: ['/c', 'npx', ...args] } : { command: 'npx', args };
   }
   if (opts.office) mcpServers.office = opts.office.server;

@@ -36,6 +36,7 @@ import { noMainNotice } from './emptyRepo.ts';
 import { oneAtATime } from './oneAtATime.ts';
 import { addToDay, type UsageDay } from './usageDay.ts';
 import { addTokens, NO_TOKENS, totalTokens, type Tokens } from './usageMeter.ts';
+import { enforcePhoneCheck, phoneCoderLine, phoneQaStep } from './phoneReady.ts';
 import type {
   AgentCli,
   AgentLook,
@@ -1903,7 +1904,7 @@ export class Swarm {
       '2. Implement the change with focused commits and clear messages.',
       "3. Run the project's existing tests, linters and build (if any) and fix what you broke. Install dependencies first if needed. If Playwright says a browser isn't installed, those tests didn't run: don't count them as passing or push past them; say so (the dungeon offers the Overlord the install).",
       repo.browserTesting
-        ? `4. If the project has a web UI, start its dev server in the background on port ${this.port(a)} (reserved for you, so you don't collide with teammates), then check your change with the Playwright browser tools (mcp__playwright__browser_navigate, browser_snapshot, browser_click, browser_take_screenshot). Stop the dev server when you're done.`
+        ? `4. If the project has a web UI, start its dev server in the background on port ${this.port(a)} (reserved for you, so you don't collide with teammates), then check your change with the Playwright browser tools (mcp__playwright__browser_navigate, browser_snapshot, browser_click, browser_take_screenshot). Stop the dev server when you're done.${repo.phoneReady ? ` ${phoneCoderLine()}` : ''}`
         : '4. Verify the behaviour you changed as directly as you can.',
       `5. Push: ${push}`,
       fixing
@@ -2013,6 +2014,7 @@ export class Swarm {
         model: this.modelFor(a, how.cli),
         effort: a.effort || this.state.settings.defaultEffort,
         browserTesting: repo.browserTesting,
+        phoneBrowser: a.task === 'qa' && repo.browserTesting && repo.phoneReady,
         additionalDirectories: this.linkedRepos(repo).map((r) => this.backend.mainDir(r.fullName)),
         role: a.task === 'qa' ? 'qa' : a.role, // a developer covering QA works under QA's rules
         outputSchema,
@@ -2316,6 +2318,7 @@ export class Swarm {
       repo.browserTesting
         ? `4. If the project has a UI, start it in the background on port ${this.port(a)} (reserved for you) and exercise the change in a real browser with the Playwright tools: navigate, click, type, resize to a phone size, try edge cases, and check the console for errors. Take a screenshot with browser_take_screenshot (no filename) of every important state: the screenshots are attached to the PR as evidence. Stop the server afterwards.`
         : '4. Exercise the changed behaviour directly (run the program, call the API, write a quick script).',
+      ...(repo.browserTesting && repo.phoneReady ? [phoneQaStep()] : []),
       '5. You may write throwaway scripts to probe behaviour, but do not commit them.',
       '',
       'Rules: do not modify the code under test, do not commit, push, comment on, review or merge anything on GitHub. Never deploy, promote or roll back anything. The dungeon posts your report on the pull request. Finish with the structured QA report: verdict, summary, the checks you performed, the commands you ran and one caption per screenshot. If you run something long in the background, wait for it to finish before your final message; the report must be in that message.',
@@ -2392,7 +2395,8 @@ export class Swarm {
   private async onQaFinished(a: PersistedAgent, repo: PersistedRepo, result: SessionResult) {
     const rec = this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === a.prNumber);
     const rt = this.agentRt.get(a.id)!;
-    const report = result.ok ? parseReport(result) : null;
+    const parsed = result.ok ? parseReport(result) : null;
+    const report = parsed && enforcePhoneCheck(parsed, repo.browserTesting && repo.phoneReady);
 
     if (a.status === 'stopped' || !report) {
       if (a.status !== 'stopped') this.fail(a, { ...result, errors: result.errors.length ? result.errors : ['QA finished without a usable report'] }, `QA of PR #${a.prNumber}`);
