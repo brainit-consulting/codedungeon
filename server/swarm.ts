@@ -8,7 +8,6 @@ import type { PrDetails } from './github.ts';
 import { currentVersion, defaultProjectsDir, HOME_DIR, LOG_BUFFER, SCHEDULER_INTERVAL_MS, STATE_FILE, SYNC_INTERVAL_MS, WORKSPACE_ROOT } from './config.ts';
 import { ceoJobPrompt, ceoSystemPrompt, createOfficeTools, dungeonMasterTitle, IssueCap, jobLabel, planRoute, specialtyLabel, specialtySlug, type CeoJob, type OfficeTools } from './ceo.ts';
 import os from 'node:os';
-import { fixChangedPr } from './handOff.ts';
 import { nextHold, suggestedSessions, type MemoryHold } from './loadBalance.ts';
 import { fixBrief, sendBackRefusal, stillFailedCommit } from '../shared/sendBack.ts';
 import { HttpError } from './httpError.ts';
@@ -37,6 +36,7 @@ import { oneAtATime } from './oneAtATime.ts';
 import { addToDay, type UsageDay } from './usageDay.ts';
 import { addTokens, NO_TOKENS, totalTokens, type Tokens } from './usageMeter.ts';
 import { enforcePhoneCheck, phoneCoderLine, phoneQaStep } from './phoneReady.ts';
+import { fixChangedPr, prUrlIn, queueQaAfterIssue } from './handOff.ts';
 import type {
   AgentCli,
   AgentLook,
@@ -2015,6 +2015,7 @@ export class Swarm {
         effort: a.effort || this.state.settings.defaultEffort,
         browserTesting: repo.browserTesting,
         phoneBrowser: a.task === 'qa' && repo.browserTesting && repo.phoneReady,
+        resultReady: this.resultReady(a, repo),
         additionalDirectories: this.linkedRepos(repo).map((r) => this.backend.mainDir(r.fullName)),
         role: a.task === 'qa' ? 'qa' : a.role, // a developer covering QA works under QA's rules
         outputSchema,
@@ -2143,12 +2144,23 @@ export class Swarm {
     this.toast('error', `${a.name} hit a problem on ${what}: ${a.lastError.slice(0, 120)}`);
   }
 
+  /** What a turn must have delivered before background work it left running stops holding it open (handOff.ts). */
+  private resultReady(a: PersistedAgent, repo: PersistedRepo): (text: string) => boolean | Promise<boolean> {
+    if (a.task === 'qa') return (text) => !!parseReport({ ok: true, text, costUsd: 0, turns: 0, errors: [] });
+    if (a.task === 'fix')
+      return async () => {
+        const rec = this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === a.prNumber);
+        if (!a.prNumber || !rec?.testedSha) return false;
+        return fixChangedPr(rec.testedSha, (await this.backend.prDetails(repo.fullName, a.prNumber)).headSha);
+      };
+    return (text) => !!prUrlIn(text, repo.fullName);
+  }
+
   private async onIssueFinished(a: PersistedAgent, repo: PersistedRepo, result: SessionResult) {
-    const escaped = repo.fullName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const m = result.text.match(new RegExp(`https://github\\.com/${escaped}/pull/(\\d+)`, 'i'));
+    const m = prUrlIn(result.text, repo.fullName);
     if (m) {
-      a.prNumber = Number(m[1]);
-      a.prUrl = m[0];
+      a.prNumber = m.number;
+      a.prUrl = m.url;
     } else if (a.branch) {
       const pr = await this.backend.prForBranch(repo.fullName, a.branch).catch(() => null);
       if (pr) {
@@ -2165,7 +2177,11 @@ export class Swarm {
     this.issueFailures.delete(`${repo.id}#${a.issueNumber}`);
     a.status = 'done';
     this.appendLog(a, [{ kind: 'done', text: `✔ Finished in ${this.minutes(a)}m · ${a.turns} turns${a.prNumber ? ` · PR #${a.prNumber}` : ' · no PR found'}` }]);
-    if (a.prNumber) {
+    const rec = a.prNumber ? this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === a.prNumber) : undefined;
+    if (a.prNumber && rec && !queueQaAfterIssue(rec.status)) {
+      // a late finish (held open by background work): QA already took this PR further
+      this.appendLog(a, [{ kind: 'system', text: `📨 PR #${a.prNumber} is already with QA (${rec.status}).` }]);
+    } else if (a.prNumber) {
       this.queueQa(repo, a.prNumber, a, a.issueNumber);
       this.appendLog(a, [{ kind: 'system', text: `📨 Handed PR #${a.prNumber} to QA.` }]);
       this.toast('success', `${a.name} opened PR #${a.prNumber} for #${a.issueNumber}; it's off to QA`);

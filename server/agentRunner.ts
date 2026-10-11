@@ -20,6 +20,8 @@ export interface SessionOptions {
   browserTesting: boolean;
   /** QA with phone checks: the browser emulates a touch phone (Playwright MCP --mobile) so pointer: coarse applies. */
   phoneBrowser?: boolean;
+  /** Terminal runtime: whether a turn that ended with background work still running already delivered its result. */
+  resultReady?: (text: string) => boolean | Promise<boolean>;
   additionalDirectories: string[]; // read-only reference clones of linked repos
   role: AgentRole;
   /** JSON schema for a structured final answer (QA reports). */

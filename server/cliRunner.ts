@@ -24,7 +24,7 @@ import {
 } from './agentRunner.ts';
 import type { OfficeTools } from './ceo.ts';
 import type { AgentTerminal } from './terminal.ts';
-import { workingAloneAfter } from './handOff.ts';
+import { keepWaitingForBackground, workingAloneAfter } from './handOff.ts';
 import { permissionAnswer, PromptWait } from './permissionGate.ts';
 import { FileMeter, promptBaseline, statusUsage, UsageTally } from './usageMeter.ts';
 import type { AgentCli } from '../shared/types.ts';
@@ -50,8 +50,7 @@ const SCRATCH_DIR = path.join(HOME_DIR, 'tmp');
 const FINISH_GRACE_MS = 3000;
 /** The usage meter reads a session file at most this often while it works (and always at a turn's end). */
 const USAGE_EVERY_MS = 5000;
-// A turn that ends with background work still running waits for it (re-checking the screen), but never past this.
-const BACKGROUND_WAIT_MS = 90 * 60_000;
+// A turn that ends with background work still running is re-checked this often (handOff.ts keepWaitingForBackground).
 const BACKGROUND_RECHECK_MS = 30_000;
 /** Starting up: how long before the office says the CLI seems to be waiting on something. */
 const BOOT_MS = 60_000;
@@ -479,7 +478,8 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   /**
    * A turn ended: finished, unless the CLI picks up another prompt within the grace period, or says background work
    * it started is still running (a long playtest under a monitor, say). Claude Code wakes the agent when that work is
-   * done, so the session waits for the next turn instead of ending without its report, up to BACKGROUND_WAIT_MS.
+   * done, so the session waits for the next turn instead of ending without its report, up to BACKGROUND_WAIT_MS;
+   * unless opts.resultReady says the turn already delivered (handOff.ts keepWaitingForBackground).
    */
   const turnEnded = (text: string) => {
     lastText = text;
@@ -487,25 +487,36 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
     if (cli !== 'claude') cb.output?.(term.screen());
     cb.tool(null);
     clearTimeout(finishTimer);
-    finishTimer = setTimeout(endOfTurn, FINISH_GRACE_MS);
+    finishTimer = setTimeout(() => void endOfTurn(), FINISH_GRACE_MS);
   };
   let waitingSince = 0;
-  const endOfTurn = () => {
-    if (backgroundRunning(term.screen())) {
-      if (!waitingSince) {
-        waitingSince = Date.now();
-        log([{ kind: 'system', text: '⏳ Its background work is still running; waiting for it to finish the turn.' }]);
-      }
-      if (Date.now() - waitingSince < BACKGROUND_WAIT_MS) {
-        finishTimer = setTimeout(endOfTurn, BACKGROUND_RECHECK_MS);
-        return;
-      }
+  let turnSeq = 0;
+  /** Whether the turn already delivered what it was for (a PR, a report, a pushed fix): then its background work doesn't hold it. */
+  const resultReady = async () => {
+    try {
+      return !!(await opts.resultReady?.(lastText));
+    } catch {
+      return false;
     }
+  };
+  const endOfTurn = async () => {
+    const seq = turnSeq;
+    const background = backgroundRunning(term.screen());
+    const ready = background ? await resultReady() : false;
+    if (done || seq !== turnSeq) return; // a new turn began while GitHub was asked
+    if (background && !waitingSince) waitingSince = Date.now();
+    if (keepWaitingForBackground({ background, resultReady: ready, waitedMs: waitingSince ? Date.now() - waitingSince : 0 })) {
+      if (Date.now() - waitingSince < BACKGROUND_RECHECK_MS) log([{ kind: 'system', text: '⏳ Its background work is still running; waiting for it to finish the turn.' }]);
+      finishTimer = setTimeout(() => void endOfTurn(), BACKGROUND_RECHECK_MS);
+      return;
+    }
+    if (background && ready) log([{ kind: 'system', text: '⏹ Its work is done; the background work it left running is stopped.' }]);
     finish({ ok: !turnError, text: lastText, errors: turnError ? [turnError] : [] }, true);
   };
   const busy = () => {
     begun = true;
     waitingSince = 0;
+    turnSeq++;
     clearTimeout(finishTimer);
   };
 

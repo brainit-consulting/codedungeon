@@ -16,3 +16,30 @@ export function fixChangedPr(testedSha: string | null, headSha: string | null): 
   const [a, b] = [testedSha.toLowerCase(), headSha.toLowerCase()];
   return !(a.startsWith(b) || b.startsWith(a));
 }
+
+/** How long a turn that ends with background work still running is held open, at most. */
+export const BACKGROUND_WAIT_MS = 90 * 60_000;
+
+/**
+ * Whether a turn that ended is held open for its background work. That waits for a tester whose report comes when
+ * a long playtest ends; but once the turn's result is in (a PR opened, a report written, a fix pushed), a dev server
+ * left running is no reason to wait. On 11 October one held a finished coder for 46 minutes, blocking QA's fix round.
+ */
+export function keepWaitingForBackground(o: { background: boolean; resultReady: boolean; waitedMs: number }): boolean {
+  return o.background && !o.resultReady && o.waitedMs < BACKGROUND_WAIT_MS;
+}
+
+/** This repo's pull request linked in a coder's message, or null. */
+export function prUrlIn(text: string, fullName: string): { number: number; url: string } | null {
+  const escaped = fullName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const m = text.match(new RegExp(`https://github\\.com/${escaped}/pull/(\\d+)`, 'i'));
+  return m ? { number: Number(m[1]), url: m[0] } : null;
+}
+
+/**
+ * Whether an issue session that just ended sends its PR to QA. Only a PR QA hasn't taken further: a late finish (a
+ * turn held open by background work) must not re-test a commit that failed, or undo a fix round or a pass.
+ */
+export function queueQaAfterIssue(status: 'queued' | 'testing' | 'passed' | 'failed' | 'fixing' | 'needs-human' | undefined): boolean {
+  return status === undefined || status === 'queued';
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fixChangedPr, workingAloneAfter } from './handOff.ts';
+import { fixChangedPr, keepWaitingForBackground, prUrlIn, queueQaAfterIssue, workingAloneAfter } from './handOff.ts';
 
 describe('workingAloneAfter', () => {
   it('a CLI at its prompt that starts using tools is working on its own', () => {
@@ -38,5 +38,37 @@ describe('fixChangedPr', () => {
   it('when either commit is unknown, it gives the fix the benefit of the doubt', () => {
     expect(fixChangedPr(null, 'aefef23')).toBe(true);
     expect(fixChangedPr('aefef23', null)).toBe(true);
+  });
+});
+
+describe('a turn that ends with background work still running', () => {
+  it('waits while the result is still missing, as before (a tester whose report comes when the playtest ends)', () => {
+    expect(keepWaitingForBackground({ background: true, resultReady: false, waitedMs: 60_000 })).toBe(true);
+  });
+  it("doesn't wait once the result is in: a PR opened, a report written, a fix pushed (the dev server it left is stopped)", () => {
+    expect(keepWaitingForBackground({ background: true, resultReady: true, waitedMs: 0 })).toBe(false);
+  });
+  it('without background work, or after 90 minutes, the turn ends', () => {
+    expect(keepWaitingForBackground({ background: false, resultReady: false, waitedMs: 0 })).toBe(false);
+    expect(keepWaitingForBackground({ background: true, resultReady: false, waitedMs: 90 * 60_000 })).toBe(false);
+  });
+});
+
+describe('the pull request a turn names', () => {
+  it("finds this repo's PR link, in any case, and not another repo's", () => {
+    expect(prUrlIn('Done.\nhttps://github.com/Brainit-Consulting/Guildhall-Reference/pull/70', 'brainit-consulting/guildhall-reference')).toEqual({ number: 70, url: 'https://github.com/Brainit-Consulting/Guildhall-Reference/pull/70' });
+    expect(prUrlIn('see https://github.com/someone/else/pull/3', 'brainit-consulting/guildhall-reference')).toBeNull();
+    expect(prUrlIn('https://github.com/o/r.x/pull/9', 'o/r.x')).toEqual({ number: 9, url: 'https://github.com/o/r.x/pull/9' });
+    expect(prUrlIn('https://github.com/o/rax/pull/9', 'o/r.x')).toBeNull();
+  });
+});
+
+describe('QA after an issue session ends', () => {
+  it('queues a PR QA has never seen, and one already waiting', () => {
+    expect(queueQaAfterIssue(undefined)).toBe(true);
+    expect(queueQaAfterIssue('queued')).toBe(true);
+  });
+  it("leaves a PR QA already took further alone: a late finish doesn't re-test the commit that failed (11 October, PR #70)", () => {
+    for (const s of ['testing', 'failed', 'fixing', 'passed', 'needs-human'] as const) expect(queueQaAfterIssue(s)).toBe(false);
   });
 });
