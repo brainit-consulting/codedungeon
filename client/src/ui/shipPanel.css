@@ -25,7 +25,21 @@
   border-color: var(--accent, #a0441c);
 }
 .ship-method input {
-  grid-row: span 2;
+  grid-row: span 4;
+}
+.ship-method > span + span {
+  margin-top: 2px;
+}
+.ship-start {
+  margin-left: 8px;
+  padding: 0 6px;
+  font-family: var(--font-sc, 'Alegreya SC'), serif;
+  font-size: 0.8rem;
+  font-weight: normal;
+  color: #fff8e8;
+  background: var(--accent, #a0441c);
+  border-radius: 2px;
+  vertical-align: 2px;
 }
 .ship-actions {
   margin: 14px 0 6px;

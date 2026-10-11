@@ -10,10 +10,29 @@ import './shipPanel.css';
 // put work live, take it back, and give the app its own address. The server decides what's allowed (shared/ship.ts);
 // this shows it. Spec: docs/superpowers/specs/2026-10-03-ship-it-design.md
 
-const METHODS: { id: Exclude<ShipMethod, 'none'>; name: string; what: string }[] = [
-  { id: 'git-auto', name: 'Every merge goes live', what: 'GitHub builds it on Vercel and each merge to main goes live on its own. For building something new on its free vercel.app address.' },
-  { id: 'git-promote', name: 'GitHub builds, you ship', what: 'GitHub builds every merge on Vercel, held back; Ship it puts the newest build of main live in seconds.' },
-  { id: 'cli', name: 'Deploy from the dungeon', what: 'The dungeon deploys main with the Vercel CLI when you press Ship it. Works without the GitHub connection; has Preview.' },
+const METHODS: { id: Exclude<ShipMethod, 'none'>; name: string; start?: true; what: string; when: string; cost: string }[] = [
+  {
+    id: 'git-auto',
+    name: 'Every merge goes live',
+    start: true,
+    what: 'Vercel builds each merge to main from GitHub and puts it live on the free vercel.app address. Nothing to press.',
+    when: 'you are building something new and nobody relies on it yet.',
+    cost: 'a merge that breaks the app is live at once (Undo last ship puts the old one back). Launch later and Ship it becomes the gate.',
+  },
+  {
+    id: 'git-promote',
+    name: 'GitHub builds, you ship',
+    what: 'Vercel builds every merge from GitHub but holds it back. Ship it puts the newest build of main live in seconds.',
+    when: 'people use the app and you choose when changes reach them.',
+    cost: 'nothing goes live until you press Ship it.',
+  },
+  {
+    id: 'cli',
+    name: 'Deploy from the dungeon',
+    what: 'When you press Ship it, the dungeon sends main from this computer to Vercel to build. Preview gives you a test link first.',
+    when: 'Vercel can\'t be connected to the GitHub repo.',
+    cost: 'each ship waits for a full build, only this computer can ship, and pull requests get no preview links of their own.',
+  },
 ];
 
 /** A message with its `code` spans shown as code. */
@@ -79,8 +98,17 @@ function Setup({ repoId, fullName, onDone }: { repoId: string; fullName: string;
         {METHODS.map((m) => (
           <label key={m.id} className={`ship-method${method === m.id ? ' on' : ''}`}>
             <input type="radio" name="ship-method" checked={method === m.id} onChange={() => setMethod(m.id)} />
-            <b>{m.name}</b>
+            <b>
+              {m.name}
+              {m.start && <span className="ship-start">start here</span>}
+            </b>
             <span className="muted small">{m.what}</span>
+            <span className="small">
+              <i>Pick it when</i> {m.when}
+            </span>
+            <span className="small">
+              <i>The catch:</i> {m.cost}
+            </span>
           </label>
         ))}
       </div>
