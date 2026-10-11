@@ -77,6 +77,8 @@ export interface RepoView {
   autoMerge: boolean; // PRs merge themselves once QA passes and GitHub's checks are green
   folderSync: string | null; // how the floor's main checkout stands against GitHub: "in sync", "updated to abc1234", "2 behind: local changes" …
   browserTesting: boolean;
+  /** QA measures pages at phone, tablet and laptop sizes (needs browserTesting). */
+  phoneReady: boolean;
   links: string[]; // ids of related repos this floor's agents can read for context
   mission: string; // the manager's brief: what this floor is building
   summary: string; // the CEO's one-line read of the project, e.g. "3D browser game · Three.js + Vite"

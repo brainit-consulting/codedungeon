@@ -79,6 +79,7 @@ interface PersistedRepo {
   autoAssign: boolean;
   autoMerge: boolean; // PRs merge themselves once QA passes and GitHub's checks are green
   browserTesting: boolean;
+  phoneReady: boolean; // QA's phone check, with browser testing (server/phoneReady.ts)
   links: string[]; // other connected repos this floor's agents may read
   localPath: string | null; // the manager's own project folder (null: a clone under WORKSPACE_ROOT)
   mission: string;
@@ -512,6 +513,7 @@ export class Swarm {
           ...r,
           color: periodColor(r.color), // chambers made under cubefarm kept its bright colours
           autoMerge: r.autoMerge ?? true,
+          phoneReady: r.phoneReady ?? true,
           links: r.links ?? [],
           mission: r.mission ?? '',
           summary: r.summary ?? '',
@@ -697,6 +699,7 @@ export class Swarm {
       autoMerge: r.autoMerge,
       folderSync: rt.folderSync,
       browserTesting: r.browserTesting,
+      phoneReady: r.phoneReady,
       links: r.links,
       mission: r.mission,
       summary: r.summary,
@@ -989,6 +992,7 @@ export class Swarm {
       autoAssign: !!opts.autoAssign,
       autoMerge: true,
       browserTesting: true,
+      phoneReady: true,
       links: [],
       localPath: folder,
       mission: (opts.mission ?? '').trim().slice(0, 4000),
@@ -1094,7 +1098,7 @@ export class Swarm {
 
   updateRepo(
     id: string,
-    patch: Partial<Pick<PersistedRepo, 'autoAssign' | 'autoMerge' | 'browserTesting' | 'color' | 'links' | 'mission' | 'summary' | 'qaBrief'>> & { previewCommand?: unknown; previewEnv?: unknown },
+    patch: Partial<Pick<PersistedRepo, 'autoAssign' | 'autoMerge' | 'browserTesting' | 'phoneReady' | 'color' | 'links' | 'mission' | 'summary' | 'qaBrief'>> & { previewCommand?: unknown; previewEnv?: unknown },
   ) {
     const repo = this.repo(id);
     const preview = parsePreviewPatch(patch.previewCommand, patch.previewEnv);
@@ -1106,6 +1110,7 @@ export class Swarm {
       if (repo.autoMerge) void this.syncRepo(repo.id);
     }
     if (patch.browserTesting !== undefined) repo.browserTesting = !!patch.browserTesting;
+    if (patch.phoneReady !== undefined) repo.phoneReady = !!patch.phoneReady;
     if (patch.color && /^#[0-9a-f]{6}$/i.test(patch.color)) repo.color = patch.color;
     if (Array.isArray(patch.links)) repo.links = patch.links.filter((l) => l !== id && this.state.repos.some((r) => r.id === l));
     if (typeof patch.mission === 'string') repo.mission = patch.mission.trim().slice(0, 4000);

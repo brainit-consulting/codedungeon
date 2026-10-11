@@ -44,6 +44,7 @@ export const api = {
       autoAssign?: boolean;
       autoMerge?: boolean;
       browserTesting?: boolean;
+      phoneReady?: boolean;
       color?: string;
       links?: string[];
       mission?: string;

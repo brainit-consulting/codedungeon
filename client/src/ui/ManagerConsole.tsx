@@ -170,6 +170,9 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
         <label className="toggle">
           <input type="checkbox" checked={repo.browserTesting} onChange={(e) => patch({ browserTesting: e.target.checked })} /> <Icon name="globe" /> Browser testing (Playwright MCP)
         </label>
+        <label className="toggle" title="QA measures each changed page at phone, phone-on-its-side, tablet and laptop sizes; needs Browser testing">
+          <input type="checkbox" checked={repo.phoneReady} disabled={!repo.browserTesting} onChange={(e) => patch({ phoneReady: e.target.checked })} /> Phone-ready checks
+        </label>
         <span className="spacer" />
         <button
           className="btn btn-small btn-ghost"
