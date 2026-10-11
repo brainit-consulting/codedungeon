@@ -8,6 +8,7 @@ import type { PrDetails } from './github.ts';
 import { currentVersion, defaultProjectsDir, HOME_DIR, LOG_BUFFER, SCHEDULER_INTERVAL_MS, STATE_FILE, SYNC_INTERVAL_MS, WORKSPACE_ROOT } from './config.ts';
 import { ceoJobPrompt, ceoSystemPrompt, createOfficeTools, dungeonMasterTitle, IssueCap, jobLabel, planRoute, specialtyLabel, specialtySlug, type CeoJob, type OfficeTools } from './ceo.ts';
 import { fixChangedPr } from './handOff.ts';
+import { fixBrief, sendBackRefusal, stillFailedCommit } from '../shared/sendBack.ts';
 import { HttpError } from './httpError.ts';
 import { CHECKS_ALERT_MS, MAX_MERGE_FIXES, MERGE_RETRY_MS, mergeStep } from './mergeGate.ts';
 import { orphanedQa } from './qaOrphans.ts';
@@ -139,6 +140,8 @@ interface QaRecord extends QaView {
   pendingSince: number | null; // when auto-merge started waiting on its checks
   mergeRetryAt: number | null; // GitHub refused the merge: try again after this
   alerted: boolean; // the manager has been told it's stuck
+  overlordNote: string | null; // sent back with a note (shared/sendBack.ts): the next fix round follows it before QA's
+  assignedDevId: string | null; // sent back to this coder: the fix waits for them to be free
 }
 
 /** Choices made when a project moves into the office. */
@@ -432,6 +435,11 @@ export class Swarm {
       proposeLetGo: (a) => this.proposeLetGo(a),
       fileIssue: (a) => this.fileIssue(a),
       routeIssue: (a) => this.routeIssue(a),
+      sendBackPr: (a) => {
+        const repo = this.floorRepo(a.floor);
+        const who = this.sendBackWithNote(repo.id, a.pr, a.note, a.coder);
+        return `PR #${a.pr} goes back to ${who} with your note. QA re-tests it after the fix is pushed.`;
+      },
     });
   }
   private ceoIssues = new IssueCap(MAX_ISSUES_PER_JOB); // issues filed during the current CEO job
@@ -534,6 +542,8 @@ export class Swarm {
           pendingSince: q.pendingSince ?? null,
           mergeRetryAt: q.mergeRetryAt ?? null,
           alerted: q.alerted ?? false,
+          overlordNote: q.overlordNote ?? null,
+          assignedDevId: q.assignedDevId ?? null,
           mergeNote: null,
         })),
         requests: (loaded.requests ?? []).map((r) => ({ ...r, color: periodColor(r.color) })),
@@ -763,6 +773,8 @@ export class Swarm {
       checks: q.checks,
       commentUrl: q.commentUrl,
       mergeNote: q.mergeNote,
+      testedSha: q.testedSha,
+      overlordNote: q.overlordNote,
       updatedAt: q.updatedAt,
     };
   }
@@ -2223,6 +2235,8 @@ export class Swarm {
         pendingSince: null,
         mergeRetryAt: null,
         alerted: false,
+        overlordNote: null,
+        assignedDevId: null,
       };
       this.state.qa.push(rec);
       this.setQa(rec, {});
@@ -2231,12 +2245,15 @@ export class Swarm {
   }
 
   /** Manager's "send to QA" for any open PR (including ones opened by people). */
-  async sendToQa(repoId: string, prNumber: number) {
+  async sendToQa(repoId: string, prNumber: number, force = false) {
     const repo = this.repo(repoId);
     const pr = this.repoRt.get(repo.id)?.pulls.find((p) => p.number === prNumber && p.state === 'OPEN');
     if (!pr) throw new HttpError(404, `PR #${prNumber} is not open on ${repo.fullName}`);
     const rec = this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === prNumber);
     if (rec?.status === 'testing' || rec?.status === 'fixing') throw new HttpError(409, `PR #${prNumber} is already ${rec.status}`);
+    if (!force && rec && stillFailedCommit(rec.testedSha, pr.headSha, rec.status)) {
+      throw new HttpError(409, `PR #${prNumber} is still on ${pr.headSha.slice(0, 7)}, the commit QA failed. Send it back to a coder with a note, or retry anyway.`);
+    }
     if (rec && (rec.status === 'needs-human' || rec.status === 'passed' || rec.status === 'failed')) {
       // a fresh start: the manager decided it deserves another round
       rec.round += 1;
@@ -2245,6 +2262,31 @@ export class Swarm {
     const dev = this.state.agents.find((a) => a.repoId === repo.id && a.role === 'dev' && a.task !== 'qa' && (a.prNumber === prNumber || a.branch === pr.headRefName));
     this.queueQa(repo, prNumber, dev ?? null, pr.closesIssues[0] ?? null);
     this.toast('info', `PR #${prNumber} is queued for QA`);
+  }
+
+  /**
+   * Send a PR that failed QA back to a coder with a note (the Overlord's or the DungeonMaster's): a fix round on its own
+   * branch that follows the note before QA's suggestions (shared/sendBack.ts). A chosen coder gets it when they're
+   * free; otherwise the next free coder. Returns who it went to.
+   */
+  sendBackWithNote(repoId: string, prNumber: number, note: string, agentId?: string): string {
+    const repo = this.repo(repoId);
+    const pr = this.repoRt.get(repo.id)?.pulls.find((p) => p.number === prNumber && p.state === 'OPEN');
+    if (!pr) throw new HttpError(404, `PR #${prNumber} is not open on ${repo.fullName}`);
+    const rec = this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === prNumber);
+    const refusal = sendBackRefusal(prNumber, rec?.status ?? null, note);
+    if (refusal || !rec) throw new HttpError(note.trim() ? 409 : 400, refusal ?? `PR #${prNumber} has not been through QA yet: send it to QA first.`);
+    let dev: PersistedAgent | undefined;
+    if (agentId) {
+      const want = agentId.toLowerCase();
+      dev = this.state.agents.find((a) => a.id === agentId || a.name.toLowerCase() === want || a.name.toLowerCase().startsWith(want + ' '));
+      if (!dev || dev.repoId !== repo.id || dev.role !== 'dev') throw new HttpError(400, `${agentId} is not a coder in ${repo.fullName}'s chamber.`);
+    }
+    this.setQa(rec, { status: 'failed', fixReason: 'qa', overlordNote: note.trim(), assignedDevId: dev?.id ?? null, sessionFailures: 0, alerted: false });
+    const who = dev ? dev.name : 'the next free coder';
+    this.toast('info', `PR #${prNumber} goes back to ${who} with the note`);
+    setTimeout(() => this.schedule(), 200);
+    return who;
   }
 
   private buildQaSystemAppend(a: PersistedAgent, repo: PersistedRepo, cwd: string, branch: string, pr: PrDetails) {
@@ -2486,7 +2528,7 @@ export class Swarm {
       '',
       `QA summary: ${rec.summary ?? ''}`,
       failed.length ? `Failed checks:\n${failed.map((c) => `- ${c.name}: ${c.details}`).join('\n')}` : '',
-      rec.fixInstructions ? `\nWhat needs fixing:\n${rec.fixInstructions}` : '',
+      rec.fixInstructions || rec.overlordNote ? `\nWhat needs fixing:\n${fixBrief(rec.overlordNote, rec.fixInstructions)}` : '',
       rec.commentUrl ? `\nFull report with screenshots: ${rec.commentUrl}` : '',
       '',
       `Fix these problems, re-run the relevant checks, and push to the same branch: git push origin HEAD:${headRef}`,
@@ -2536,7 +2578,8 @@ export class Swarm {
       return;
     }
     this.appendLog(a, [{ kind: 'done', text: `✔ Fix pushed for PR #${rec.prNumber} in ${minutes}m. Back to QA.` }]);
-    this.setQa(rec, { status: 'queued', round: rec.round + 1, devSessionId });
+    // the note was for this fix; QA's next report decides what comes after
+    this.setQa(rec, { status: 'queued', round: rec.round + 1, devSessionId, overlordNote: null, assignedDevId: null });
     this.toast('info', `${a.name} pushed fixes for PR #${rec.prNumber}; QA round ${rec.round} is queued`);
   }
 
@@ -2764,8 +2807,14 @@ export class Swarm {
     for (const rec of waiting('failed')) {
       const issue = this.repoRt.get(repo.id)!.issues.find((i) => i.number === rec.issueNumber);
       const want = issue ? issueSpecialty(issue.labels) : null;
-      const dev = devs.find((a) => a.id === rec.devAgentId) ?? this.pickDev(repo, devs, (a) => a.specialty.toLowerCase() === want);
-      if (!dev) break;
+      // sent back to a chosen coder (sendBack): it waits for them
+      const dev = rec.assignedDevId
+        ? devs.find((a) => a.id === rec.assignedDevId)
+        : (devs.find((a) => a.id === rec.devAgentId) ?? this.pickDev(repo, devs, (a) => a.specialty.toLowerCase() === want));
+      if (!dev) {
+        if (rec.assignedDevId) continue;
+        break;
+      }
       void this.runFix(dev, repo, rec);
       return true;
     }

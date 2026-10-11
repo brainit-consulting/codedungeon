@@ -382,7 +382,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('A pull request will not merge'),
       p(
-        'If GitHub refuses the merge (for example, branch protection wants an approving review), your scroll gets a message and the dungeon tries again every 10 minutes. Checks still running after 30 minutes also get a message. Pull requests marked **needs you** have failed QA or their fixes three times: read the QA comment on GitHub and decide.',
+        'If GitHub refuses the merge (for example, branch protection wants an approving review), your scroll gets a message and the dungeon tries again every 10 minutes. Checks still running after 30 minutes also get a message. Pull requests marked **needs you** have failed QA or their fixes three times: read the QA comment on GitHub and decide. **Send back** on the notice board gives the pull request to a coder with your note (pick one, or let the next free coder take it): they fix it on its own branch, following your note before QA\'s suggestions, and QA tests it again. **Retry QA** asks first when nothing new was pushed since QA failed it. The DungeonMaster can send pull requests back with a note too, and tells you when it does.',
       ),
       h('The view or the mouse misbehaves'),
       list(

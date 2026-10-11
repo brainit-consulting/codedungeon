@@ -34,6 +34,7 @@ export interface OfficeHandlers {
   proposeLetGo(a: { agent_id: string; reason: string }): string;
   fileIssue(a: { floor: number; title: string; body: string; specialty?: string }): Promise<string>;
   routeIssue(a: { floor: number; number: number; specialty?: string; depends_on?: number[] }): Promise<string>;
+  sendBackPr(a: { floor: number; pr: number; note: string; coder?: string }): string;
 }
 
 export interface OfficeTools {
@@ -144,6 +145,17 @@ export function createOfficeTools(h: OfficeHandlers): OfficeTools {
       },
       (a) => run(() => h.routeIssue(a)),
     ),
+    tool(
+      'send_back_pr',
+      "Send a pull request that failed QA (or waits for the Overlord) back to a coder with your note: a fix round on its own branch that follows your note before QA's suggestions. Use it when QA's fix instructions point the wrong way, or nobody is working on it. Tell the Overlord you did.",
+      {
+        floor: z.number().int().describe('Chamber number'),
+        pr: z.number().int().positive().describe('The pull request number'),
+        note: z.string().min(1).max(4000).describe('What the coder should change and how to check it, written to them'),
+        coder: z.string().optional().describe('A coder in that chamber (id or name); leave out for the next free coder'),
+      },
+      (a) => run(() => h.sendBackPr(a)),
+    ),
   ];
   const server = createSdkMcpServer({ name: 'office', version: '1.0.0', tools: defs });
   return {
@@ -238,7 +250,7 @@ export function ceoJobPrompt(job: CeoJob, floor: { floor: number; fullName: stri
         'Periodic review of the dungeon. For every chamber, look at:',
         '- chambers without a profile or QA brief: study them and write one',
         '- backlog against the team (capacity): fewer issues ready to start than free coders, long dependency chains, a specialty with a long queue (fix those with route_issue)',
-        '- pull requests stuck in QA or marked as needing a human',
+        '- pull requests stuck in QA or marked as needing a human: when you know the fix, send it back with send_back_pr and your note, then tell the Overlord',
         '- chambers with a brief and an empty backlog: plan the next milestone',
         'Propose recruits or let-gos only when clearly justified. If nothing needs doing, reply with one short sentence saying so.',
       ].join('\n');

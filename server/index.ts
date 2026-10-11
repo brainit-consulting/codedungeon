@@ -165,7 +165,11 @@ app.post(
 );
 app.post('/api/repos/:repo/pulls/:n/merge', route((req) => swarm.mergePull(repoId(req), num(req.params.n), req.body?.method ?? 'squash')));
 app.post('/api/repos/:repo/pulls/:n/close', route((req) => swarm.closePull(repoId(req), num(req.params.n))));
-app.post('/api/repos/:repo/pulls/:n/qa', route((req) => swarm.sendToQa(repoId(req), num(req.params.n))));
+app.post('/api/repos/:repo/pulls/:n/qa', route((req) => swarm.sendToQa(repoId(req), num(req.params.n), req.body?.force === true)));
+app.post(
+  '/api/repos/:repo/pulls/:n/send-back',
+  route((req) => ({ to: swarm.sendBackWithNote(repoId(req), num(req.params.n), str(req.body?.note), str(req.body?.agentId) || undefined) })),
+);
 app.post(
   '/api/repos/:repo/agents',
   route((req) =>

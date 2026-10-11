@@ -6,6 +6,7 @@ import { Panel } from './Overlays';
 import { Icon, IconText } from './Icon';
 import { BrowserNotice } from './BrowserNotice';
 import { NoMainNotice } from './NoMainNotice';
+import { stillFailedCommit } from '../../../shared/sendBack';
 
 function AgentChip({ agent }: { agent?: Agent }) {
   if (!agent) return null;
@@ -15,6 +16,57 @@ function AgentChip({ agent }: { agent?: Agent }) {
       {agent.name}
       {agent.role === 'qa' && <span className="chip">QA</span>}
     </span>
+  );
+}
+
+/** A stuck PR back to a coder with the Overlord's note: a fix round on its own branch (shared/sendBack.ts). */
+function SendBackForm({ repoId, pr, agents, onDone }: { repoId: string; pr: number; agents: Agent[]; onDone: () => void }) {
+  const [note, setNote] = useState('');
+  const [to, setTo] = useState('');
+  const [busy, setBusy] = useState(false);
+  const coders = agents.filter((a) => a.role === 'dev');
+  return (
+    <form
+      className="issue-form sendback-form"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if (!note.trim()) return;
+        setBusy(true);
+        try {
+          await api.sendBack(repoId, pr, note, to || undefined);
+          onDone();
+        } catch {
+          // toasted
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <textarea
+        autoFocus
+        rows={4}
+        placeholder={`What should the coder change on PR #${pr}, and how should they check it? It comes before QA's suggestions.`}
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+      />
+      <div className="row">
+        <select value={to} onChange={(e) => setTo(e.target.value)} aria-label="Coder">
+          <option value="">The next free coder</option>
+          {coders.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </select>
+        <span className="spacer" />
+        <button type="button" className="btn btn-small btn-ghost" onClick={onDone}>
+          Cancel
+        </button>
+        <button type="submit" className="btn btn-small btn-good" disabled={busy || !note.trim()}>
+          Send back
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -81,6 +133,7 @@ export function KanbanView({ repoId }: { repoId: string }) {
   const cols = useMemo(() => (repo ? kanbanFor(repo, agents, qaRecords) : null), [repo, agents, qaRecords]);
   const [showForm, setShowForm] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
+  const [sendingBack, setSendingBack] = useState<number | null>(null);
 
   if (!repo || !cols) {
     return (
@@ -115,6 +168,21 @@ export function KanbanView({ repoId }: { repoId: string }) {
           },
     );
     if (ok) void act(c.key, () => api.mergePull(repo.id, c.number));
+  };
+  // Retry QA on the commit QA already failed tests the same code again: ask first, and offer Send back instead
+  const retryQa = async (c: KanbanCard) => {
+    const head = repo.pulls.find((p) => p.number === c.number)?.headSha ?? null;
+    const same = stillFailedCommit(c.qa?.testedSha ?? null, head, c.qa?.status ?? null);
+    if (same) {
+      const ok = await confirmDialog({
+        tone: 'warn',
+        title: `Retry QA on the same commit?`,
+        body: `PR #${c.number} is still on ${head!.slice(0, 7)}, the commit QA failed, so another round tests the same code. Send it back to a coder with a note instead, unless you think the failure was a fluke.`,
+        confirm: 'Retry anyway',
+      });
+      if (!ok) return;
+    }
+    void act(c.key, () => api.sendToQa(repo.id, c.number, same));
   };
   const previewButton = (c: KanbanCard) => (
     <button
@@ -266,8 +334,13 @@ export function KanbanView({ repoId }: { repoId: string }) {
                   {previewButton(c)}
                   {(st === 'testing' || st === 'fixing') && terminalButton(c)}
                   {(!st || st === 'needs-human') && (
-                    <button className="btn btn-small btn-good" disabled={pending === c.key} onClick={() => act(c.key, () => api.sendToQa(repo.id, c.number))}>
+                    <button className="btn btn-small btn-good" disabled={pending === c.key} onClick={() => (st ? retryQa(c) : act(c.key, () => api.sendToQa(repo.id, c.number)))}>
                       {st === 'needs-human' ? 'Retry QA' : 'Send to QA'}
+                    </button>
+                  )}
+                  {(st === 'needs-human' || st === 'failed') && (
+                    <button className="btn btn-small" disabled={pending === c.key} onClick={() => setSendingBack(sendingBack === c.number ? null : c.number)}>
+                      Send back
                     </button>
                   )}
                   {st === 'needs-human' && (
@@ -276,6 +349,7 @@ export function KanbanView({ repoId }: { repoId: string }) {
                     </button>
                   )}
                 </span>
+                {sendingBack === c.number && <SendBackForm repoId={repo.id} pr={c.number} agents={agents} onDone={() => setSendingBack(null)} />}
               </div>
             );
           },

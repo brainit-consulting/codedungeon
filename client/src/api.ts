@@ -83,7 +83,9 @@ export const api = {
   onboardFloor: (repoId: string) => call('POST', `${r(repoId)}/onboard`),
   mergePull: (repoId: string, n: number, method: 'squash' | 'merge' | 'rebase' = 'squash') => call('POST', `${r(repoId)}/pulls/${n}/merge`, { method }),
   closePull: (repoId: string, n: number) => call('POST', `${r(repoId)}/pulls/${n}/close`),
-  sendToQa: (repoId: string, n: number) => call('POST', `${r(repoId)}/pulls/${n}/qa`),
+  sendToQa: (repoId: string, n: number, force = false) => call('POST', `${r(repoId)}/pulls/${n}/qa`, force ? { force } : undefined),
+  /** Back to a coder with a note, for a fix round on its own branch; agentId: that coder, else the next free one. */
+  sendBack: (repoId: string, n: number, note: string, agentId?: string) => call<{ to: string }>('POST', `${r(repoId)}/pulls/${n}/send-back`, { note, agentId }),
   hireAgent: (repoId: string, opts: { name?: string; model?: string; effort?: string; role?: 'dev' | 'qa'; title?: string; specialty?: string } = {}) =>
     call('POST', `${r(repoId)}/agents`, opts),
   updateAgent: (id: string, patch: { name?: string; model?: string; effort?: string; cli?: AgentCli | ''; look?: 'feminine' | 'masculine'; title?: string; specialty?: string; brief?: string }) =>

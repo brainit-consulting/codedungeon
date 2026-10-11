@@ -266,6 +266,9 @@ input.inline:focus {
   gap: 5px;
   font-weight: 600;
   font-size: 0.85rem;
+  /* a name is one thing: "Godric the Wright" never breaks over two lines, and the row gives way instead */
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .status {
@@ -1338,6 +1341,30 @@ input.inline:focus {
 }
 .kcard-foot-wrap {
   flex-wrap: wrap;
+}
+/* Send back's note, under a card's buttons, the card's full width */
+.sendback-form {
+  flex-basis: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 6px 0 0;
+  padding: 8px;
+}
+.sendback-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  resize: vertical;
+}
+/* a card is narrow: the coder picker takes its own line, the buttons share the next */
+.sendback-form .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sendback-form .row select {
+  flex: 1 1 100%;
+  min-width: 0;
 }
 /* a card's buttons stay together: if they don't fit beside the name they move down as one row */
 .kcard-actions {

@@ -79,6 +79,7 @@ describe('office tools', () => {
       proposeLetGo: () => '',
       fileIssue: async () => '',
       routeIssue: async () => '',
+      sendBackPr: (a) => `PR #${a.pr} goes back to ${a.coder ?? 'the next free coder'} with your note.`,
     });
     const [serverSide, clientSide] = InMemoryTransport.createLinkedPair();
     await office.server.instance.connect(serverSide);
@@ -90,7 +91,19 @@ describe('office tools', () => {
   it('lists every tool the CEO relies on', async () => {
     const { client } = await connect();
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(['agent_detail', 'company_status', 'file_issue', 'propose_hire', 'propose_let_go', 'route_issue', 'set_floor_profile', 'update_job']);
+    expect(tools.map((t) => t.name).sort()).toEqual(['agent_detail', 'company_status', 'file_issue', 'propose_hire', 'propose_let_go', 'route_issue', 'send_back_pr', 'set_floor_profile', 'update_job']);
+  });
+
+  it('sends a PR back to a coder with a note', async () => {
+    const { client } = await connect();
+    const res = await client.callTool({ name: 'send_back_pr', arguments: { floor: 1, pr: 253, note: 'Add a half-step at the foot of the wall walk.', coder: 'Godric' } });
+    expect((res.content as { text: string }[])[0].text).toBe('PR #253 goes back to Godric with your note.');
+  });
+
+  it('refuses send_back_pr without a note', async () => {
+    const { client } = await connect();
+    const res = await client.callTool({ name: 'send_back_pr', arguments: { floor: 1, pr: 253, note: '' } });
+    expect(res.isError).toBe(true);
   });
 
   it('still takes preview_env as a map of strings', async () => {
