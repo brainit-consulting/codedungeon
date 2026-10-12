@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CARRY_ON, carryOnPlan, type CarryAgent } from './carryOn.ts';
+import { CARRY_ON, carryOnPlan, theirPull, type CarryAgent } from './carryOn.ts';
 import type { QaStatus } from './types.ts';
 
 const coder = (o: Partial<CarryAgent> = {}): CarryAgent => ({
@@ -102,5 +102,18 @@ describe('Carry on, when there is nothing to carry on', () => {
 describe('what Carry on tells them', () => {
   it('is a few words (every word is paid for in their session)', () => {
     expect(CARRY_ON.split(' ').length).toBeLessThanOrEqual(8);
+  });
+});
+
+describe('their pull request, when the dungeon checks what became of it', () => {
+  it('is the one they opened', () => {
+    expect(theirPull(coder({ prNumber: 12 }), [pull(11), pull(12, { state: 'MERGED' })])?.number).toBe(12);
+  });
+  it('is the one from their branch when a restart cut them off before the dungeon heard its number', () => {
+    const merged = pull(14, { state: 'MERGED', headRefName: 'swarm/issue-8-maud-the-scribe' });
+    expect(theirPull(coder(), [pull(13), merged])).toBe(merged);
+  });
+  it('is none when they have neither', () => {
+    expect(theirPull(coder({ branch: null }), [pull(12)])).toBeUndefined();
   });
 });

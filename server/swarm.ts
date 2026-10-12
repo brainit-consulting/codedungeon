@@ -20,7 +20,7 @@ import { drainDecision, lastUpdateMessage, POSTPONE_MS, type DrainInput, type La
 import { clampPacingSessions, DEFAULT_PACING_SESSIONS, mayStart, PACING_MS, pacingMessage, usageLabel, usageView, type UsageWarning, type WorkKind } from './pacing.ts';
 import { isCli } from './clis.ts';
 import { AgentTerminal } from './terminal.ts';
-import { CARRY_ON, carryOnPlan, type CarryAgent } from '../shared/carryOn.ts';
+import { CARRY_ON, carryOnPlan, theirPull, type CarryAgent } from '../shared/carryOn.ts';
 import { ASK_RULE, overlordAsk } from './overlordAsk.ts';
 import { scratchRule } from './permissionGate.ts';
 import { nextChamber } from '../shared/chambers.ts';
@@ -1546,8 +1546,8 @@ export class Swarm {
   /** Keep agents and QA records in step with what happened to PRs on GitHub. */
   private reconcilePulls(repo: PersistedRepo, pulls: PullInfo[]) {
     for (const a of this.state.agents) {
-      if (a.repoId !== repo.id || a.role !== 'dev' || a.prNumber == null || BUSY.includes(a.status) || a.status === 'idle') continue;
-      const pr = pulls.find((p) => p.number === a.prNumber);
+      if (a.repoId !== repo.id || a.role !== 'dev' || BUSY.includes(a.status) || a.status === 'idle') continue;
+      const pr = theirPull(a, pulls);
       if (!pr || pr.state === 'OPEN') continue;
       if (a.task === 'qa') {
         this.clearTask(a); // they only tested it

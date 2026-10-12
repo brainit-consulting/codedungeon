@@ -68,3 +68,12 @@ export function carryOnPlan(a: CarryAgent, world: { others: CarryAgent[]; pulls:
   if (q.status === 'testing') return q.qaAgentId === a.id ? go : none(`someone else is testing PR #${n} now`);
   return q.status === 'queued' || q.status === 'needs-human' ? go : none(`PR #${n} has moved on (${q.status})`);
 }
+
+/**
+ * The pull request a coder's work went into: the one they opened, or, when a restart cut them off before the dungeon
+ * heard its number, the one from their branch.
+ */
+export function theirPull<P extends PullLike>(a: { prNumber: number | null; branch: string | null }, pulls: P[]): P | undefined {
+  if (a.prNumber != null) return pulls.find((p) => p.number === a.prNumber);
+  return a.branch ? pulls.find((p) => p.headRefName === a.branch) : undefined;
+}
