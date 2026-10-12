@@ -15,3 +15,4 @@ export function refusal(state: { branch: string; defaultBranch: string; dirty: b
 export function stepsFor(changedFiles: string[], opts: { startMode: boolean }): { install: boolean; build: boolean };
 export function rollbackPlan(progress: { moved: boolean; installed: boolean; built: boolean }): { reset: boolean; install: boolean; build: boolean };
 export function isUpdateCommand(line: string): boolean;
+export function crashRestart(earlier: number[], now: number): { restart: true; delayMs: number } | { restart: false };

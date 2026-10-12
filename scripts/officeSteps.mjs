@@ -76,3 +76,15 @@ export function rollbackPlan({ moved, installed, built }) {
 
 /** A line typed into the launcher's terminal that asks for an update: `u`. */
 export const isUpdateCommand = (line) => line.trim().toLowerCase() === 'u';
+
+const CRASH_WINDOW_MS = 10 * 60_000;
+const CRASH_RESTARTS = 3;
+/**
+ * After the --dev server exits on its own (a crash, not a stop the launcher asked for): restart it after 5 s, unless
+ * it already crashed CRASH_RESTARTS times in the last ten minutes. Then it waits for a file change, as before, so a
+ * server that dies at once doesn't loop. `earlier`: the times of the previous crashes; `now`: this one.
+ */
+export function crashRestart(earlier, now) {
+  const recent = earlier.filter((t) => now - t < CRASH_WINDOW_MS).length;
+  return recent >= CRASH_RESTARTS ? { restart: false } : { restart: true, delayMs: 5000 };
+}

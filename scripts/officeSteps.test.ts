@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { clientPort, devPageUrl, isUpdateCommand, parseOfficeArgs, parseSymref, refusal, rollbackPlan, stepsFor, swarmHome } from './officeSteps.mjs';
+import { clientPort, crashRestart, devPageUrl, isUpdateCommand, parseOfficeArgs, parseSymref, refusal, rollbackPlan, stepsFor, swarmHome } from './officeSteps.mjs';
 
 describe('devPageUrl', () => {
   it("is Vite's page in --dev, so the server can send its own stale page there (Emile opened 4417's 4 Oct build, 9 Oct)", () => {
@@ -118,5 +118,21 @@ describe('isUpdateCommand', () => {
     expect(isUpdateCommand(' U \r')).toBe(true);
     expect(isUpdateCommand('update')).toBe(false);
     expect(isUpdateCommand('')).toBe(false);
+  });
+});
+
+describe('crashRestart', () => {
+  const MIN = 60_000;
+  it("restarts a crashed server after a few seconds (Emile's dev office died at 2:24 AM, 12 Oct, and waited 4 hours)", () => {
+    expect(crashRestart([], 10 * MIN)).toEqual({ restart: true, delayMs: 5000 });
+  });
+
+  it('keeps restarting while crashes are rare', () => {
+    expect(crashRestart([1 * MIN, 2 * MIN], 5 * MIN)).toEqual({ restart: true, delayMs: 5000 });
+    expect(crashRestart([1 * MIN, 2 * MIN, 3 * MIN], 30 * MIN)).toEqual({ restart: true, delayMs: 5000 });
+  });
+
+  it('stops after three restarts in ten minutes, so a server that dies at once does not loop', () => {
+    expect(crashRestart([1 * MIN, 2 * MIN, 3 * MIN], 5 * MIN)).toEqual({ restart: false });
   });
 });

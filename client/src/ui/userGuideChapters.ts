@@ -491,7 +491,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('Restarting it'),
       p(
-        'To stop it, press [[Ctrl]] + [[C]] in its window; that stops the coders\' sessions too. To start it again, run the command you started it with. When the dungeon restarts by itself, after a change to its own code, the coders keep working through it.',
+        'To stop it, press [[Ctrl]] + [[C]] in its window; that stops the coders\' sessions too. To start it again, run the command you started it with. When the dungeon restarts by itself, after a change to its own code, the coders keep working through it. Run with `npm run dev`, it also starts again by itself 5 seconds after its server crashes, up to three times in ten minutes; after a fourth crash it waits until you restart it.',
       ),
       h('Updating it'),
       p(

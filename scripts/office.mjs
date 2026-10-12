@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
-import { clientPort, devPageUrl, isUpdateCommand, parseOfficeArgs, parseSymref, refusal, rollbackPlan, stepsFor, swarmHome } from './officeSteps.mjs';
+import { clientPort, crashRestart, devPageUrl, isUpdateCommand, parseOfficeArgs, parseSymref, refusal, rollbackPlan, stepsFor, swarmHome } from './officeSteps.mjs';
 import { SERVER_PORT, liveOfficeConflict, localRules } from '../shared/dungeon.mjs';
 
 const HELP = `
@@ -126,11 +126,23 @@ function startChildren() {
   firstStart = false;
 }
 
+const crashes = []; // when the --dev server exited on its own (crashRestart)
+
 function onExit(child, how) {
   if (children[child.name] === child) children[child.name] = null;
   if (child.stopped || shuttingDown) return;
   if (child.name === 'server' && opts.dev) {
-    warn(`Server exited (${how}); waiting for a file change to restart`);
+    const now = Date.now();
+    const next = crashRestart(crashes, now);
+    crashes.push(now);
+    if (!next.restart) {
+      warn(`Server exited (${how}), its fourth crash in 10 minutes; waiting for a file change to restart`);
+      return;
+    }
+    warn(`Server exited (${how}); starting it again in ${next.delayMs / 1000} s`);
+    setTimeout(() => {
+      if (!children.server && !updating && !shuttingDown) startServer();
+    }, next.delayMs);
     return;
   }
   // The built office, or Vite: nothing to wait for.
