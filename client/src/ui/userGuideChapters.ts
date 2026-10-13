@@ -158,7 +158,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('Merging'),
       p(
-        'With **auto-merge** on (the default), a pull request merges itself once QA has passed its latest commit and GitHub\'s checks are green. If checks fail or it conflicts with the default branch, a coder fixes it and QA tests it again. With auto-merge off, read the pull request and its QA comment on GitHub, then press **Merge** on the notice board. Merging something that hasn\'t passed QA asks you to confirm first.',
+        'With **auto-merge** on (the default), a pull request merges itself once QA has passed its latest commit and GitHub\'s checks are green. A new commit that changes no file, such as an empty one pushed to restart a deployment, keeps the pass. If checks fail or it conflicts with the default branch, a coder fixes it and QA tests it again. With auto-merge off, read the pull request and its QA comment on GitHub, then press **Merge** on the notice board. Merging something that hasn\'t passed QA asks you to confirm first.',
       ),
     ],
   },
