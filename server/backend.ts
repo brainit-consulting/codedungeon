@@ -6,6 +6,7 @@ import { cliWorkingAlone, hooksReady, officeProcesses, reconnectClis, releaseCli
 import { detectClis } from './clis.ts';
 import { realPreviews, type PreviewBackend } from './previewRunner.ts';
 import { realOffice, type OfficeHost } from './officeUpdate.ts';
+import { deskFacts, type DeskFacts } from './qaSetup.ts';
 import type { AgentTerminal } from './terminal.ts';
 import { realVercel, type VercelBackend } from './vercel.ts';
 import type { CliView, GhRepoSummary, IssueInfo, PullInfo } from '../shared/types.ts';
@@ -63,6 +64,8 @@ export interface Backend {
   removeDesk(fullName: string, agentSlug: string): Promise<void>;
   /** Stop processes an agent left running (dev servers on its port, anything started in its desk). */
   releaseDesk(fullName: string, agentSlug: string, port: number): Promise<void>;
+  /** A desk's GitHub workflows and lock-file fingerprint, read before a test round (qaSetup.ts). */
+  deskFacts(dir: string): DeskFacts;
   /** An agent session: the real CLI in the agent's terminal when opts.terminal is set, else an Agent SDK session. */
   startSession(opts: SessionOptions, cb: SessionCallbacks): SessionHandle;
   /** The agent's CLI is working on its own at its prompt (a background command woke it): not free for new work yet. */
@@ -122,6 +125,7 @@ export const realBackend: Backend = {
   prepareDesk: workspace.prepareDesk,
   removeDesk: workspace.removeDesk,
   releaseDesk: (fullName, agentSlug, port) => workspace.releaseDesk(fullName, agentSlug, port, officeProcesses()),
+  deskFacts,
   startSession: (opts, cb) => (opts.terminal ? startCliSession(opts, cb) : startSession(opts, cb)),
   cliWorkingAlone,
   terminals: terminalsAvailable,

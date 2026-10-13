@@ -614,6 +614,7 @@ export function createDemoBackend(): Backend {
     },
     removeDesk: async () => undefined,
     releaseDesk: async () => undefined,
+    deskFacts: () => ({ workflows: ['test.yml'], deps: 'demo' }),
     cliWorkingAlone: () => false, // the demo's fake sessions never wake on their own
     startSession: (opts, cb) => {
       if (++sessionsStarted === USAGE_WARNING_AT) fakeUsageWarning(cb);

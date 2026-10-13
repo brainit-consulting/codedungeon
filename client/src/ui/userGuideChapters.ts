@@ -145,7 +145,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('QA in the assay room'),
       p(
-        'A free tester checks out the pull request, reads it and its issue, reviews the diff, runs the tests, linters and build, and tries the change in a real browser with screenshots. The dungeon posts the report on the pull request as a comment: the verdict, a table of checks, the commands run and the screenshots.',
+        "A free tester checks out the pull request, reads it and its issue, reviews the diff, runs the tests, linters and build, and tries the change in a real browser with screenshots. When the project has GitHub Actions workflows, the tester leaves to them what they already run on the pull request and tests what the change touches; the dungeon merges only once those checks are green. It reinstalls the project's dependencies only when its lock file has changed. The dungeon posts the report on the pull request as a comment: the verdict, a table of checks, the commands run and the screenshots.",
       ),
       p(
         "With **Phone-ready checks** on (the default), the tester measures every page a pull request changes at four sizes: a phone (375 × 667), a phone on its side (844 × 390), a tablet (810 × 1080) and a laptop (1280 × 800). A page that scrolls sideways, a missing viewport tag (phones then show the page zoomed out), a control a thumb can't hit (under 44 px), a field under 16 px (iPhone Safari zooms into those) or a button you can't reach fails the round, and the coder gets the numbers (at laptop size only sideways scrolling counts). Only what the pull request causes sends it back: problems that were already there are listed in the report but don't fail it. The check runs in a second browser that imitates a touch screen, so the tester's usual browser stays as it is; neither is Safari, so try your app on a real phone before you launch it.",
@@ -353,7 +353,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('A coder waits for a permission answer'),
       p(
-        'Claude Code asks before some removals, such as a folder at the top of a drive, your home folder, or the folder it works in. The dungeon answers yes only when every path being removed sits inside its own tmp folder, the scratch folder coders are told to use. Anything else waits for you: after ten minutes the coder shows **needs you** and your scroll says what Claude Code wants to remove. Open their terminal ([[E]] on their bench), check the path, and answer.',
+        'Claude Code asks before some removals, such as a folder at the top of a drive, your home folder, or the folder it works in. The dungeon answers yes only when every path being removed sits inside its own tmp folder, the scratch folder coders are told to use and where their temporary files are kept, including the scratchpad Claude Code uses. Anything else waits for you: after ten minutes the coder shows **needs you** and your scroll says what Claude Code wants to remove. Open their terminal ([[E]] on their bench), check the path, and answer.',
       ),
       h('Claude asks to sign in'),
       p(

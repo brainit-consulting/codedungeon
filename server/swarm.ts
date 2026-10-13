@@ -36,6 +36,7 @@ import { oneAtATime } from './oneAtATime.ts';
 import { addToDay, type UsageDay } from './usageDay.ts';
 import { addTokens, NO_TOKENS, totalTokens, type Tokens } from './usageMeter.ts';
 import { enforcePhoneCheck, phoneCoderLine, phoneQaStep } from './phoneReady.ts';
+import { qaChecksStep } from './qaSetup.ts';
 import { fixChangedPr, prUrlIn, queueQaAfterIssue } from './handOff.ts';
 import type {
   AgentCli,
@@ -127,6 +128,8 @@ interface PersistedAgent {
   lastError: string | null;
   /** What they're waiting on the Overlord for (overlordAsk), until answered or carried on. */
   asks?: string | null;
+  /** A tester's lock-file fingerprint at its last round on its desk: unchanged, it doesn't reinstall (qaSetup.ts). */
+  depsAtLastRound?: string | null;
   logTail: LogLine[];
 }
 
@@ -2316,7 +2319,7 @@ export class Swarm {
     return who;
   }
 
-  private buildQaSystemAppend(a: PersistedAgent, repo: PersistedRepo, cwd: string, branch: string, pr: PrDetails) {
+  private buildQaSystemAppend(a: PersistedAgent, repo: PersistedRepo, cwd: string, branch: string, pr: PrDetails, checksStep: string) {
     return [
       `You are ${a.name}, ${a.title ? `the team's ${a.title},` : 'a QA engineer'} on an autonomous agent team ("Code Dungeon"). Coders open pull requests; you review and independently verify each one before it is merged. Your sign-off is the review: ${repo.autoMerge ? "in this chamber a PR you pass merges by itself as soon as GitHub's checks are green, so nobody else reads the code after you. " : ''}Be thorough and skeptical, but fair: fail a PR only for real problems (broken behaviour, failing tests or build, the issue's requirements not met, obvious regressions), not for style preferences.`,
       ...(a.brief ? ['', `Your job description:\n${a.brief}`] : []),
@@ -2332,7 +2335,7 @@ export class Swarm {
       'How to test:',
       '1. Read the PR description and the linked issue, and work out the acceptance criteria.',
       `2. Review the code as a careful reviewer would: git diff origin/${repo.defaultBranch}...HEAD. Look for bugs, unhandled errors and edge cases, security problems, leftover debug code, and new logic without tests.`,
-      "3. Install dependencies if needed, then run the project's test suite, linters, type checks and build (whichever exist). If Playwright says a browser isn't installed, those tests didn't run: don't count them as passing or push past them; say so (the dungeon offers the Overlord the install).",
+      checksStep,
       repo.browserTesting
         ? `4. If the project has a UI, start it in the background on port ${this.port(a)} (reserved for you) and exercise the change in a real browser with the Playwright tools: navigate, click, type, resize to a phone size, try edge cases, and check the console for errors. Take a screenshot with browser_take_screenshot (no filename) of every important state: the screenshots are attached to the PR as evidence. Stop the server afterwards.`
         : '4. Exercise the changed behaviour directly (run the program, call the API, write a quick script).',
@@ -2407,7 +2410,10 @@ export class Swarm {
       .filter((l) => l !== '')
       .join('\n');
 
-    this.startAgentSession(a, repo, cwd, prompt, this.buildQaSystemAppend(a, repo, cwd, branch, pr), undefined, QA_SCHEMA);
+    const facts = this.backend.deskFacts(cwd);
+    const checksStep = qaChecksStep(facts, a.depsAtLastRound);
+    a.depsAtLastRound = facts.deps;
+    this.startAgentSession(a, repo, cwd, prompt, this.buildQaSystemAppend(a, repo, cwd, branch, pr, checksStep), undefined, QA_SCHEMA);
   }
 
   private async onQaFinished(a: PersistedAgent, repo: PersistedRepo, result: SessionResult) {
@@ -2709,7 +2715,9 @@ export class Swarm {
     }
     rec.testedSha = pr.headSha;
     const cwd = this.backend.deskDir(repo.fullName, this.agentSlug(a));
-    this.startAgentSession(a, repo, cwd, `${text}\nFinish the test and end with your QA report.`, this.buildQaSystemAppend(a, repo, cwd, a.branch!, pr), a.sessionId!, QA_SCHEMA);
+    const facts = this.backend.deskFacts(cwd);
+    const checksStep = qaChecksStep(facts, a.depsAtLastRound); // the same round: installed at its start
+    this.startAgentSession(a, repo, cwd, `${text}\nFinish the test and end with your QA report.`, this.buildQaSystemAppend(a, repo, cwd, a.branch!, pr, checksStep), a.sessionId!, QA_SCHEMA);
   }
 
   updateSettings(patch: Partial<SwarmSettings>) {
