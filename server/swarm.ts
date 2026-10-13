@@ -37,7 +37,7 @@ import { addToDay, type UsageDay } from './usageDay.ts';
 import { addTokens, NO_TOKENS, totalTokens, type Tokens } from './usageMeter.ts';
 import { enforcePhoneCheck, phoneCoderLine, phoneQaStep } from './phoneReady.ts';
 import { qaChecksStep } from './qaSetup.ts';
-import { fixChangedPr, prUrlIn, queueQaAfterIssue } from './handOff.ts';
+import { fixChangedPr, issueHandOff, prUrlIn } from './handOff.ts';
 import type {
   AgentCli,
   AgentLook,
@@ -2188,17 +2188,20 @@ export class Swarm {
       return this.fail(a, result, `#${a.issueNumber}`);
     }
     this.issueFailures.delete(`${repo.id}#${a.issueNumber}`);
+    // decided while the coder is still busy: once 'done', the scheduler may hand them the next issue at any await
+    const plan = await issueHandOff(a.prNumber, {
+      qa: (pr) => this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === pr),
+      head: async (pr) => (await this.backend.prDetails(repo.fullName, pr)).headSha,
+    });
     a.status = 'done';
     this.appendLog(a, [{ kind: 'done', text: `✔ Finished in ${this.minutes(a)}m · ${a.turns} turns${a.prNumber ? ` · PR #${a.prNumber}` : ' · no PR found'}` }]);
-    const rec = a.prNumber ? this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === a.prNumber) : undefined;
-    const headSha = rec && a.prNumber ? ((await this.backend.prDetails(repo.fullName, a.prNumber).catch(() => null))?.headSha ?? null) : null;
-    if (a.prNumber && rec && !queueQaAfterIssue({ status: rec.status, testedSha: rec.testedSha, headSha })) {
+    if (plan.kind === 'with-qa') {
       // a late finish (held open by background work): QA already took this PR further, on this same commit
-      this.appendLog(a, [{ kind: 'system', text: `📨 PR #${a.prNumber} is already with QA (${rec.status}).` }]);
-    } else if (a.prNumber) {
-      this.queueQa(repo, a.prNumber, a, a.issueNumber);
-      this.appendLog(a, [{ kind: 'system', text: `📨 Handed PR #${a.prNumber} to QA.` }]);
-      this.toast('success', `${a.name} opened PR #${a.prNumber} for #${a.issueNumber}; it's off to QA`);
+      this.appendLog(a, [{ kind: 'system', text: `📨 PR #${plan.pr} is already with QA (${plan.status}).` }]);
+    } else if (plan.kind === 'qa') {
+      this.queueQa(repo, plan.pr, a, a.issueNumber);
+      this.appendLog(a, [{ kind: 'system', text: `📨 Handed PR #${plan.pr} to QA.` }]);
+      this.toast('success', `${a.name} opened PR #${plan.pr} for #${a.issueNumber}; it's off to QA`);
     } else {
       this.noPullRequest(a, repo);
     }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fixChangedPr, keepWaitingForBackground, prUrlIn, queueQaAfterIssue, workingAloneAfter } from './handOff.ts';
+import { fixChangedPr, issueHandOff, keepWaitingForBackground, prUrlIn, queueQaAfterIssue, workingAloneAfter } from './handOff.ts';
 
 describe('workingAloneAfter', () => {
   it('a CLI at its prompt that starts using tools is working on its own', () => {
@@ -78,5 +78,25 @@ describe('QA after an issue session ends', () => {
     for (const status of ['testing', 'fixing'] as const) expect(queueQaAfterIssue({ status, testedSha: 'aaa', headSha: 'bbb' })).toBe(false);
     expect(queueQaAfterIssue({ status: 'passed', testedSha: null, headSha: 'bbb' })).toBe(true);
     expect(queueQaAfterIssue({ status: 'passed', testedSha: 'aaa', headSha: null })).toBe(true);
+  });
+});
+
+describe('issueHandOff', () => {
+  const none = { qa: () => undefined, head: async () => 'h1' };
+  it('says there is no pull request when the session found none', async () => {
+    expect(await issueHandOff(null, none)).toEqual({ kind: 'no-pr' });
+  });
+  it('sends a new pull request to QA', async () => {
+    expect(await issueHandOff(411, none)).toEqual({ kind: 'qa', pr: 411 });
+  });
+  it("leaves a pull request QA is already testing, and one whose failed commit hasn't changed", async () => {
+    expect(await issueHandOff(411, { qa: () => ({ status: 'testing', testedSha: 'h1' }), head: async () => 'h1' })).toEqual({ kind: 'with-qa', pr: 411, status: 'testing' });
+    expect(await issueHandOff(411, { qa: () => ({ status: 'failed', testedSha: 'h1' }), head: async () => 'h1' })).toEqual({ kind: 'with-qa', pr: 411, status: 'failed' });
+    expect(await issueHandOff(411, { qa: () => ({ status: 'failed', testedSha: 'h1' }), head: async () => 'h2' })).toEqual({ kind: 'qa', pr: 411 });
+  });
+  it('decides on the pull request it was given even if the coder is handed new work while GitHub answers (13 Oct)', async () => {
+    const coder = { prNumber: 411 as number | null };
+    const look = { qa: () => ({ status: 'passed' as const, testedSha: 'h1' }), head: async () => ((coder.prNumber = null), 'h2') };
+    expect(await issueHandOff(coder.prNumber, look)).toEqual({ kind: 'qa', pr: 411 });
   });
 });

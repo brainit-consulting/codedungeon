@@ -41,6 +41,24 @@ export function prUrlIn(text: string, fullName: string): { number: number; url: 
  * judged, only when it has new commits since: a late finish (a turn held open by background work) mustn't re-test
  * the commit that failed, but a follow-up pushed to a PR that passed must be tested.
  */
+export type IssueHandOff = { kind: 'qa'; pr: number } | { kind: 'with-qa'; pr: number; status: string } | { kind: 'no-pr' };
+
+/**
+ * Where an issue session that just ended sends its work, decided from the PR number it's given. The office works this
+ * out before the coder counts as free: on 13 Oct, with each `gh` call taking seconds, the scheduler handed Aldric his
+ * next issue during the PR lookup, and that next issue went back on the board as "no pull request".
+ */
+export async function issueHandOff(
+  pr: number | null,
+  look: { qa: (pr: number) => { status: Parameters<typeof queueQaAfterIssue>[0]['status']; testedSha: string | null } | undefined; head: (pr: number) => Promise<string | null> },
+): Promise<IssueHandOff> {
+  if (pr == null) return { kind: 'no-pr' };
+  const rec = look.qa(pr);
+  if (!rec) return { kind: 'qa', pr };
+  const headSha = await look.head(pr).catch(() => null);
+  return queueQaAfterIssue({ status: rec.status, testedSha: rec.testedSha, headSha }) ? { kind: 'qa', pr } : { kind: 'with-qa', pr, status: rec.status ?? '' };
+}
+
 export function queueQaAfterIssue(o: {
   status: 'queued' | 'testing' | 'passed' | 'failed' | 'fixing' | 'needs-human' | undefined;
   testedSha: string | null;
