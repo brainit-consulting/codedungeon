@@ -50,15 +50,28 @@ const UNSAFE = /[$%~`,;{}<>|!&\r\n\0]/;
  * follows). The hook's own `cwd` isn't trusted: Claude Code's idea of the folder may not be where its shell is.
  */
 function removesOnlyScratch(command: string, scratch: string, shell: 'sh' | 'ps'): boolean {
-  if (/[()`]/.test(command)) return false;
+  if (runsSomething(command)) return false;
   const parts = splitCommands(command);
   if (!parts) return false;
   let here: string | null = null;
   let moved = false;
+  const names = new Map<string, string>(); // bash variables named earlier on the line, with their plain values
   for (let i = 0; i < parts.length; i += 2) {
     if (i > 0 && parts[i - 1] !== '&&' && moved) here = null; // a cd that may have failed, or ran in a pipe
-    const words = splitWords(parts[i], shell);
+    const text = shell === 'sh' ? withNames(parts[i], names) : parts[i];
+    const words = splitWords(text, shell);
     if (!words) return false;
+    if (shell === 'sh') {
+      const set = /^\s*([A-Za-z_]\w*)=/.exec(text);
+      if (set && words.length === 1) {
+        // a pipe or & runs it in a shell of its own, so the name isn't set for what follows
+        const own = [parts[i - 1], parts[i + 1]].some((sep) => sep === '|' || sep === '&');
+        const value = words[0].slice(set[1].length + 1);
+        if (own || /["'$`\n]/.test(value)) names.delete(set[1]);
+        else names.set(set[1], value);
+        continue;
+      }
+    }
     while (words.length && /^(sudo|command|exec)$/i.test(words[0])) words.shift();
     const first = (words[0] ?? '').toLowerCase().replace(/\.exe$/, '');
     const args = words.slice(1);
@@ -76,6 +89,49 @@ function removesOnlyScratch(command: string, scratch: string, shell: 'sh' | 'ps'
     }
   }
   return true;
+}
+
+/**
+ * Whether the line runs a command inside another: brackets or backquotes outside quotes, or backquotes inside double
+ * quotes. Brackets inside quotes are text: Aldric's `python -c "…fitz.open(n)…"` waited 2.5 hours on 12 Oct.
+ */
+function runsSomething(line: string): boolean {
+  let quote = '';
+  for (const c of line) {
+    if (quote === "'") {
+      if (c === "'") quote = '';
+    } else if (quote === '"') {
+      if (c === '"') quote = '';
+      else if (c === '`') return true;
+    } else if (c === "'" || c === '"') quote = c;
+    else if (c === '(' || c === ')' || c === '`') return true;
+  }
+  return false;
+}
+
+/** A bash segment with `$NAME` and `${NAME}` replaced by the plain values named earlier on the line, outside single quotes. */
+function withNames(segment: string, names: Map<string, string>): string {
+  if (!names.size) return segment;
+  let out = '';
+  let quote = '';
+  for (let i = 0; i < segment.length; i++) {
+    const c = segment[i];
+    if (quote === "'") {
+      if (c === "'") quote = '';
+    } else if (c === "'" && !quote) quote = "'";
+    else if (c === '"') quote = quote ? '' : '"';
+    else if (c === '$') {
+      const m = /^\$(?:\{([A-Za-z_]\w*)\}|([A-Za-z_]\w*))/.exec(segment.slice(i));
+      const name = m?.[1] ?? m?.[2];
+      if (m && name && names.has(name)) {
+        out += names.get(name);
+        i += m[0].length - 1;
+        continue;
+      }
+    }
+    out += c;
+  }
+  return out;
 }
 
 /**
@@ -172,6 +228,12 @@ function insideScratch(word: string, here: string | null, scratch: string): bool
 /** The line in coders' and testers' instructions that keeps their scratch out of the removals Claude Code asks about. */
 export const scratchRule = (tmp: string) =>
   `Make scratch folders and extra git worktrees under ${tmp}, never at the top of a drive or in your home folder: Claude Code asks before removing those, and nobody is at your terminal to answer.`;
+
+/**
+ * An agent's temp folder: the scratch folder, as `npm run dev` already sets for the whole office. Claude Code keeps
+ * its scratchpad there, so clearing it is a removal the office can answer; under npx it was the system's temp folder.
+ */
+export const scratchTemp = (scratch: string) => ({ TMP: scratch, TEMP: scratch, TMPDIR: scratch });
 
 /** What the Overlord is told about a prompt that has waited too long. */
 export const waitingText = (what: string) => `Claude Code is asking before it runs \`${what}\`. Open their terminal and answer it.`;

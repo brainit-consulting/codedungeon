@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { isRemoval, permissionAnswer, PERMISSION_WAIT_MS, PromptWait, scratchRule, waitingText } from './permissionGate.ts';
+import { isRemoval, permissionAnswer, PERMISSION_WAIT_MS, PromptWait, scratchRule, scratchTemp, waitingText } from './permissionGate.ts';
 
 const bash = (command: string, cwd?: string) => ({ hook_event_name: 'PermissionRequest', tool_name: 'Bash', tool_input: { command }, cwd });
 const pwsh = (command: string, cwd?: string) => ({ hook_event_name: 'PermissionRequest', tool_name: 'PowerShell', tool_input: { command }, cwd });
@@ -87,6 +87,39 @@ describe('permissionAnswer: removals inside the scratch folder', () => {
   });
 });
 
+describe('permissionAnswer: a folder named once and used after', () => {
+  const allow = (b: Record<string, unknown>) => expect(permissionAnswer(b, scratch), String((b.tool_input as { command: string }).command)).toBe('allow');
+  const ask = (b: Record<string, unknown>) => expect(permissionAnswer(b, scratch), String((b.tool_input as { command: string }).command)).toBeNull();
+
+  it("answers yes to Aldric's command (he waited 2.5 hours on it, 12 Oct): a name for his scratchpad, then a script in quotes", () => {
+    allow(
+      bash(
+        `SP="${pad}";rm -f "$SP"/*-Draft*.p* "$SP"/*-Paid*;PDF_OUT="$SP" npx vitest run src/lib/pdf/x.test.ts 2>&1|grep -E "Tests|×"; cd "$SP" && python -c "\nimport fitz\nfor n in ['prose-Paid']:\n  d=fitz.open(n+'.pdf');print(n,len(d))"`,
+        desk,
+      ),
+    );
+    allow(bash(`P='${pad}'; rm -rf "\${P}/prev"`, desk));
+  });
+  it('asks when the name points outside the scratch folder, or at the folder itself', () => {
+    ask(bash(`SP="${outside}"; rm -rf "$SP"/*`, desk));
+    ask(bash(`SP="${pad}"; rm -rf "$SP"/../../../..`, desk));
+    ask(bash(`SP="${scratch}"; rm -rf "$SP"`, desk));
+  });
+  it('asks when the name could hold anything else by the time the removal runs', () => {
+    ask(bash(`SP="${pad}" ls; rm -rf "$SP"/x`, desk)); // set for that one command only
+    ask(bash(`SP="${pad}" | cat; rm -rf "$SP"/x`, desk)); // set in a pipe's own shell
+    ask(bash(`SP="${pad}"; SP=$(mktemp -d); rm -rf "$SP"/x`, desk));
+    ask(bash(`SP="$HOME/x"; rm -rf "$SP"/y`, desk));
+    ask(bash(`rm -rf "$SP"/x`, desk)); // never named here
+    ask(bash(`SP="${pad}"; rm -rf "$SPX"/x`, desk));
+  });
+  it('still asks about brackets and backquotes the shell would run, while those inside quotes are text', () => {
+    ask(bash(`(cd "${pad}" && rm -rf prev)`, desk));
+    ask(bash(`rm -rf "${pad}/\`whoami\`"`, desk));
+    allow(bash(`cd "${pad}" && rm -rf prev && echo 'done (all)'`, desk));
+  });
+});
+
 describe('isRemoval', () => {
   it('finds removal commands wherever they sit in a command line', () => {
     for (const c of ['rm -rf x', 'cd a && rm b', 'rmdir /s /q H:\\x', 'Remove-Item x', 'ri x', 'del /q x', 'erase x', 'rd /s x', 'unlink x', 'sudo rm x', 'echo hi; rm -f y', 'git worktree remove --force H:/x', 'shred x'])
@@ -159,5 +192,11 @@ describe('scratchRule', () => {
     expect(scratchRule('H:\codedungeon-home\tmp')).toBe(
       'Make scratch folders and extra git worktrees under H:\codedungeon-home\tmp, never at the top of a drive or in your home folder: Claude Code asks before removing those, and nobody is at your terminal to answer.',
     );
+  });
+});
+
+describe('scratchTemp', () => {
+  it("points an agent's temp folder at the scratch folder, so Claude Code's scratchpad is where removals are answered", () => {
+    expect(scratchTemp(scratch)).toEqual({ TMP: scratch, TEMP: scratch, TMPDIR: scratch });
   });
 });

@@ -6,7 +6,8 @@ import type { OfficeTools } from './ceo.ts';
 import type { UsageWarning } from './pacing.ts';
 import { modelTokens, NO_TOKENS, UsageTally, type Tokens } from './usageMeter.ts';
 import type { AgentTerminal } from './terminal.ts';
-import { VERSION } from './config.ts';
+import { HOME_DIR, VERSION } from './config.ts';
+import { scratchTemp } from './permissionGate.ts';
 import { PHONE_BROWSER_CONFIG } from './phoneReady.ts';
 
 // One Claude Code instance (via the Claude Agent SDK) working one issue in its own git worktree.
@@ -324,6 +325,9 @@ export function startSession(opts: SessionOptions, callbacks: SessionCallbacks):
     env[k] = v;
   }
   env.CLAUDE_AGENT_SDK_CLIENT_APP = `cubefarm/${VERSION}`;
+  const scratch = path.join(HOME_DIR, 'tmp');
+  fs.mkdirSync(scratch, { recursive: true });
+  Object.assign(env, scratchTemp(scratch));
 
   const mcpServers: Options['mcpServers'] = {};
   if (opts.browserTesting) {

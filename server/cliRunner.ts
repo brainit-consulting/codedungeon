@@ -26,7 +26,7 @@ import type { OfficeTools } from './ceo.ts';
 import type { AgentTerminal } from './terminal.ts';
 import { keepWaitingForBackground, workingAloneAfter } from './handOff.ts';
 import { PHONE_BROWSER_CONFIG } from './phoneReady.ts';
-import { permissionAnswer, PromptWait } from './permissionGate.ts';
+import { permissionAnswer, PromptWait, scratchTemp } from './permissionGate.ts';
 import { FileMeter, promptBaseline, statusUsage, UsageTally } from './usageMeter.ts';
 import type { AgentCli } from '../shared/types.ts';
 
@@ -828,7 +828,8 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
     if (/^(NO_COLOR|FORCE_COLOR|TERM_PROGRAM|TERM_PROGRAM_VERSION|CODEX_THREAD_ID|OPENCODE_CONFIG_CONTENT)$/i.test(k)) continue;
     env[k] = v;
   }
-  Object.assign(env, { TERM: 'xterm-256color', COLORTERM: 'truecolor' }, launch.env);
+  fs.mkdirSync(SCRATCH_DIR, { recursive: true });
+  Object.assign(env, { TERM: 'xterm-256color', COLORTERM: 'truecolor' }, scratchTemp(SCRATCH_DIR), launch.env);
 
   if (cli === 'claude' && opts.resumeSessionId) cb.sessionId(sessionId);
   term.note(`── ${label}${opts.label ? ` · ${opts.label}` : ''} ──`);
