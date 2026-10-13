@@ -202,6 +202,13 @@ export async function mergePull(fullName: string, number: number, method: 'squas
   }
 }
 
+/** Whether two commits hold exactly the same files, e.g. an empty commit pushed to re-run a deployment. */
+export async function sameCode(fullName: string, a: string, b: string): Promise<boolean> {
+  const tree = (sha: string) => gh(['api', `repos/${fullName}/commits/${sha}`, '--jq', '.commit.tree.sha']);
+  const [ta, tb] = await Promise.all([tree(a), tree(b)]);
+  return !!ta.trim() && ta.trim() === tb.trim();
+}
+
 /** Merge the base branch into a PR's branch on GitHub, for repos that only merge up-to-date branches. */
 export async function updateBranch(fullName: string, number: number): Promise<void> {
   await gh(['pr', 'update-branch', String(number), '-R', fullName], { timeoutMs: 60_000 });

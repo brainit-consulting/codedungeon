@@ -34,12 +34,16 @@ export type MergeStep = { set: MergeBookkeeping } & (
  * Decide the next step toward merging a PR QA has passed. Pure: advanceMerge (swarm.ts) does the talking to GitHub
  * and the office. `detailed` means the PR's mergeability has already been asked for, so UNKNOWN is waited out.
  */
-export function mergeStep(pr: MergePull, rec: MergeRecord, now: number, opts: { base: string; detailed?: boolean }): MergeStep {
+export function mergeStep(pr: MergePull, rec: MergeRecord, now: number, opts: { base: string; detailed?: boolean; sameCodeAsPassed?: boolean }): MergeStep {
   if (pr.isDraft) return { do: 'wait', note: 'a draft: waiting', set: {} };
   if (!opts.detailed && (pr.mergeable === 'UNKNOWN' || pr.mergeState === 'UNKNOWN')) return { do: 'details', set: {} };
   const set: MergeBookkeeping = {};
   if (rec.passedSha == null) set.passedSha = pr.headSha; // signed off before the office tracked commits
-  if (pr.headSha !== (set.passedSha ?? rec.passedSha)) return { do: 'requeue', set };
+  if (pr.headSha !== (set.passedSha ?? rec.passedSha)) {
+    // a commit with the same code as the one QA passed (e.g. an empty one to re-run a deployment) keeps the pass
+    if (!opts.sameCodeAsPassed) return { do: 'requeue', set };
+    set.passedSha = pr.headSha;
+  }
   const needsHuman = rec.mergeFixes >= MAX_MERGE_FIXES;
   if (pr.mergeable === 'CONFLICTING' || pr.mergeState === 'DIRTY') {
     return { do: 'send-back', reason: 'conflict', instructions: `It conflicts with ${opts.base}.`, needsHuman, set };

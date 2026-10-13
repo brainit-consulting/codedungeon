@@ -539,6 +539,7 @@ export function createDemoBackend(): Backend {
       for (const n of pr.closesIssues) closedIssues.add(`${fullName}#${n}`);
       r.issues = r.issues.filter((i) => !pr.closesIssues.includes(i.number));
     },
+    sameCode: async () => false, // demo commits are made-up hashes; every new one counts as new code
     updateBranch: async (fullName, number) => {
       const pr = repos.get(fullName)?.pulls.find((p) => p.number === number);
       if (!pr) throw new Error('Unknown PR');

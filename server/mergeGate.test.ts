@@ -67,6 +67,23 @@ describe('mergeStep', () => {
       expect(mergeStep(pull({ headSha: 'new456', mergeable: 'CONFLICTING', checks: 'failing' }), record(), NOW, base).do).toBe('requeue');
     });
 
+    it("keeps the pass when the new commit holds the same code (#91's empty commit cost a 27-minute re-test, 12 Oct)", () => {
+      expect(mergeStep(pull({ headSha: 'new456' }), record(), NOW, { ...base, sameCodeAsPassed: true })).toEqual({
+        do: 'merge',
+        set: { passedSha: 'new456', pendingSince: null },
+      });
+    });
+
+    it('still waits for checks on that commit, and sends it back when they fail', () => {
+      expect(mergeStep(pull({ headSha: 'new456', checks: 'pending' }), record(), NOW, { ...base, sameCodeAsPassed: true }).do).toBe('wait');
+      expect(mergeStep(pull({ headSha: 'new456', checks: 'failing' }), record(), NOW, { ...base, sameCodeAsPassed: true }).do).toBe('send-back');
+    });
+
+    it('re-tests when the code changed, or when nobody has compared it yet', () => {
+      expect(mergeStep(pull({ headSha: 'new456' }), record(), NOW, { ...base, sameCodeAsPassed: false }).do).toBe('requeue');
+      expect(mergeStep(pull({ headSha: 'new456' }), record(), NOW, base).do).toBe('requeue');
+    });
+
     it('adopts the head as the passed commit for records from before commits were tracked', () => {
       expect(mergeStep(pull({ headSha: 'def789' }), record({ passedSha: null }), NOW, base)).toEqual({
         do: 'merge',

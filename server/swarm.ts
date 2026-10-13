@@ -1162,12 +1162,21 @@ export class Swarm {
 
   /** One step toward merging a QA-passed PR. Returns true when it merged. */
   private async advanceMerge(repo: PersistedRepo, rec: QaRecord, pr: PullInfo): Promise<boolean> {
-    let step = mergeStep(pr, rec, Date.now(), { base: repo.defaultBranch });
+    // A commit after QA's pass that changes no file (e.g. an empty one to re-run a deployment) keeps the pass.
+    const sameCode = async (head: string) =>
+      rec.passedSha != null && head !== rec.passedSha && (await this.backend.sameCode(repo.fullName, rec.passedSha, head).catch(() => false));
+    let sameCodeAsPassed = await sameCode(pr.headSha);
+    let step = mergeStep(pr, rec, Date.now(), { base: repo.defaultBranch, sameCodeAsPassed });
     if (step.do === 'details') {
       // GitHub works mergeability out lazily and lists often say UNKNOWN; asking about the PR itself gets an answer.
       const d = await this.backend.prDetails(repo.fullName, pr.number);
+      if (d.headSha !== pr.headSha) sameCodeAsPassed = await sameCode(d.headSha);
       pr = { ...pr, headSha: d.headSha, mergeable: d.mergeable, mergeState: d.mergeState };
-      step = mergeStep(pr, rec, Date.now(), { base: repo.defaultBranch, detailed: true });
+      step = mergeStep(pr, rec, Date.now(), { base: repo.defaultBranch, detailed: true, sameCodeAsPassed });
+    }
+    if (sameCodeAsPassed && step.set.passedSha) {
+      this.mergeNote(rec, 'a new commit with the same code: the pass stands');
+      console.log(`${repo.fullName}#${pr.number}: new head ${pr.headSha.slice(0, 7)} has the code QA passed; no re-test`);
     }
     Object.assign(rec, step.set);
     if (step.do === 'requeue') {

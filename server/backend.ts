@@ -27,6 +27,8 @@ export interface Backend {
   editIssue(fullName: string, number: number, edit: { body?: string; addLabels?: string[]; removeLabels?: string[] }): Promise<void>;
   mergePull(fullName: string, number: number, method: 'squash' | 'merge' | 'rebase', headSha?: string): Promise<void>;
   updateBranch(fullName: string, number: number): Promise<void>;
+  /** Whether two commits hold exactly the same files (a passed PR's new commit that changes nothing keeps its pass). */
+  sameCode(fullName: string, a: string, b: string): Promise<boolean>;
   closePull(fullName: string, number: number): Promise<void>;
   prForBranch(fullName: string, branch: string): Promise<{ number: number; url: string } | null>;
   prDetails(fullName: string, number: number): Promise<github.PrDetails>;
@@ -99,6 +101,7 @@ export const realBackend: Backend = {
   editIssue: github.editIssue,
   mergePull: github.mergePull,
   updateBranch: github.updateBranch,
+  sameCode: github.sameCode,
   closePull: github.closePull,
   prForBranch: github.prForBranch,
   prDetails: github.prDetails,
