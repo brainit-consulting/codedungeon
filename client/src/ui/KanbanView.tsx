@@ -233,6 +233,7 @@ export function KanbanView({ repoId }: { repoId: string }) {
   return (
     <Panel
       wide
+      className="panel-kanban"
       accent={repo.color}
       title={
         <span>

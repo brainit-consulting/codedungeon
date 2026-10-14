@@ -1280,6 +1280,18 @@ input.inline:focus {
 .kanban-5 {
   grid-template-columns: repeat(5, minmax(210px, 1fr));
 }
+/* the board takes the whole window, and no column is narrower than a card's row of buttons */
+.panel-wide.panel-kanban {
+  width: 100%;
+}
+@media (min-width: 901px) {
+  .panel-kanban .kanban-5 {
+    grid-template-columns: repeat(5, minmax(min-content, 1fr));
+  }
+  .panel-kanban .kcol {
+    min-width: 210px;
+  }
+}
 .kcol-merged .kcol-head {
   background: #9a7a9e;
 }
