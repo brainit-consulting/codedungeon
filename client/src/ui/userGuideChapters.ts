@@ -470,7 +470,7 @@ export const CHAPTERS: GuideChapter[] = [
       p('If something is missing, `npx codedungeon@latest doctor` checks Node.js, git, the GitHub command line and the Claude sign-in, and says what to fix. To walk round with pretend projects and pretend coders first, start it with `npx codedungeon@latest --demo`. Nothing touches GitHub and nothing uses your subscription.'),
       h('Or from a copy of the code'),
       p(
-        'To change Code Dungeon itself, fetch its code instead. The code on GitHub is private for now, so this works only if you have been given access to it. Open PowerShell or Command Prompt in the folder where you keep your projects and run these five commands one at a time, letting each one finish before the next:',
+        'To change Code Dungeon itself, fetch its code instead: it is open source on GitHub. Open PowerShell or Command Prompt in the folder where you keep your projects and run these five commands one at a time, letting each one finish before the next:',
       ),
       p('1. Fetch Code Dungeon into a folder called codedungeon:'),
       command('git clone https://github.com/brainit-consulting/codedungeon.git'),

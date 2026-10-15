@@ -61,9 +61,8 @@ answer `y`. Your projects, guild and settings live in `codedungeon-home` in your
 
 ### Or from a copy of the code
 
-To change Code Dungeon itself (the code on GitHub is private for now, so this works only if you have been given access
-to it), open PowerShell or Command Prompt in the folder where you keep your projects and run these one at a time,
-letting each finish:
+To change Code Dungeon itself (it is open source on GitHub), open PowerShell or Command Prompt in the folder where you
+keep your projects and run these one at a time, letting each finish:
 
 ```powershell
 git clone https://github.com/brainit-consulting/codedungeon.git
