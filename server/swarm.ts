@@ -38,7 +38,7 @@ import { addTokens, NO_TOKENS, totalTokens, type Tokens } from './usageMeter.ts'
 import { enforcePhoneCheck, phoneCoderLine, phoneQaStep } from './phoneReady.ts';
 import { qaChecksStep } from './qaSetup.ts';
 import { fixChangedPr, issueHandOff, prUrlIn } from './handOff.ts';
-import { strangerRefusal } from './trust.ts';
+import { STRANGER_RULE, strangerRefusal, trustedComments, type GhComment } from './trust.ts';
 import type {
   AgentCli,
   AgentLook,
@@ -1938,6 +1938,7 @@ export class Swarm {
       fixing ? '' : '7. End your final message with the pull request URL on its own line.',
       '',
       'Rules: never push to the default branch, never force-push, never merge pull requests yourself (the dungeon merges them once QA and the checks pass), and never edit files outside your worktree. Never deploy, promote or roll back on Vercel or anywhere else: the Overlord ships from the dungeon. If you cannot finish, open a draft PR (gh pr create --draft) explaining what is left and why.',
+      STRANGER_RULE,
       ASK_RULE,
       scratchRule(path.join(HOME_DIR, 'tmp')),
     ]
@@ -2000,6 +2001,8 @@ export class Swarm {
     );
     const cwd = await this.prepare(a, repo, {}, branch);
     if (!cwd) return;
+    // the issue's comments from the repo's people, so nobody needs to read the GitHub conversation (STRANGER_RULE)
+    const comments = trustedComments((await this.backend.issueDetails(repo.fullName, issue.number).catch(() => null))?.comments ?? []);
 
     const prompt = [
       `Please resolve GitHub issue #${issue.number}: ${issue.title}`,
@@ -2007,6 +2010,7 @@ export class Swarm {
       issue.labels.length ? `Labels: ${issue.labels.join(', ')}` : '',
       '',
       issue.body?.trim() || '(The issue has no description.)',
+      comments ? `\n${comments}` : '',
       note ? `\nNote from the Overlord: ${note}` : '',
     ]
       .filter(Boolean)
@@ -2373,6 +2377,7 @@ export class Swarm {
       '5. You may write throwaway scripts to probe behaviour, but do not commit them.',
       '',
       'Rules: do not modify the code under test, do not commit, push, comment on, review or merge anything on GitHub. Never deploy, promote or roll back anything. The dungeon posts your report on the pull request. Finish with the structured QA report: verdict, summary, the checks you performed, the commands you ran and one caption per screenshot. If you run something long in the background, wait for it to finish before your final message; the report must be in that message.',
+      STRANGER_RULE,
       `${ASK_RULE} That line takes the place of the report.`,
       scratchRule(path.join(HOME_DIR, 'tmp')),
     ].join('\n');
@@ -2389,7 +2394,7 @@ export class Swarm {
     );
 
     let pr: PrDetails;
-    let issue: { title: string; body: string } | null = null;
+    let issue: { title: string; body: string; comments: GhComment[] } | null = null;
     try {
       pr = await this.backend.prDetails(repo.fullName, rec.prNumber);
       const issueNumber = rec.issueNumber ?? pr.closesIssues[0] ?? null;
@@ -2438,6 +2443,7 @@ export class Swarm {
       'PR description:',
       pr.body.trim() || '(empty)',
       issue ? `\nLinked issue: ${issue.title}\n${issue.body.trim() || '(no description)'}` : '',
+      issue && trustedComments(issue.comments) ? `\n${trustedComments(issue.comments)}` : '',
     ]
       .filter((l) => l !== '')
       .join('\n');

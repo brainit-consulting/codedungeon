@@ -1,6 +1,6 @@
 import { gh, ghJson } from './exec.ts';
 import type { GhRepoSummary, IssueInfo, PullInfo } from '../shared/types.ts';
-import { trustedAuthor, trustedPull } from './trust.ts';
+import { trustedAuthor, trustedPull, type GhComment } from './trust.ts';
 
 // All GitHub access goes through the gh CLI so it reuses the user's existing `gh auth login`.
 
@@ -313,9 +313,19 @@ export async function prDetails(fullName: string, number: number): Promise<PrDet
   };
 }
 
-export async function issueDetails(fullName: string, number: number): Promise<{ title: string; body: string }> {
-  const raw = await ghJson<{ title: string; body: string }>(['issue', 'view', String(number), '-R', fullName, '--json', 'title,body']);
-  return { title: raw.title, body: raw.body ?? '' };
+/** An issue's title, body and comments; each comment says what its author is to the repo (server/trust.ts). */
+export async function issueDetails(fullName: string, number: number): Promise<{ title: string; body: string; comments: GhComment[] }> {
+  const raw = await ghJson<{ title: string; body: string; comments: { author: { login: string } | null; authorAssociation: string; body: string; createdAt: string }[] }>([
+    'issue',
+    'view',
+    String(number),
+    '-R',
+    fullName,
+    '--json',
+    'title,body,comments',
+  ]);
+  const comments = (raw.comments ?? []).map((c) => ({ author: c.author?.login ?? null, association: c.authorAssociation, body: c.body ?? '', createdAt: c.createdAt }));
+  return { title: raw.title, body: raw.body ?? '', comments };
 }
 
 export async function commentPull(fullName: string, number: number, body: string): Promise<string> {
