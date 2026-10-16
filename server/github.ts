@@ -1,5 +1,6 @@
 import { gh, ghJson } from './exec.ts';
 import type { GhRepoSummary, IssueInfo, PullInfo } from '../shared/types.ts';
+import { trustedAuthor, trustedPull } from './trust.ts';
 
 // All GitHub access goes through the gh CLI so it reuses the user's existing `gh auth login`.
 
@@ -41,13 +42,37 @@ export async function repoMeta(fullName: string): Promise<RepoMeta> {
   };
 }
 
-export async function listIssues(fullName: string): Promise<IssueInfo[]> {
-  const raw = await ghJson<
-    { number: number; title: string; body: string; url: string; labels: { name: string }[]; createdAt: string }[]
-  >(['issue', 'list', '-R', fullName, '--state', 'open', '--limit', '100', '--json', 'number,title,body,url,labels,createdAt']);
-  return raw
-    .map((i) => ({ number: i.number, title: i.title, body: i.body ?? '', url: i.url, labels: i.labels.map((l) => l.name), createdAt: i.createdAt }))
+interface IssuesGraphql {
+  data: {
+    repository: {
+      issues: {
+        nodes: { number: number; title: string; body: string | null; url: string; createdAt: string; author: { login: string } | null; authorAssociation: string; labels: { nodes: { name: string }[] } }[];
+      };
+    };
+  };
+}
+
+export function issuesFromGraphql(out: IssuesGraphql): IssueInfo[] {
+  return out.data.repository.issues.nodes
+    .map((i) => ({
+      number: i.number,
+      title: i.title,
+      body: i.body ?? '',
+      url: i.url,
+      labels: i.labels.nodes.map((l) => l.name),
+      createdAt: i.createdAt,
+      author: i.author?.login ?? null,
+      trusted: trustedAuthor(i.authorAssociation),
+    }))
     .sort((a, b) => a.number - b.number);
+}
+
+/** The newest 100 open issues, oldest first. GraphQL because `gh issue list` can't say who the author is to the repo. */
+export async function listIssues(fullName: string): Promise<IssueInfo[]> {
+  const [owner, name] = fullName.split('/');
+  const query =
+    'query($owner:String!,$name:String!){repository(owner:$owner,name:$name){issues(states:OPEN,first:100,orderBy:{field:CREATED_AT,direction:DESC}){nodes{number title body url createdAt author{login} authorAssociation labels(first:100){nodes{name}}}}}}';
+  return issuesFromGraphql(await ghJson<IssuesGraphql>(['api', 'graphql', '-f', `query=${query}`, '-f', `owner=${owner}`, '-f', `name=${name}`]));
 }
 
 interface RawPull {
@@ -66,12 +91,14 @@ interface RawPull {
   deletions: number;
   headRefOid: string;
   mergeStateStatus: string;
+  author: { login: string } | null;
+  isCrossRepository: boolean;
   // check runs (GitHub Actions…) carry name/status/conclusion/detailsUrl; commit statuses (Vercel…) carry context/state/targetUrl
   statusCheckRollup: { name?: string; context?: string; status?: string; conclusion?: string; state?: string; detailsUrl?: string; targetUrl?: string }[] | null;
 }
 
 const PR_FIELDS =
-  'number,title,url,headRefName,headRefOid,state,isDraft,mergeable,mergeStateStatus,reviewDecision,closingIssuesReferences,createdAt,mergedAt,additions,deletions,statusCheckRollup';
+  'number,title,url,headRefName,headRefOid,state,isDraft,mergeable,mergeStateStatus,reviewDecision,closingIssuesReferences,createdAt,mergedAt,additions,deletions,statusCheckRollup,author,isCrossRepository';
 
 type Check = NonNullable<RawPull['statusCheckRollup']>[number];
 const BAD = ['FAILURE', 'ERROR', 'CANCELLED', 'TIMED_OUT', 'ACTION_REQUIRED', 'STARTUP_FAILURE'];
@@ -86,7 +113,8 @@ function checksOf(rollup: RawPull['statusCheckRollup']): PullInfo['checks'] {
   return 'passing';
 }
 
-function toPull(p: RawPull): PullInfo {
+/** `association`: the PR author's authorAssociation, which `gh pr list` doesn't give (pullAssociations). */
+export function toPull(p: RawPull, association: string | undefined): PullInfo {
   return {
     number: p.number,
     title: p.title,
@@ -106,15 +134,32 @@ function toPull(p: RawPull): PullInfo {
     mergeState: p.mergeStateStatus || 'UNKNOWN',
     failedChecks: (p.statusCheckRollup ?? []).filter(failed).map((c) => ({ name: checkName(c), url: c.detailsUrl || c.targetUrl || null })),
     pendingChecks: (p.statusCheckRollup ?? []).filter(pending).map(checkName),
+    author: p.author?.login ?? null,
+    trusted: trustedPull(association, p.isCrossRepository),
   };
 }
 
+interface AssociationsGraphql {
+  data: { repository: Record<'open' | 'merged', { nodes: { number: number; authorAssociation: string }[] }> };
+}
+
+/** PR number → its author's authorAssociation. */
+export function pullAssociations(out: AssociationsGraphql): Map<number, string> {
+  const r = out.data.repository;
+  return new Map([...r.open.nodes, ...r.merged.nodes].map((p) => [p.number, p.authorAssociation]));
+}
+
 export async function listPulls(fullName: string): Promise<PullInfo[]> {
-  const [open, merged] = await Promise.all([
+  const [owner, name] = fullName.split('/');
+  const query =
+    'query($owner:String!,$name:String!){repository(owner:$owner,name:$name){open:pullRequests(states:OPEN,first:100,orderBy:{field:CREATED_AT,direction:DESC}){nodes{number authorAssociation}} merged:pullRequests(states:MERGED,first:20,orderBy:{field:CREATED_AT,direction:DESC}){nodes{number authorAssociation}}}}';
+  const [open, merged, associations] = await Promise.all([
     ghJson<RawPull[]>(['pr', 'list', '-R', fullName, '--state', 'open', '--limit', '50', '--json', PR_FIELDS]),
     ghJson<RawPull[]>(['pr', 'list', '-R', fullName, '--state', 'merged', '--limit', '8', '--json', PR_FIELDS]),
+    ghJson<AssociationsGraphql>(['api', 'graphql', '-f', `query=${query}`, '-f', `owner=${owner}`, '-f', `name=${name}`]).then(pullAssociations),
   ]);
-  return [...open, ...merged].map(toPull);
+  // A PR missing from the lookup (opened between the two calls) counts as a stranger's until the next sync.
+  return [...open, ...merged].map((p) => toPull(p, associations.get(p.number)));
 }
 
 /** Pull requests merged on or after `since` (ISO), newest first, up to 100: the Overlord's Ledger. */

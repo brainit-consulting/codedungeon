@@ -38,6 +38,7 @@ import { addTokens, NO_TOKENS, totalTokens, type Tokens } from './usageMeter.ts'
 import { enforcePhoneCheck, phoneCoderLine, phoneQaStep } from './phoneReady.ts';
 import { qaChecksStep } from './qaSetup.ts';
 import { fixChangedPr, issueHandOff, prUrlIn } from './handOff.ts';
+import { strangerRefusal } from './trust.ts';
 import type {
   AgentCli,
   AgentLook,
@@ -1141,7 +1142,7 @@ export class Swarm {
     try {
       for (const rec of this.state.qa.filter((q) => q.repoId === repo.id && q.status === 'passed')) {
         const pr = rt.pulls.find((p) => p.number === rec.prNumber && p.state === 'OPEN');
-        if (!pr || !pr.headRefName.startsWith('swarm/')) continue; // people's own PRs are theirs to merge
+        if (!pr || !pr.headRefName.startsWith('swarm/') || !pr.trusted) continue; // people's own PRs are theirs to merge
         // Only act on PR data fetched after the record last changed (a fix may have just pushed).
         if ((rt.fetchedAt ?? 0) < rec.updatedAt) continue;
         try {
@@ -1307,6 +1308,8 @@ export class Swarm {
 
   async startPreview(id: string, pr?: number | null, auto = false): Promise<PreviewView> {
     const repo = this.repo(id);
+    const stranger = pr != null ? this.pullRefusal(repo, pr) : null; // a preview installs and runs the PR's code here
+    if (stranger) throw new HttpError(403, stranger);
     return this.previews.start(repo, `${repo.fullName.split('/')[1]} app`, pr, auto);
   }
 
@@ -1569,18 +1572,19 @@ export class Swarm {
       this.clearTask(a);
     }
 
-    // Finished PRs leave QA.
+    // Finished PRs leave QA, and so do strangers' (queued before the dungeon checked who opened them).
     for (const q of this.state.qa.filter((x) => x.repoId === repo.id)) {
       const pr = pulls.find((p) => p.number === q.prNumber);
-      if (pr && pr.state !== 'OPEN' && q.status !== 'testing' && q.status !== 'fixing') {
+      if (pr && (pr.state !== 'OPEN' || !pr.trusted) && q.status !== 'testing' && q.status !== 'fixing') {
         this.state.qa = this.state.qa.filter((x) => x !== q);
         this.broadcast({ type: 'qaRemoved', repoId: repo.id, prNumber: q.prNumber });
       }
     }
 
-    // Every swarm PR goes through QA, including ones opened before QA existed or while the server was down.
+    // Every swarm PR goes through QA, including ones opened before QA existed or while the server was down. A fork can
+    // name its branch swarm/… too, so a stranger's PR never gets here (server/trust.ts).
     for (const pr of pulls) {
-      if (pr.state !== 'OPEN' || pr.isDraft || !pr.headRefName.startsWith('swarm/')) continue;
+      if (pr.state !== 'OPEN' || pr.isDraft || !pr.trusted || !pr.headRefName.startsWith('swarm/')) continue;
       if (this.state.qa.some((q) => q.repoId === repo.id && q.prNumber === pr.number)) continue;
       const dev = this.state.agents.find((a) => a.repoId === repo.id && a.role === 'dev' && a.task !== 'qa' && (a.prNumber === pr.number || a.branch === pr.headRefName));
       this.queueQa(repo, pr.number, dev ?? null, pr.closesIssues[0] ?? null);
@@ -1802,7 +1806,14 @@ export class Swarm {
   private issueTaken(repo: PersistedRepo, n: number) {
     if (this.state.agents.some((a) => a.repoId === repo.id && a.role === 'dev' && a.task !== 'qa' && a.issueNumber === n && a.status !== 'idle' && a.status !== 'error')) return true;
     const pulls = this.repoRt.get(repo.id)?.pulls ?? [];
-    return pulls.some((p) => p.state === 'OPEN' && (p.closesIssues.includes(n) || p.headRefName.startsWith(`swarm/issue-${n}-`)));
+    // a stranger's PR saying "Closes #n" doesn't take an issue off the dungeon
+    return pulls.some((p) => p.state === 'OPEN' && p.trusted && (p.closesIssues.includes(n) || p.headRefName.startsWith(`swarm/issue-${n}-`)));
+  }
+
+  /** An open PR the dungeon must not run, test or merge: a stranger's, or from a fork (server/trust.ts). */
+  private pullRefusal(repo: PersistedRepo, prNumber: number) {
+    const pr = this.repoRt.get(repo.id)?.pulls.find((p) => p.number === prNumber);
+    return pr ? strangerRefusal('PR', prNumber, pr) : null;
   }
 
   private ensureSlot() {
@@ -1820,6 +1831,8 @@ export class Swarm {
     this.ensureSlot();
     const issue = this.repoRt.get(repo.id)?.issues.find((i) => i.number === issueNumber);
     if (!issue) throw new HttpError(404, `Issue #${issueNumber} is not open on ${repo.fullName}`);
+    const stranger = strangerRefusal('Issue', issueNumber, issue);
+    if (stranger) throw new HttpError(403, stranger);
     const holder = this.state.agents.find((x) => x.id !== a.id && x.repoId === repo.id && x.issueNumber === issueNumber && BUSY.includes(x.status));
     if (holder) throw new HttpError(409, `${holder.name} is already working on #${issueNumber}`);
     void this.runTask(a, repo, issue, note);
@@ -2248,6 +2261,7 @@ export class Swarm {
   // ---------- QA ----------
 
   private queueQa(repo: PersistedRepo, prNumber: number, dev: PersistedAgent | null, issueNumber: number | null) {
+    if (this.pullRefusal(repo, prNumber)) return;
     let rec = this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === prNumber);
     if (rec) {
       if (rec.status === 'testing') return;
@@ -2291,6 +2305,8 @@ export class Swarm {
     const repo = this.repo(repoId);
     const pr = this.repoRt.get(repo.id)?.pulls.find((p) => p.number === prNumber && p.state === 'OPEN');
     if (!pr) throw new HttpError(404, `PR #${prNumber} is not open on ${repo.fullName}`);
+    const stranger = strangerRefusal('PR', prNumber, pr);
+    if (stranger) throw new HttpError(403, stranger);
     const rec = this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === prNumber);
     if (rec?.status === 'testing' || rec?.status === 'fixing') throw new HttpError(409, `PR #${prNumber} is already ${rec.status}`);
     if (!force && rec && stillFailedCommit(rec.testedSha, pr.headSha, rec.status)) {
@@ -2315,6 +2331,8 @@ export class Swarm {
     const repo = this.repo(repoId);
     const pr = this.repoRt.get(repo.id)?.pulls.find((p) => p.number === prNumber && p.state === 'OPEN');
     if (!pr) throw new HttpError(404, `PR #${prNumber} is not open on ${repo.fullName}`);
+    const stranger = strangerRefusal('PR', prNumber, pr);
+    if (stranger) throw new HttpError(403, stranger);
     const rec = this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === prNumber);
     const refusal = sendBackRefusal(prNumber, rec?.status ?? null, note);
     if (refusal || !rec) throw new HttpError(note.trim() ? 409 : 400, refusal ?? `PR #${prNumber} has not been through QA yet: send it to QA first.`);
@@ -2375,7 +2393,9 @@ export class Swarm {
     try {
       pr = await this.backend.prDetails(repo.fullName, rec.prNumber);
       const issueNumber = rec.issueNumber ?? pr.closesIssues[0] ?? null;
-      if (issueNumber) issue = await this.backend.issueDetails(repo.fullName, issueNumber).catch(() => null);
+      // only a trusted, open issue's words reach the tester: a stranger's issue can be linked from a trusted PR
+      const trusted = !!this.repoRt.get(repo.id)?.issues.some((i) => i.number === issueNumber && i.trusted);
+      if (issueNumber && trusted) issue = await this.backend.issueDetails(repo.fullName, issueNumber).catch(() => null);
       Object.assign(a, { issueTitle: pr.title, prUrl: pr.url });
       rec.testedSha = pr.headSha;
       this.emitAgent(a);
@@ -2698,6 +2718,8 @@ export class Swarm {
     if (rec) return void this.runFix(a, repo, rec);
     const issue = this.repoRt.get(repo.id)?.issues.find((i) => i.number === a.issueNumber);
     if (!issue) throw new HttpError(409, `${a.name} can't carry on: #${a.issueNumber} isn't open any more.`);
+    const stranger = strangerRefusal('Issue', issue.number, issue);
+    if (stranger) throw new HttpError(403, stranger);
     void this.runTask(a, repo, issue);
   }
 
@@ -2803,8 +2825,9 @@ export class Swarm {
 
   /** Backlog issues that can start now, most urgent first: the ones holding up the longest chain of other issues, then the oldest. */
   private readyIssues(repo: PersistedRepo) {
-    const issues = this.repoRt.get(repo.id)!.issues;
-    const open = new Set(issues.map((i) => i.number));
+    const all = this.repoRt.get(repo.id)!.issues;
+    const open = new Set(all.map((i) => i.number));
+    const issues = all.filter((i) => i.trusted); // strangers' issues are shown, never taken (server/trust.ts)
     const weight = holdUps(issues);
     return issues
       .filter(
@@ -2825,7 +2848,7 @@ export class Swarm {
   private pickDev(repo: PersistedRepo, devs: PersistedAgent[], suits: (a: PersistedAgent) => boolean) {
     if (devs.length <= 1) return devs[0];
     const ready = this.readyIssues(repo).map((r) => r.want);
-    const open = this.repoRt.get(repo.id)!.issues.map((i) => issueSpecialty(i.labels));
+    const open = this.repoRt.get(repo.id)!.issues.filter((i) => i.trusted).map((i) => issueSpecialty(i.labels));
     const rank = (a: PersistedAgent) => {
       const s = a.specialty.toLowerCase();
       return [suits(a) ? 0 : 1, ready.filter((w) => w === s).length, open.filter((w) => w === s).length, a.desk];
@@ -2845,6 +2868,7 @@ export class Swarm {
     const testers = this.available(repo, 'qa');
     const waiting = (status: QaRecord['status']) => this.state.qa.filter((q) => q.repoId === repo.id && q.status === status).sort((x, y) => x.updatedAt - y.updatedAt);
     for (const rec of waiting('queued')) {
+      if (this.pullRefusal(repo, rec.prNumber)) continue;
       const tester =
         testers[0] ??
         this.pickDev(
@@ -2857,6 +2881,7 @@ export class Swarm {
       return true;
     }
     for (const rec of waiting('failed')) {
+      if (this.pullRefusal(repo, rec.prNumber)) continue;
       const issue = this.repoRt.get(repo.id)!.issues.find((i) => i.number === rec.issueNumber);
       const want = issue ? issueSpecialty(issue.labels) : null;
       // sent back to a chosen coder (sendBack): it waits for them
@@ -3208,7 +3233,7 @@ export class Swarm {
   private ceoFloor(repoId?: string) {
     const repo = repoId ? this.state.repos.find((r) => r.id === repoId) : undefined;
     if (!repo) return null;
-    return { floor: repo.floor, fullName: repo.fullName, clone: this.backend.mainDir(repo.fullName), mission: repo.mission, backlog: this.repoRt.get(repo.id)?.issues.length ?? 0 };
+    return { floor: repo.floor, fullName: repo.fullName, clone: this.backend.mainDir(repo.fullName), mission: repo.mission, backlog: this.repoRt.get(repo.id)?.issues.filter((i) => i.trusted).length ?? 0 };
   }
 
   private ceoInfo(): CeoInfo {
@@ -3413,7 +3438,8 @@ export class Swarm {
     const data = {
       repos: this.state.repos.map((r) => {
         const rt = this.repoRt.get(r.id);
-        return [r.id, r.mission, r.summary, rt?.issues.map((i) => i.number), rt?.pulls.filter((p) => p.state === 'OPEN').map((p) => p.number)];
+        // strangers' issues and PRs don't wake the DungeonMaster
+        return [r.id, r.mission, r.summary, rt?.issues.filter((i) => i.trusted).map((i) => i.number), rt?.pulls.filter((p) => p.state === 'OPEN' && p.trusted).map((p) => p.number)];
       }),
       agents: this.state.agents.filter((a) => a.role !== 'ceo').map((a) => [a.id, FREE.includes(a.status) ? 'free' : a.status]),
       qa: this.state.qa.map((q) => [q.repoId, q.prNumber, q.status]),
@@ -3559,6 +3585,9 @@ export class Swarm {
       .map((r) => {
         const rt = this.repoRt.get(r.id)!;
         const open = new Set(rt.issues.map((i) => i.number));
+        // strangers' issues and PRs stay out: the dungeon never works on them, and their words aren't the Overlord's
+        const issues = rt.issues.filter((i) => i.trusted);
+        const pulls = rt.pulls.filter((p) => p.trusted);
         return {
           floor: r.floor,
           repo: r.fullName,
@@ -3576,8 +3605,8 @@ export class Swarm {
             developers: this.state.agents.filter((a) => a.repoId === r.id && a.role === 'dev').length,
             developersFree: this.available(r, 'dev').length,
             issuesReadyToStart: this.readyIssues(r).length,
-            issuesWaitingOnOthers: rt.issues.filter((i) => blockers(i.body, open).length > 0).length,
-            longestDependencyChain: Math.max(0, ...[...holdUps(rt.issues).values()].map((w) => w.chain)),
+            issuesWaitingOnOthers: issues.filter((i) => blockers(i.body, open).length > 0).length,
+            longestDependencyChain: Math.max(0, ...[...holdUps(issues).values()].map((w) => w.chain)),
           },
           team: this.state.agents
             .filter((a) => a.repoId === r.id)
@@ -3592,20 +3621,24 @@ export class Swarm {
               hiredBy: a.hiredBy,
               jobDescription: a.brief ? jobDescription(a.brief) : null,
             })),
-          backlog: rt.issues.map((i) => ({
+          backlog: issues.map((i) => ({
             number: i.number,
             title: i.title,
             specialty: issueSpecialty(i.labels) || null,
             waitsFor: blockers(i.body, open),
             inProgress: this.issueTaken(r, i.number),
           })),
-          pullRequests: rt.pulls
+          pullRequests: pulls
             .filter((p) => p.state === 'OPEN')
             .map((p) => {
               const q = this.state.qa.find((x) => x.repoId === r.id && x.prNumber === p.number);
               return { number: p.number, title: p.title, qa: q ? `${q.status}${q.round > 1 ? ` (round ${q.round})` : ''}` : 'not tested', merge: q?.mergeNote ?? null, checks: p.checks };
             }),
-          mergedRecently: rt.pulls.filter((p) => p.state === 'MERGED').map((p) => `#${p.number} ${p.title}`),
+          mergedRecently: pulls.filter((p) => p.state === 'MERGED').map((p) => `#${p.number} ${p.title}`),
+          ignoredFromStrangers: {
+            issues: rt.issues.length - issues.length,
+            pullRequests: rt.pulls.filter((p) => p.state === 'OPEN' && !p.trusted).length,
+          },
         };
       });
     const req = (r: HireRequestView) => ({
@@ -3793,6 +3826,9 @@ export class Swarm {
   private async routeIssue(x: { floor: number; number: number; specialty?: string; depends_on?: number[] }) {
     const repo = this.floorRepo(x.floor);
     const issues = this.repoRt.get(repo.id)?.issues ?? [];
+    const target = issues.find((i) => i.number === Number(x.number));
+    const stranger = target ? strangerRefusal('Issue', target.number, target) : null;
+    if (stranger) throw new HttpError(403, stranger);
     const asked = [Number(x.number), ...(x.depends_on ?? []).map(Number)].filter((n) => !issues.some((i) => i.number === n));
     const states = new Map(await Promise.all([...new Set(asked)].map(async (n) => [n, await this.backend.issueState(repo.fullName, n).catch(() => null)] as const)));
     const specialties = [

@@ -139,6 +139,10 @@ export const CHAPTERS: GuideChapter[] = [
       p(
         'With **auto-assign** on for a chamber (in the ledger), free coders take the next issue by themselves. With it off, you hand out issues from the board or from a coder\'s terminal.',
       ),
+      h('Strangers'),
+      p(
+        "On a public repository anyone can open an issue or a pull request, and coders and testers run on your computer. So the dungeon only takes work from the repository's owner, members of the organisation that owns it, and its collaborators. An issue or pull request from anyone else shows on the board as 🔒 **stranger**, with no Assign, Send to QA or Preview: nobody works on it, tests it, runs it or merges it, and the DungeonMaster doesn't see it. A pull request from a fork counts as a stranger's too. Read it on GitHub, and if you want it built, file the issue again yourself.",
+      ),
       h('Pull requests'),
       p(
         'A coder works on a branch called `swarm/issue-<n>-<name>` and opens a pull request that says `Closes #<n>`. Coders never push to the default branch and never merge: the dungeon merges, after QA.',

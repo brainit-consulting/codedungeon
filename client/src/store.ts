@@ -398,6 +398,8 @@ export interface KanbanCard {
   tone?: 'warn' | 'bad' | 'good';
   prNumber?: number;
   qa?: QaView;
+  /** Opened by someone who isn't the repo's owner, an org member or a collaborator: shown, never worked on. */
+  stranger?: boolean;
 }
 
 export interface KanbanColumns {
@@ -407,6 +409,8 @@ export interface KanbanColumns {
   ready: KanbanCard[];
   merged: KanbanCard[];
 }
+
+const strangerNote = (author: string | null, never: string) => `🔒 stranger${author ? ` @${author}` : ''} · never ${never}`;
 
 /** Sort a floor's GitHub state and QA pipeline into the five office Kanban columns. */
 export function kanbanFor(repo: RepoView, agents: Agent[], qaRecords: Record<string, QaView>): KanbanColumns {
@@ -438,6 +442,10 @@ export function kanbanFor(repo: RepoView, agents: Agent[], qaRecords: Record<str
     const dev = (rec?.devAgentId ? byId.get(rec.devAgentId) : undefined) ?? authorOf(p.number, p.headRefName);
     const tester = rec?.qaAgentId ? byId.get(rec.qaAgentId) : undefined;
     const base = { key: `pr-${p.number}`, number: p.number, prNumber: p.number, title: p.title, url: p.url, qa: rec };
+    if (!p.trusted) {
+      qa.push({ ...base, note: strangerNote(p.author, 'tested'), tone: 'warn', stranger: true });
+      continue;
+    }
     if (rec?.status === 'passed') {
       ready.push({
         ...base,
@@ -477,14 +485,16 @@ export function kanbanFor(repo: RepoView, agents: Agent[], qaRecords: Record<str
     });
   }
 
-  const claimed = new Set<number>([...progress.map((c) => c.number), ...openPulls.flatMap((p) => p.closesIssues)]);
+  const claimed = new Set<number>([...progress.map((c) => c.number), ...openPulls.filter((p) => p.trusted).flatMap((p) => p.closesIssues)]);
   const open = new Set(repo.issues.map((i) => i.number));
   const backlog: KanbanCard[] = repo.issues
     .filter((i) => !claimed.has(i.number))
     .map((i) => {
       const waits = blockers(i.body, open);
       const labels = i.labels.map((l) => l.replace(/^swarm:/i, '🎯 ')).slice(0, 2).join(', ');
-      return { key: `i-${i.number}`, number: i.number, title: i.title, url: i.url, note: waits.length ? `⏳ after #${waits.join(', #')}` : labels || undefined };
+      const card = { key: `i-${i.number}`, number: i.number, title: i.title, url: i.url };
+      if (!i.trusted) return { ...card, note: strangerNote(i.author, 'taken'), tone: 'warn' as const, stranger: true };
+      return { ...card, note: waits.length ? `⏳ after #${waits.join(', #')}` : labels || undefined };
     });
 
   const merged: KanbanCard[] = repo.pulls

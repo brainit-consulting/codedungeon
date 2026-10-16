@@ -639,7 +639,11 @@ function IssuesTab({ initialRepo }: { initialRepo?: string }) {
                   {i.title}
                   {i.labels.length > 0 && <div className="muted small">{i.labels.join(', ')}</div>}
                 </div>
-                {holder ? (
+                {!i.trusted ? (
+                  <span className="muted small" title="Opened by someone who isn't the repo's owner, an org member or a collaborator. The dungeon never works on it: read it on GitHub, and file it again yourself if you want it built.">
+                    <Icon name="padlock" /> stranger{i.author ? ` @${i.author}` : ''}
+                  </span>
+                ) : holder ? (
                   <span className="agent-chip">
                     <span className="dot" style={{ background: holder.color }} />
                     {holder.name}

@@ -285,7 +285,7 @@ export function KanbanView({ repoId }: { repoId: string }) {
               {c.note && <span className="muted small">
                 <IconText text={c.note} />
               </span>}
-              <select
+              {!c.stranger && <select
                 value=""
                 disabled={pending === c.key || free.length === 0}
                 onChange={(e) => e.target.value && act(c.key, () => api.assign(e.target.value, c.number))}
@@ -296,7 +296,7 @@ export function KanbanView({ repoId }: { repoId: string }) {
                     {a.name}
                   </option>
                 ))}
-              </select>
+              </select>}
             </div>
           ),
           'No open issues. File one above.',
@@ -332,9 +332,9 @@ export function KanbanView({ repoId }: { repoId: string }) {
                 <span className="spacer" />
                 <QaLink card={c} />
                 <span className="kcard-actions">
-                  {previewButton(c)}
+                  {!c.stranger && previewButton(c)}
                   {(st === 'testing' || st === 'fixing') && terminalButton(c)}
-                  {(!st || st === 'needs-human') && (
+                  {!c.stranger && (!st || st === 'needs-human') && (
                     <button className="btn btn-small btn-good" disabled={pending === c.key} onClick={() => (st ? retryQa(c) : act(c.key, () => api.sendToQa(repo.id, c.number)))}>
                       {st === 'needs-human' ? 'Retry QA' : 'Send to QA'}
                     </button>

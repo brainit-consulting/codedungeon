@@ -28,6 +28,10 @@ export interface IssueInfo {
   url: string;
   labels: string[];
   createdAt: string;
+  /** The GitHub login that opened it (null for a deleted account). */
+  author: string | null;
+  /** Opened by the repo's owner, an org member or a collaborator (server/trust.ts): only these are ever worked on. */
+  trusted: boolean;
 }
 
 export interface PullInfo {
@@ -49,6 +53,10 @@ export interface PullInfo {
   mergeState: string; // GitHub's mergeStateStatus: CLEAN | BEHIND | BLOCKED | DIRTY | UNSTABLE | DRAFT | UNKNOWN …
   failedChecks: { name: string; url: string | null }[];
   pendingChecks: string[];
+  /** The GitHub login that opened it (null for a deleted account). */
+  author: string | null;
+  /** A trusted author's, from a branch of the repo rather than a fork (server/trust.ts): only these are tested, previewed or auto-merged. */
+  trusted: boolean;
 }
 
 /** A browser build a chamber's tests asked for that this machine doesn't have, and its Install. */
