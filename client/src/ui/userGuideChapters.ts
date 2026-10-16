@@ -141,7 +141,7 @@ export const CHAPTERS: GuideChapter[] = [
       ),
       h('Strangers'),
       p(
-        "On a public repository anyone can open an issue or a pull request, and coders and testers run on your computer. So the dungeon only takes work from the repository's owner, members of the organisation that owns it, and its collaborators. An issue or pull request from anyone else shows on the board as 🔒 **stranger**, with no Assign, Send to QA or Preview: nobody works on it, tests it, runs it or merges it, and the DungeonMaster doesn't see it. A pull request from a fork counts as a stranger's too. Read it on GitHub, and if you want it built, file the issue again yourself.",
+        "On a public repository anyone can open an issue or a pull request, and coders and testers run on your computer. So the dungeon only takes work from the repository's owner, members of the organisation that owns it, and its collaborators. An issue or pull request from anyone else shows on the board as 🔒 **stranger**, with no Assign, Send to QA or Preview: nobody works on it, tests it, runs it or merges it, and the DungeonMaster doesn't see it. A pull request from a fork counts as a stranger's too. Read it on GitHub, and if you want it built, file the issue again yourself. The same goes for comments: a coder gets an issue's comments from you, members and collaborators with the issue, and coders and testers are told to treat anything else on GitHub as untrusted and not to read comments themselves. That last part is an instruction, not a lock, so on a public repository keep an eye on what strangers write.",
       ),
       h('Pull requests'),
       p(

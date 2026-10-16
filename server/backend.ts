@@ -8,6 +8,7 @@ import { realPreviews, type PreviewBackend } from './previewRunner.ts';
 import { realOffice, type OfficeHost } from './officeUpdate.ts';
 import { deskFacts, type DeskFacts } from './qaSetup.ts';
 import type { AgentTerminal } from './terminal.ts';
+import type { GhComment } from './trust.ts';
 import { realVercel, type VercelBackend } from './vercel.ts';
 import type { CliView, GhRepoSummary, IssueInfo, PullInfo } from '../shared/types.ts';
 
@@ -32,7 +33,7 @@ export interface Backend {
   closePull(fullName: string, number: number): Promise<void>;
   prForBranch(fullName: string, branch: string): Promise<{ number: number; url: string } | null>;
   prDetails(fullName: string, number: number): Promise<github.PrDetails>;
-  issueDetails(fullName: string, number: number): Promise<{ title: string; body: string }>;
+  issueDetails(fullName: string, number: number): Promise<{ title: string; body: string; comments: GhComment[] }>;
   commentPull(fullName: string, number: number, body: string): Promise<string>;
   uploadEvidence(fullName: string, filePath: string, data: Buffer): Promise<string>;
   ensureClone(fullName: string): Promise<void>;
