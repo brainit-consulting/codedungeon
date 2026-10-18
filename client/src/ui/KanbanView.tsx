@@ -172,7 +172,7 @@ export function KanbanView({ repoId }: { repoId: string }) {
   // Retry QA on the commit QA already failed tests the same code again: ask first, and offer Send back instead
   const retryQa = async (c: KanbanCard) => {
     const head = repo.pulls.find((p) => p.number === c.number)?.headSha ?? null;
-    const same = stillFailedCommit(c.qa?.testedSha ?? null, head, c.qa?.status ?? null);
+    const same = stillFailedCommit(c.qa?.failedSha ?? null, head, c.qa?.status ?? null);
     if (same) {
       const ok = await confirmDialog({
         tone: 'warn',

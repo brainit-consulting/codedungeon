@@ -264,7 +264,8 @@ export interface QaView {
   checks: QaCheck[];
   commentUrl: string | null; // the PR comment with the latest QA report
   mergeNote: string | null; // where auto-merge stands once QA passed, e.g. "waiting for checks: Vercel"
-  testedSha: string | null; // the head commit QA last tested: Retry QA warns when the PR is still on it
+  testedSha: string | null; // the head commit QA last tested
+  failedSha: string | null; // the head commit QA's last report failed: Retry QA warns when the PR is still on it
   overlordNote: string | null; // sent back with this note; the coder follows it in the next fix round
   updatedAt: number;
 }

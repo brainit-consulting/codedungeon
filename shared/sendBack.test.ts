@@ -1,5 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { fixBrief, sendBackRefusal, stillFailedCommit } from './sendBack.ts';
+import { failedShaAfter, fixBrief, sendBackRefusal, stillFailedCommit } from './sendBack.ts';
+
+describe('failedShaAfter', () => {
+  it('records the tested commit when the report failed it, and clears it when a report passes', () => {
+    expect(failedShaAfter('fail', 'aefef23', null)).toBe('aefef23');
+    expect(failedShaAfter('pass', 'aefef23', 'aefef23')).toBeNull();
+  });
+
+  it('keeps what was there when the round had no report (stopped, or the tester ended without one)', () => {
+    expect(failedShaAfter(null, 'aefef23', null)).toBeNull();
+    expect(failedShaAfter(null, '99d1dae', 'aefef23')).toBe('aefef23');
+  });
+
+  it("a round that ended without a report doesn't make Retry QA warn; a failing report still does", () => {
+    // PR #48 in the Young Overlords dry run: tested on a6214ab, the test was stopped, card says needs you
+    const noReport = failedShaAfter(null, 'a6214ab', null);
+    expect(stillFailedCommit(noReport, 'a6214abf00d', 'needs-human')).toBe(false);
+    const failed = failedShaAfter('fail', 'a6214ab', null);
+    expect(stillFailedCommit(failed, 'a6214abf00d', 'needs-human')).toBe(true);
+  });
+});
 
 describe('stillFailedCommit', () => {
   it('is true when the PR is still on the commit QA failed', () => {

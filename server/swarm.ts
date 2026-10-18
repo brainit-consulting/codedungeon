@@ -9,7 +9,7 @@ import { currentVersion, defaultProjectsDir, HOME_DIR, LOG_BUFFER, SCHEDULER_INT
 import { ceoJobPrompt, ceoSystemPrompt, createOfficeTools, dungeonMasterTitle, IssueCap, jobLabel, planRoute, specialtyLabel, specialtySlug, type CeoJob, type OfficeTools } from './ceo.ts';
 import os from 'node:os';
 import { nextHold, suggestedSessions, type MemoryHold } from './loadBalance.ts';
-import { fixBrief, sendBackRefusal, stillFailedCommit } from '../shared/sendBack.ts';
+import { failedShaAfter, fixBrief, sendBackRefusal, stillFailedCommit } from '../shared/sendBack.ts';
 import { HttpError } from './httpError.ts';
 import { CHECKS_ALERT_MS, MAX_MERGE_FIXES, MERGE_RETRY_MS, mergeStep } from './mergeGate.ts';
 import { orphanedQa } from './qaOrphans.ts';
@@ -544,6 +544,7 @@ export class Swarm {
         qa: (loaded.qa ?? []).map((q) => ({
           ...q,
           testedSha: q.testedSha ?? null,
+          failedSha: q.failedSha ?? null,
           passedSha: q.passedSha ?? null,
           fixReason: q.fixReason ?? null,
           mergeFixes: q.mergeFixes ?? 0,
@@ -784,6 +785,7 @@ export class Swarm {
       commentUrl: q.commentUrl,
       mergeNote: q.mergeNote,
       testedSha: q.testedSha,
+      failedSha: q.failedSha,
       overlordNote: q.overlordNote,
       updatedAt: q.updatedAt,
     };
@@ -2288,6 +2290,7 @@ export class Swarm {
         sessionFailures: 0,
         mergeNote: null,
         testedSha: null,
+        failedSha: null,
         passedSha: null,
         fixReason: null,
         mergeFixes: 0,
@@ -2313,7 +2316,7 @@ export class Swarm {
     if (stranger) throw new HttpError(403, stranger);
     const rec = this.state.qa.find((q) => q.repoId === repo.id && q.prNumber === prNumber);
     if (rec?.status === 'testing' || rec?.status === 'fixing') throw new HttpError(409, `PR #${prNumber} is already ${rec.status}`);
-    if (!force && rec && stillFailedCommit(rec.testedSha, pr.headSha, rec.status)) {
+    if (!force && rec && stillFailedCommit(rec.failedSha, pr.headSha, rec.status)) {
       throw new HttpError(409, `PR #${prNumber} is still on ${pr.headSha.slice(0, 7)}, the commit QA failed. Send it back to a coder with a note, or retry anyway.`);
     }
     if (rec && (rec.status === 'needs-human' || rec.status === 'passed' || rec.status === 'failed')) {
@@ -2500,6 +2503,7 @@ export class Swarm {
         sessionFailures: 0,
         fixReason: pass ? null : 'qa',
         passedSha: pass ? rec.testedSha : null,
+        failedSha: failedShaAfter(pass ? 'pass' : 'fail', rec.testedSha, rec.failedSha),
         mergeNote: null,
         pendingSince: null,
         mergeRetryAt: null,

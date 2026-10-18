@@ -2,11 +2,25 @@
 // round on its own branch. Shared by the server's QA flow and the notice board.
 import type { QaStatus } from './types.ts';
 
-/** QA failed this exact commit and nothing new was pushed: another QA round would test the same code again. */
-export function stillFailedCommit(testedSha: string | null, headSha: string | null, status: QaStatus | null): boolean {
-  if (!testedSha || !headSha || (status !== 'failed' && status !== 'needs-human')) return false;
-  const [a, b] = [testedSha.toLowerCase(), headSha.toLowerCase()];
+/**
+ * QA's report failed this exact commit and nothing new was pushed: another QA round would test the same code again.
+ * `failedSha` is the commit a report failed, not just the last one tested: a round that was stopped or ended without
+ * a report failed nothing, so retrying it needs no warning.
+ */
+export function stillFailedCommit(failedSha: string | null, headSha: string | null, status: QaStatus | null): boolean {
+  if (!failedSha || !headSha || (status !== 'failed' && status !== 'needs-human')) return false;
+  const [a, b] = [failedSha.toLowerCase(), headSha.toLowerCase()];
   return a.startsWith(b) || b.startsWith(a);
+}
+
+/**
+ * The commit QA has failed after a round: the tested commit when the report failed it, none when it passed, and the
+ * one from before when there was no report (the round was stopped, or ended without one).
+ */
+export function failedShaAfter(verdict: 'pass' | 'fail' | null, testedSha: string | null, before: string | null): string | null {
+  if (verdict === 'pass') return null;
+  if (verdict === 'fail') return testedSha;
+  return before;
 }
 
 /** Why a PR can't be sent back right now, worded for the Overlord or the DungeonMaster; null when it can. */
