@@ -7,6 +7,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 // "upstream" clone that pushes new work. Everything lives in one temp folder whose path has spaces in it.
 
 const npmRuns = vi.hoisted(() => [] as { cmd: string; cwd?: string }[]);
+// What the stubbed npm install does to the folder, when a test needs it to act like the real one.
+const npmEffect = vi.hoisted(() => ({ fn: null as null | ((cwd: string) => Promise<void>) }));
 
 // npm install is stubbed: only what it was asked to do is recorded. git still runs for real.
 vi.mock('./exec.ts', async (importOriginal) => {
@@ -16,7 +18,7 @@ vi.mock('./exec.ts', async (importOriginal) => {
     run: (cmd: string, args: string[], opts?: { cwd?: string; timeoutMs?: number }) => {
       if (cmd === 'npm' || (cmd === 'cmd.exe' && args.join(' ').includes('npm install'))) {
         npmRuns.push({ cmd, cwd: opts?.cwd });
-        return Promise.resolve('');
+        return (npmEffect.fn?.(opts?.cwd ?? '') ?? Promise.resolve()).then(() => '');
       }
       return actual.run(cmd, args, opts);
     },
@@ -81,6 +83,7 @@ const originMain = (cwd: string) => git(['rev-parse', 'origin/main'], { cwd });
 
 beforeEach(() => {
   npmRuns.length = 0;
+  npmEffect.fn = null;
 });
 
 afterAll(async () => {
@@ -198,6 +201,33 @@ describe('syncMain', { timeout: 60_000 }, () => {
     await git(['push', '-q', 'origin', 'main'], { cwd: r.upstream });
     expect(await syncMain(r.fullName, 'main', { touch: true })).toMatch(/^updated to \w+ · dependencies installed$/);
     expect(npmRuns).toHaveLength(1);
+  });
+
+  // Measured 19 Oct 2026: npm 10.9.8 on Windows drops the "libc" lines another npm wrote into package-lock.json. The
+  // folder then had a local change the Overlord never made, and every later sync stopped at "local changes".
+  it("puts the lockfile back when the install rewrites it, so the next sync isn't blocked", async () => {
+    const r = await makeRepos();
+    const lock = '{\n  "packages": {\n    "node_modules/x": {\n      "libc": [\n        "glibc"\n      ]\n    }\n  }\n}\n';
+    await commitFile(r.upstream, 'package-lock.json', lock);
+    await git(['push', '-q', 'origin', 'main'], { cwd: r.upstream });
+    npmEffect.fn = (cwd) => fs.writeFile(path.join(cwd, 'package-lock.json'), '{\n  "packages": {}\n}\n');
+    expect(await syncMain(r.fullName, 'main', { touch: true })).toMatch(/^updated to \w+ · dependencies installed$/);
+    expect(await git(['status', '--porcelain'], { cwd: r.dir })).toBe('');
+    expect((await fs.readFile(path.join(r.dir, 'package-lock.json'), 'utf8')).replace(/\r\n/g, '\n')).toBe(lock);
+    await pushUpstream(r);
+    expect(await syncMain(r.fullName, 'main', { touch: true })).toMatch(/^updated to \w+$/);
+  });
+
+  it('puts the lockfile back even when the install fails', async () => {
+    const r = await makeRepos();
+    await commitFile(r.upstream, 'package-lock.json', '{}\n');
+    await git(['push', '-q', 'origin', 'main'], { cwd: r.upstream });
+    npmEffect.fn = async (cwd) => {
+      await fs.writeFile(path.join(cwd, 'package-lock.json'), '{ "half": true }\n');
+      throw new Error('npm ERR! network');
+    };
+    expect(await syncMain(r.fullName, 'main', { touch: true })).toMatch(/^updated to \w+ · npm install failed$/);
+    expect(await git(['status', '--porcelain'], { cwd: r.dir })).toBe('');
   });
 
   it("doesn't install for a package.json in a subfolder", async () => {

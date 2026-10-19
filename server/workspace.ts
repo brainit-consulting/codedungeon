@@ -137,7 +137,20 @@ export async function syncMain(fullName: string, defaultBranch: string, opts: { 
   } catch (err) {
     console.warn(`npm install in ${dir} failed:`, (err as Error).message);
     return { ...sync, status: `${sync.status} · npm install failed` };
+  } finally {
+    await restoreLockfile(fullName, dir);
   }
+}
+
+/**
+ * The install only ran after a clean fast-forward, so any change to package-lock.json is npm's own, not the
+ * Overlord's: put the committed one back. Another npm (another version or system) rewrites the lockfile, and that
+ * change would stop every later sync at "local changes".
+ */
+async function restoreLockfile(fullName: string, dir: string) {
+  await withRepoLock(fullName, async () => {
+    if (await git(['status', '--porcelain', '--', 'package-lock.json'], { cwd: dir })) await git(['checkout', '--', 'package-lock.json'], { cwd: dir });
+  }).catch((err) => console.warn(`Could not put back package-lock.json in ${dir}:`, (err as Error).message));
 }
 
 // ---------- your projects folder ----------
