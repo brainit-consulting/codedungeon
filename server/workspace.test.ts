@@ -218,6 +218,29 @@ describe('syncMain', { timeout: 60_000 }, () => {
     expect(await syncMain(r.fullName, 'main', { touch: true })).toMatch(/^updated to \w+$/);
   });
 
+  it('unsticks a folder whose only local change is package-lock.json (left by an older dungeon)', async () => {
+    const r = await makeRepos();
+    await commitFile(r.upstream, 'package-lock.json', '{ "libc": ["glibc"] }\n');
+    await git(['push', '-q', 'origin', 'main'], { cwd: r.upstream });
+    await syncMain(r.fullName, 'main', { touch: true });
+    await fs.writeFile(path.join(r.dir, 'package-lock.json'), '{}\n'); // what an install used to leave behind
+    await pushUpstream(r);
+    expect(await syncMain(r.fullName, 'main', { touch: true })).toMatch(/^updated to \w+$/);
+    expect(await git(['status', '--porcelain'], { cwd: r.dir })).toBe('');
+  });
+
+  it('still leaves the lockfile alone when other files changed too', async () => {
+    const r = await makeRepos();
+    await commitFile(r.upstream, 'package-lock.json', '{ "libc": ["glibc"] }\n');
+    await git(['push', '-q', 'origin', 'main'], { cwd: r.upstream });
+    await syncMain(r.fullName, 'main', { touch: true });
+    await fs.writeFile(path.join(r.dir, 'package-lock.json'), '{}\n');
+    await fs.writeFile(path.join(r.dir, 'README.md'), '# My work in progress\n');
+    await pushUpstream(r);
+    expect(await syncMain(r.fullName, 'main', { touch: true })).toBe('1 behind: local changes');
+    expect(await fs.readFile(path.join(r.dir, 'package-lock.json'), 'utf8')).toBe('{}\n');
+  });
+
   it('puts the lockfile back even when the install fails', async () => {
     const r = await makeRepos();
     await commitFile(r.upstream, 'package-lock.json', '{}\n');

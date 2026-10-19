@@ -114,7 +114,11 @@ export async function syncMain(fullName: string, defaultBranch: string, opts: { 
       if (behind === 0) return stays('in sync');
       if (Number(await g(['rev-list', '--count', `${target}..HEAD`])) > 0) return stays(`diverged: local commits, and ${commits} to pull`);
       if (!opts.touch) return { status: `update ready (${commits})`, behind, updatable: true };
-      if (await g(['status', '--porcelain', '--untracked-files=no'])) return { status: `${behind} behind: local changes`, behind, updatable: true };
+      const changes = await g(['status', '--porcelain', '--untracked-files=no']);
+      // A change to package-lock.json alone is an older dungeon's own npm install (see restoreLockfile), not the
+      // Overlord's work: put the committed one back so the folder can move on. Anything else stays untouched.
+      if (changes && (await g(['diff', '--name-only', 'HEAD'])) === 'package-lock.json') await g(['checkout', 'HEAD', '--', 'package-lock.json']);
+      else if (changes) return { status: `${behind} behind: local changes`, behind, updatable: true };
       const before = await g(['rev-parse', 'HEAD']);
       try {
         await g(['merge', '--ff-only', target], 120_000);
