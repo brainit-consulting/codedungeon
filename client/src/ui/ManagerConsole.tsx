@@ -5,6 +5,7 @@ import { agentsOnRepo, pendingRequests, useStore, type ManagerTab } from '../sto
 import { CHAMBER_DYE_NAMES, CHAMBER_DYES } from '../../../shared/palette';
 import { CEO_ID, type AgentCli, type CliView, type EffortLevel, type OfficeUpdateView, type RepoView } from '../../../shared/types';
 import { effectiveModel } from '../../../shared/models';
+import { BRIEF_MAX, MISSION_MAX, briefCount, tooLong } from '../../../shared/briefs';
 import { canPostpone, canUpdateNow, drainDeadline, officeUpdateText } from '../officeUpdate';
 import { confirmDialog } from './Confirm';
 import { IssueForm } from './KanbanView';
@@ -263,6 +264,7 @@ function FloorBrief({ repo }: { repo: RepoView }) {
         </button>
       </div>
       <textarea value={mission} onChange={(e) => setMission(e.target.value)} rows={2} placeholder="Brief: what should this chamber build next? The DungeonMaster turns it into issues and a guild." />
+      <BriefCount text={mission} max={MISSION_MAX} />
       <div className="row">
         <button className="btn btn-small" disabled={mission === repo.mission} onClick={() => void attempt(() => api.updateRepo(repo.id, { mission }))}>
           Save brief
@@ -274,15 +276,44 @@ function FloorBrief({ repo }: { repo: RepoView }) {
       </div>
       <details className="small">
         <summary>QA brief{repo.qaBrief ? '' : ' (none yet)'}</summary>
-        <textarea
-          key={repo.qaBrief}
+        <BriefBox
+          value={repo.qaBrief}
           rows={4}
-          defaultValue={repo.qaBrief}
           placeholder="What QA testers must check on every PR for this project."
-          onBlur={(e) => e.target.value !== repo.qaBrief && void attempt(() => api.updateRepo(repo.id, { qaBrief: e.target.value }))}
+          onSave={(qaBrief) => attempt(() => api.updateRepo(repo.id, { qaBrief }))}
         />
       </details>
     </div>
+  );
+}
+
+/** How long a brief is against its limit; red once it's over, because the server refuses it then (nothing is cut). */
+function BriefCount({ text, max }: { text: string; max: number }) {
+  const over = tooLong('brief', text, max) !== null;
+  return (
+    <div className="muted small" style={over ? { color: 'var(--bad)' } : undefined} aria-live="polite">
+      {briefCount(text, max)}
+      {over ? ': too long to save' : ''}
+    </div>
+  );
+}
+
+/** A brief saved when the box loses focus. A refused save keeps the text in the box, so nothing typed is lost. */
+function BriefBox({ value, rows, placeholder, onSave }: { value: string; rows: number; placeholder: string; onSave: (text: string) => Promise<unknown> }) {
+  const [text, setText] = useState(value);
+  useEffect(() => setText(value), [value]);
+  return (
+    <>
+      <textarea
+        key={value}
+        rows={rows}
+        defaultValue={value}
+        placeholder={placeholder}
+        onInput={(e) => setText(e.currentTarget.value)}
+        onBlur={(e) => e.target.value !== value && void onSave(e.target.value)}
+      />
+      <BriefCount text={text} max={BRIEF_MAX} />
+    </>
   );
 }
 
@@ -581,12 +612,11 @@ function TeamTab() {
                             <option value="masculine">He</option>
                           </select>
                         </label>
-                        <textarea
-                          key={`b-${a.brief}`}
+                        <BriefBox
+                          value={a.brief}
                           rows={3}
-                          defaultValue={a.brief}
                           placeholder={`What ${a.name} owns on this project and how they should work. It's added to their instructions.`}
-                          onBlur={(e) => e.target.value !== a.brief && void attempt(() => api.updateAgent(a.id, { brief: e.target.value }))}
+                          onSave={(brief) => attempt(() => api.updateAgent(a.id, { brief }))}
                         />
                       </td>
                     </tr>

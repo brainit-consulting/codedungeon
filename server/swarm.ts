@@ -11,6 +11,7 @@ import os from 'node:os';
 import { nextHold, suggestedSessions, type MemoryHold } from './loadBalance.ts';
 import { failedShaAfter, fixBrief, sendBackRefusal, stillFailedCommit } from '../shared/sendBack.ts';
 import { HttpError } from './httpError.ts';
+import { BRIEF_MAX, MISSION_MAX, tooLong } from '../shared/briefs.ts';
 import { CHECKS_ALERT_MS, MAX_MERGE_FIXES, MERGE_RETRY_MS, mergeStep } from './mergeGate.ts';
 import { orphanedQa } from './qaOrphans.ts';
 import { DEFAULT_PREVIEW, Previews, parsePreviewPatch } from './previews.ts';
@@ -1108,6 +1109,11 @@ export class Swarm {
     patch: Partial<Pick<PersistedRepo, 'autoAssign' | 'autoMerge' | 'browserTesting' | 'phoneReady' | 'color' | 'links' | 'mission' | 'summary' | 'qaBrief'>> & { previewCommand?: unknown; previewEnv?: unknown },
   ) {
     const repo = this.repo(id);
+    // A brief that's too long is refused whole, before anything changes: cutting it short lost the Overlord's last lines.
+    const refusal =
+      (typeof patch.qaBrief === 'string' && tooLong('QA brief', patch.qaBrief, BRIEF_MAX)) ||
+      (typeof patch.mission === 'string' && tooLong('brief', patch.mission, MISSION_MAX));
+    if (refusal) throw new HttpError(400, refusal);
     const preview = parsePreviewPatch(patch.previewCommand, patch.previewEnv);
     repo.preview = { ...repo.preview, ...preview };
     if (preview.command === null) void this.previews.refreshDefault(repo);
@@ -1120,9 +1126,9 @@ export class Swarm {
     if (patch.phoneReady !== undefined) repo.phoneReady = !!patch.phoneReady;
     if (patch.color && /^#[0-9a-f]{6}$/i.test(patch.color)) repo.color = patch.color;
     if (Array.isArray(patch.links)) repo.links = patch.links.filter((l) => l !== id && this.state.repos.some((r) => r.id === l));
-    if (typeof patch.mission === 'string') repo.mission = patch.mission.trim().slice(0, 4000);
+    if (typeof patch.mission === 'string') repo.mission = patch.mission.trim();
     if (typeof patch.summary === 'string') repo.summary = patch.summary.trim().slice(0, 140);
-    if (typeof patch.qaBrief === 'string') repo.qaBrief = patch.qaBrief.trim().slice(0, 2500);
+    if (typeof patch.qaBrief === 'string') repo.qaBrief = patch.qaBrief.trim();
     this.save();
     this.emitRepo(repo);
     setTimeout(() => this.schedule(), 200);
@@ -1712,6 +1718,8 @@ export class Swarm {
     patch: { name?: string; model?: string; effort?: string; cli?: string; look?: string; title?: string; specialty?: string; brief?: string; color?: string; hair?: string },
   ) {
     const a = this.agent(id);
+    const refusal = typeof patch.brief === 'string' && a.role !== 'ceo' && tooLong(`brief for ${a.name}`, patch.brief, BRIEF_MAX);
+    if (refusal) throw new HttpError(400, refusal);
     if (patch.cli !== undefined && a.role !== 'ceo') a.cli = isCli(patch.cli) ? patch.cli : '';
     if (patch.name?.trim() && patch.name.trim() !== a.name) {
       a.name = patch.name.trim().slice(0, 24);
@@ -1725,7 +1733,7 @@ export class Swarm {
     if (a.role !== 'ceo') {
       if (patch.title !== undefined) a.title = String(patch.title).trim().slice(0, 60);
       if (patch.specialty !== undefined) a.specialty = specialtySlug(patch.specialty);
-      if (patch.brief !== undefined) a.brief = String(patch.brief).trim().slice(0, 2500);
+      if (patch.brief !== undefined) a.brief = String(patch.brief).trim();
     }
     this.save();
     this.emitAgent(a);
@@ -3436,7 +3444,9 @@ export class Swarm {
   planFloor(repoId: string, mission?: string) {
     const repo = this.repo(repoId);
     if (typeof mission === 'string') {
-      repo.mission = mission.trim().slice(0, 4000);
+      const refusal = tooLong('brief', mission, MISSION_MAX);
+      if (refusal) throw new HttpError(400, refusal);
+      repo.mission = mission.trim();
       this.emitRepo(repo);
     }
     if (!repo.mission) throw new HttpError(400, 'Write a brief first: what should this chamber build?');
