@@ -119,7 +119,7 @@ export const CHAPTERS: GuideChapter[] = [
         "Then, in the Guild tab, set a coder's **Works on** to **☁ Upstash Box** while they have no task. Press **Sign in the box**: their terminal opens and runs the coding agent's own sign-in. Open the link it shows, sign in, and paste the code back into the terminal. Each box signs in once and stays signed in; nothing is copied from this computer.",
       ),
       p(
-        "The free Upstash plan allows 10 boxes and 5 hours of processor time a month; the Cloud boxes card shows what each box has used. Upstash pauses a box after an hour without work and wakes it for the next task. If the dungeon restarts while a coder works in a box, the coder carries on there. Setting **Works on** back to **🖥 This PC** keeps the box; letting the coder go deletes it, so anything they hadn't pushed goes with it.",
+        "The free Upstash plan allows 10 boxes and 5 hours of processor time a month. The Cloud boxes card shows what each box has used and warns at 80%; deleted boxes aren't in its total, so the Upstash console has the month's full figure. A coding job used about 17 minutes in our tests. A box nobody in the dungeon works in has a **Delete** button. Upstash pauses a box after an hour without work and wakes it for the next task. If the dungeon restarts while a coder works in a box, the coder carries on there. Setting **Works on** back to **🖥 This PC** keeps the box; letting the coder go deletes it, so anything they hadn't pushed goes with it.",
       ),
       h('Letting someone go'),
       p(

@@ -771,7 +771,7 @@ function CloudBoxesCard() {
           <b>Let coders work in Upstash Boxes</b>, chosen per coder in the Guild tab (Works on).
         </span>
       </label>
-      {cloud.enabled && <CloudBoxesDetails cloud={cloud} view={view} set={set} nameOf={nameOf} used={used} />}
+      {cloud.enabled && <CloudBoxesDetails cloud={cloud} view={view} set={set} nameOf={nameOf} used={used} onChanged={refresh} />}
     </div>
   );
 }
@@ -783,12 +783,14 @@ function CloudBoxesDetails({
   set,
   nameOf,
   used,
+  onChanged,
 }: {
   cloud: CloudBoxesSettings;
   view: BoxesView | null;
   set: (p: Partial<CloudBoxesSettings>) => void;
   nameOf: (id: string | null) => string;
   used: number;
+  onChanged: () => void;
 }) {
   return (
     <>
@@ -815,6 +817,26 @@ function CloudBoxesDetails({
                 <td className="muted">{b.status}</td>
                 <td>{nameOf(b.agentId)}</td>
                 <td>{Math.round(b.cpuSeconds / 60)} CPU min</td>
+                <td>
+                  {!b.agentId && (
+                    <button
+                      className="btn btn-small btn-ghost"
+                      onClick={() =>
+                        void confirmDialog({
+                          tone: 'danger',
+                          icon: '☁',
+                          title: `Delete the box ${b.name || b.id}?`,
+                          body: 'Nobody in this dungeon works in it. If another dungeon uses the same Upstash account, it may be one of theirs. Anything in it that was not pushed is lost.',
+                          confirm: 'Delete the box',
+                        }).then((ok) => {
+                          if (ok) void attempt(() => api.deleteBox(b.id)).then(onChanged);
+                        })
+                      }
+                    >
+                      Delete
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -822,7 +844,13 @@ function CloudBoxesDetails({
       )}
       {view && (
         <div className="muted small">
-          CPU used so far: {(used / 3600).toFixed(2)} h of the free plan's {FREE_CPU_SECONDS / 3600} h a month ({Math.round((100 * used) / FREE_CPU_SECONDS)}%).
+          CPU used by the boxes above: {(used / 3600).toFixed(2)} h of the free plan's {FREE_CPU_SECONDS / 3600} h a month ({Math.round((100 * used) / FREE_CPU_SECONDS)}%). Deleted
+          boxes aren't counted; the Upstash console shows the month's total.
+        </div>
+      )}
+      {view && used >= 0.8 * FREE_CPU_SECONDS && (
+        <div className="term-error small">
+          ⚠ Close to the free plan's {FREE_CPU_SECONDS / 3600} hours a month. Check your usage in the Upstash console, or move coders back to This PC.
         </div>
       )}
     </>

@@ -197,6 +197,7 @@ app.post('/api/agents/:id/carry-on', route((req) => swarm.carryOn(String(req.par
 app.post('/api/agents/:id/box/sign-in', route((req) => swarm.signInBox(String(req.params.id))));
 app.get('/api/boxes', route(() => swarm.boxesView()));
 app.post('/api/boxes/base', route(() => swarm.buildBaseBox()));
+app.delete('/api/boxes/:id', route((req) => swarm.deleteBox(String(req.params.id))));
 app.get('/api/agents/:id/screen', (req, res) => {
   const shot = swarm.screenshot(String(req.params.id));
   if (!shot) return void res.status(404).end();

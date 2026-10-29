@@ -54,6 +54,7 @@ import {
   listOfficeBoxes,
   prepareDeskScript,
   releaseDeskScript,
+  sessionCwd,
   signedIn,
   signInCheck,
   signInCommand,
@@ -1911,6 +1912,17 @@ export class Swarm {
     };
   }
 
+  /** Deletes one of the office's boxes that no recruit here uses (left by a spike, a let-go recruit, another dungeon). */
+  async deleteBox(id: string): Promise<{ ok: true }> {
+    const user = this.state.agents.find((a) => a.boxId === id);
+    if (user) throw new HttpError(409, `${user.name} works in that box. Let them go, or move them to this computer first.`);
+    if (this.buildingBase) throw new HttpError(409, 'The base box is being built; try again when it is ready.');
+    const box = (await listOfficeBoxes()).find((b) => b.id === id);
+    if (!box) throw new HttpError(404, "That box isn't one of the dungeon's boxes on this Upstash account.");
+    await (await getBox(id)).delete();
+    return { ok: true };
+  }
+
   private buildingBase = false;
 
   /** Builds the base snapshot recruits' boxes are made from (tmux, a test browser; no logins). A few minutes. */
@@ -2243,9 +2255,10 @@ export class Swarm {
     const how = this.sessionRuntime(a, resumeSessionId);
     this.emitAgent(a);
     rt.usageBase = { tokens: a.tokens ?? NO_TOKENS, costUsd: a.costUsd, seenTokens: 0, seenCost: 0 };
+    const box = this.inBox(a) && a.boxId && how.terminal ? { boxId: a.boxId, env: gitEnv(boxGithubToken()) } : undefined;
     rt.session = this.backend.startSession(
       {
-        cwd,
+        cwd: sessionCwd(!!box, repo.fullName, cwd),
         prompt,
         systemAppend,
         model: this.modelFor(a, how.cli),
@@ -2255,7 +2268,7 @@ export class Swarm {
         resultReady: this.resultReady(a, repo),
         // linked repos are reference clones on this computer: not in a box (yet)
         additionalDirectories: this.inBox(a) ? [] : this.linkedRepos(repo).map((r) => this.backend.mainDir(r.fullName)),
-        box: this.inBox(a) && a.boxId && how.terminal ? { boxId: a.boxId, env: gitEnv(boxGithubToken()) } : undefined,
+        box,
         role: a.task === 'qa' ? 'qa' : a.role, // a developer covering QA works under QA's rules
         outputSchema,
         // A developer's CLI stays at its prompt afterwards, for the manager and for follow-ups; QA's closes.

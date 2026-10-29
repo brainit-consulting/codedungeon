@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { BOX_EVENT_SOURCE, boxApiKey, eventLines, gitEnv, launchScript, parseRegValue, prepareDeskScript, shq, signedIn, signInCheck } from './boxes.ts';
+import { BOX_EVENT_SOURCE, boxApiKey, eventLines, gitEnv, launchScript, parseRegValue, prepareDeskScript, sessionCwd, shq, signedIn, signInCheck } from './boxes.ts';
 
 /** Runs the box's event program here, as the CLI in a box would. */
 function runEvent(dir: string, args: string[], stdin = '') {
@@ -77,6 +77,11 @@ describe('desks in a box', () => {
     expect(s).toContain(`-B 'qa/pr-12-bo' 'origin/pr-12'`);
   });
 
+  it("starts a box session in the box's desk, even when given this computer's path", () => {
+    const local = 'H:\\home\\workspaces\\brainit-consulting__captain-pickle\\desks\\osric-f000';
+    expect(sessionCwd(true, 'brainit-consulting/captain-pickle', local)).toBe('/home/boxuser/desks/brainit-consulting__captain-pickle');
+    expect(sessionCwd(false, 'brainit-consulting/captain-pickle', local)).toBe(local);
+  });
   it('passes the GitHub token only through the command environment', () => {
     expect(gitEnv('ghp_x')).toEqual({ GH_TOKEN: 'ghp_x', GIT_TERMINAL_PROMPT: '0' });
     expect(gitEnv(null)).toEqual({ GIT_TERMINAL_PROMPT: '0' });

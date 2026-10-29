@@ -72,6 +72,12 @@ export const GIT_CREDENTIAL_HELPER = '!f(){ test "$1" = get || exit 0; test -n "
 /** A desk in a box: the repo's own clone per recruit (no worktrees: one recruit per box). */
 export const boxDeskDir = (fullName: string) => `${BOX_DESKS}/${fullName.replace('/', '__')}`;
 
+/**
+ * Where a session starts. In a box it's always the box's desk, whatever the caller worked out: a resumed session once
+ * got this computer's desk path, and its CLI exited 1 at the `cd` (Carry on, late messages, recovery after a restart).
+ */
+export const sessionCwd = (inBox: boolean, fullName: string, given: string) => (inBox ? boxDeskDir(fullName) : given);
+
 /** The shell commands that make a box's desk ready on `branch`: cloned once, then fetched and reset like a local desk. */
 export function prepareDeskScript(fullName: string, base: { defaultBranch: string; pr?: number }, branch: string): string {
   const dir = boxDeskDir(fullName);

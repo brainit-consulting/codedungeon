@@ -94,6 +94,7 @@ export const api = {
   signInBox: (id: string) => call('POST', `/api/agents/${id}/box/sign-in`),
   boxes: () => call<BoxesView>('GET', '/api/boxes'),
   buildBaseBox: () => call('POST', '/api/boxes/base'),
+  deleteBox: (id: string) => call('DELETE', `/api/boxes/${encodeURIComponent(id)}`),
   fireAgent: (id: string) => call('DELETE', `/api/agents/${id}`),
   assign: (id: string, issueNumber: number, note?: string) => call('POST', `/api/agents/${id}/assign`, { issueNumber, note }),
   stop: (id: string) => call('POST', `/api/agents/${id}/stop`),
