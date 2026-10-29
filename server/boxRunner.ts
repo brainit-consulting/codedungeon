@@ -26,6 +26,9 @@ export interface BoxCliOptions {
   onNotice?: (text: string) => void;
 }
 
+/** Stops every recruit CLI's tmux in the box (their sockets are all named cd-…). */
+export const STOP_STRAY_TMUX = `pkill -f -- '^tmux -L cd-' 2>/dev/null; true`;
+
 /** How long to wait before the n-th reconnection: 1, 2, 4… up to 30 seconds. */
 export const backoff = (n: number) => Math.min(30_000, 1000 * 2 ** Math.max(0, n));
 
@@ -78,10 +81,11 @@ export class BoxPty implements Pty {
     await this.box.files.write({ path: `${BOX_DIR}/tmux.conf`, content: TMUX_CONF });
     const script = `${this.o.dir}/launch.sh`;
     await this.box.files.write({ path: script, content: launchScript({ cwd: this.o.cwd, file: this.o.file, args: this.o.args, env: { ...this.o.env, CD_EVENTS_FILE: this.events }, exitFile: this.exitFile }) });
-    // One recruit per box: a CLI the office lost track of (a restart) is stopped before a new one starts.
+    // One recruit per box: a CLI the office lost track of (a restart) is stopped before a new one starts. tmux's server
+    // is named "tmux: server", so it's found by its command line (measured: `pkill -x tmux` matched nothing).
     const started = await boxRun(
       this.box,
-      [`pkill -x tmux 2>/dev/null; rm -f ${shq(this.exitFile)}; : > ${shq(this.events)}`, this.tmux('new-session', '-d', '-s', 'main', '-x', String(this.cols), '-y', String(this.rows), `bash ${shq(script)}`).map(shq).join(' ')].join(' && '),
+      [`${STOP_STRAY_TMUX}; rm -f ${shq(this.exitFile)}; : > ${shq(this.events)}`, this.tmux('new-session', '-d', '-s', 'main', '-x', String(this.cols), '-y', String(this.rows), `bash ${shq(script)}`).map(shq).join(' ')].join(' && '),
     );
     if (!started.ok) throw new Error(started.out.trim() || 'tmux would not start');
     if (this.killed) return void this.stopBox();

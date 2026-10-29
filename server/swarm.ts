@@ -1845,6 +1845,11 @@ export class Swarm {
     return boxDeskDir(repo.fullName);
   }
 
+  /** Where a recruit's desk is: in their box, or on this computer. A resumed session must start there too. */
+  private deskOf(a: PersistedAgent, repo: PersistedRepo): string {
+    return this.inBox(a) ? boxDeskDir(repo.fullName) : this.backend.deskDir(repo.fullName, this.agentSlug(a));
+  }
+
   /** Stops what a recruit left running on their port: in their box, or on this computer. */
   private releaseAgentDesk(a: PersistedAgent, repo: PersistedRepo): Promise<void> {
     if (this.inBox(a) && a.boxId) return getBox(a.boxId).then((box) => boxRun(box, releaseDeskScript(this.port(a)))).then(() => undefined);
@@ -1976,7 +1981,7 @@ export class Swarm {
     const repo = this.state.repos.find((r) => r.id === a.repoId);
     if (!repo) return;
     this.appendLog(a, [{ kind: 'system', text: '↻ The dungeon restarted; their CLI kept working and the dungeon is following it again.' }]);
-    this.startAgentSession(a, repo, this.backend.deskDir(repo.fullName, this.agentSlug(a)), '', '', a.sessionId ?? undefined, undefined, 'reattach');
+    this.startAgentSession(a, repo, this.deskOf(a, repo), '', '', a.sessionId ?? undefined, undefined, 'reattach');
   }
 
   /** The manager pressed Esc in the agent's terminal and the CLI stopped its turn: a Stop that leaves the CLI to them. */
@@ -2883,7 +2888,7 @@ export class Swarm {
     if (!a.sessionId || !a.branch || a.task === 'qa') throw new HttpError(409, `${a.name} has no session to continue. Assign an issue instead.`);
     this.ensureSlot();
     this.appendLog(a, [{ kind: 'manager', text: `▶ Overlord: ${text}` }]);
-    const cwd = this.backend.deskDir(repo.fullName, this.agentSlug(a));
+    const cwd = this.deskOf(a, repo);
     a.lastError = null;
     a.asks = null;
     a.startedAt = Date.now();
@@ -2961,7 +2966,7 @@ export class Swarm {
       return;
     }
     rec.testedSha = pr.headSha;
-    const cwd = this.backend.deskDir(repo.fullName, this.agentSlug(a));
+    const cwd = this.deskOf(a, repo);
     const facts = this.backend.deskFacts(cwd);
     const checksStep = qaChecksStep(facts, a.depsAtLastRound); // the same round: installed at its start
     this.startAgentSession(a, repo, cwd, `${text}\nFinish the test and end with your QA report.`, this.buildQaSystemAppend(a, repo, cwd, a.branch!, pr, checksStep), a.sessionId!, QA_SCHEMA);
