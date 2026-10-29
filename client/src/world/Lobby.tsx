@@ -305,6 +305,8 @@ function candidateAgent(r: HireRequestView): Agent {
     model: r.model,
     effort: r.effort,
     cli: '',
+    machine: 'local',
+    box: null,
     terminal: false,
     status: 'idle',
     issueNumber: null,

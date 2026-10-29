@@ -1,5 +1,5 @@
 import { useStore } from './store';
-import type { AgentCli, GhRepoSummary, OfficeUpdateView, PreviewView, ProjectFolderView, RepoView, SwarmSettings } from '../../shared/types';
+import type { AgentCli, AgentMachine, BoxesView, GhRepoSummary, OfficeUpdateView, PreviewView, ProjectFolderView, RepoView, SwarmSettings } from '../../shared/types';
 import type { ShipView } from '../../shared/ship';
 import type { LedgerView } from '../../shared/ledger';
 
@@ -89,8 +89,11 @@ export const api = {
   sendBack: (repoId: string, n: number, note: string, agentId?: string) => call<{ to: string }>('POST', `${r(repoId)}/pulls/${n}/send-back`, { note, agentId }),
   hireAgent: (repoId: string, opts: { name?: string; model?: string; effort?: string; role?: 'dev' | 'qa'; title?: string; specialty?: string } = {}) =>
     call('POST', `${r(repoId)}/agents`, opts),
-  updateAgent: (id: string, patch: { name?: string; model?: string; effort?: string; cli?: AgentCli | ''; look?: 'feminine' | 'masculine'; title?: string; specialty?: string; brief?: string }) =>
+  updateAgent: (id: string, patch: { name?: string; model?: string; effort?: string; cli?: AgentCli | ''; look?: 'feminine' | 'masculine'; title?: string; specialty?: string; brief?: string; machine?: AgentMachine }) =>
     call('PATCH', `/api/agents/${id}`, patch),
+  signInBox: (id: string) => call('POST', `/api/agents/${id}/box/sign-in`),
+  boxes: () => call<BoxesView>('GET', '/api/boxes'),
+  buildBaseBox: () => call('POST', '/api/boxes/base'),
   fireAgent: (id: string) => call('DELETE', `/api/agents/${id}`),
   assign: (id: string, issueNumber: number, note?: string) => call('POST', `/api/agents/${id}/assign`, { issueNumber, note }),
   stop: (id: string) => call('POST', `/api/agents/${id}/stop`),

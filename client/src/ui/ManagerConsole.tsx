@@ -3,7 +3,8 @@ import { api } from '../api';
 import { PreviewPill, PreviewSettings } from './AppViewer';
 import { agentsOnRepo, pendingRequests, useStore, type ManagerTab } from '../store';
 import { CHAMBER_DYE_NAMES, CHAMBER_DYES } from '../../../shared/palette';
-import { CEO_ID, type AgentCli, type CliView, type EffortLevel, type OfficeUpdateView, type RepoView } from '../../../shared/types';
+import { CEO_ID, type AgentCli, type AgentMachine, type BoxesView, type CliView, type EffortLevel, type OfficeUpdateView, type RepoView } from '../../../shared/types';
+import { DEFAULT_CLOUD_BOXES } from '../../../shared/cloudBoxes';
 import { effectiveModel } from '../../../shared/models';
 import { BRIEF_MAX, MISSION_MAX, briefCount, tooLong } from '../../../shared/briefs';
 import { canPostpone, canUpdateNow, drainDeadline, officeUpdateText } from '../officeUpdate';
@@ -558,6 +559,36 @@ function TeamTab() {
                         </select>
                       </td>
                     )}
+                    {terminal && settings.cloudBoxes?.enabled && (
+                      <td className="nowrap">
+                        <select
+                          value={a.machine}
+                          disabled={a.role === 'qa' && a.machine === 'local'}
+                          title={a.role === 'qa' ? 'Testers work on this computer for now' : 'Where they work: this computer, or their own Upstash Box in the cloud'}
+                          onChange={(e) => void attempt(() => api.updateAgent(a.id, { machine: e.target.value as AgentMachine }))}
+                        >
+                          <option value="local">🖥 This PC</option>
+                          <option value="box">☁ Upstash Box</option>
+                        </select>
+                        {a.machine === 'box' && (
+                          <>
+                            {' '}
+                            <span className="chip" title={a.box?.id ? `Box ${a.box.id}` : 'Their box is made before their next task'}>
+                              {a.box?.signedIn === true ? '🔑 signed in' : a.box?.signedIn === false ? '🔒 not signed in' : a.box?.id ? 'box ready' : 'no box yet'}
+                            </span>{' '}
+                            {a.box?.signedIn !== true && (
+                              <button
+                                className="btn btn-small"
+                                title="Runs the coding agent's own sign-in in their terminal: open the link it shows, sign in, and paste the code back"
+                                onClick={() => void attempt(() => api.signInBox(a.id)).then(() => openOverlay({ kind: 'terminal', agentId: a.id }))}
+                              >
+                                Sign in the box
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </td>
+                    )}
                     <td>
                       <input
                         key={`m-${a.model}-${workerCli(a)}`}
@@ -701,6 +732,70 @@ function IssuesTab({ initialRepo }: { initialRepo?: string }) {
 
 // ---------- settings ----------
 
+/** The free plan's CPU hours a month, in seconds. */
+const FREE_CPU_SECONDS = 5 * 3600;
+
+/** Recruits in Upstash Boxes: on or off, the limit, the base box, and what the boxes have used. */
+function CloudBoxesCard() {
+  const settings = useStore((s) => s.settings);
+  const agents = useStore((s) => s.agents);
+  const cloud = settings.cloudBoxes ?? DEFAULT_CLOUD_BOXES;
+  const [view, setView] = useState<BoxesView | null>(null);
+  const refresh = () => void attempt(() => api.boxes()).then((v) => v && setView(v));
+  useEffect(() => {
+    refresh();
+    const t = setInterval(refresh, 60_000);
+    return () => clearInterval(t);
+  }, [cloud.enabled, cloud.snapshotId]);
+  const set = (p: Partial<typeof cloud>) => void attempt(() => api.updateSettings({ cloudBoxes: { ...cloud, ...p } }));
+  const nameOf = (id: string | null) => (id ? (Object.values(agents).find((a) => a.id === id)?.name ?? 'someone gone') : 'no one');
+  const used = view?.cpuSeconds ?? 0;
+  return (
+    <div className="card">
+      <h3>☁ Cloud boxes</h3>
+      <p className="muted small">
+        Coders can work in their own Upstash Box: a Linux machine in the cloud, signed in to your own Claude or Codex subscription. It takes their work off this computer. Testers stay here for now.
+      </p>
+      <label className="field row">
+        <input type="checkbox" checked={cloud.enabled} onChange={(e) => set({ enabled: e.target.checked })} /> Let coders work in Upstash Boxes
+      </label>
+      <label className="field">
+        <span>Most boxes at once (the free plan allows 10)</span>
+        <input type="number" min={1} max={100} defaultValue={cloud.maxBoxes} key={cloud.maxBoxes} onBlur={(e) => Number(e.target.value) !== cloud.maxBoxes && set({ maxBoxes: Number(e.target.value) })} />
+      </label>
+      <div className="small">
+        <div>{view?.keyPresent ? '✓ Upstash Box API key found' : '✗ No Upstash Box API key: set UPSTASH_BOX_API_KEY on this computer, then restart the dungeon.'}</div>
+        <div>{view?.githubTokenPresent ? '✓ GitHub token for the boxes found' : '✗ No GitHub token for the boxes: set CODEDUNGEON_BOX_GITHUB_TOKEN (a fine-grained token for your repositories).'}</div>
+        <div>
+          {cloud.snapshotId ? '✓ Base box ready' : '✗ The base box isn\'t built yet.'}{' '}
+          <button className="btn btn-small" disabled={!view?.keyPresent} onClick={() => void attempt(() => api.buildBaseBox())} title="Makes the snapshot every recruit's box starts from: tmux and a test browser, no logins. A few minutes.">
+            {cloud.snapshotId ? 'Rebuild the base box' : 'Build the base box'}
+          </button>
+        </div>
+      </div>
+      {view && view.boxes.length > 0 && (
+        <table className="team small">
+          <tbody>
+            {view.boxes.map((b) => (
+              <tr key={b.id}>
+                <td>{b.name || b.id}</td>
+                <td className="muted">{b.status}</td>
+                <td>{nameOf(b.agentId)}</td>
+                <td>{Math.round(b.cpuSeconds / 60)} CPU min</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {view && (
+        <div className="muted small">
+          CPU used so far: {(used / 3600).toFixed(2)} h of the free plan's {FREE_CPU_SECONDS / 3600} h a month ({Math.round((100 * used) / FREE_CPU_SECONDS)}%).
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsTab() {
   const settings = useStore((s) => s.settings);
   const suggested = useSystemFeed().latest?.sessions.suggested;
@@ -815,6 +910,9 @@ function SettingsTab() {
           Coders work like your own coding agents in a terminal, with your skills, MCP servers and settings, and don't stop to ask. The dungeon's workflow (branches, pull requests, QA reporting
           back) is in their instructions.
         </p>
+      </div>
+      <div style={{ display: 'contents' }}>
+        {terminal && <CloudBoxesCard />}
         <h3><Icon name="castle" /> Your hold</h3>
         <label className="field">
           <span>Your name</span>

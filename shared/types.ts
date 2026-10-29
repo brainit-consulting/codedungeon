@@ -173,6 +173,30 @@ export type AgentRuntime = 'terminal' | 'sdk';
 
 /** The coding-agent CLI an agent runs in its terminal. The CEO is always Claude Code. */
 export type AgentCli = 'claude' | 'codex' | 'opencode';
+/** Where a recruit works: on this computer, or in their own Upstash Box in the cloud. */
+export type AgentMachine = 'local' | 'box';
+
+/** A recruit's Upstash Box, as the office last saw it. */
+export interface AgentBoxView {
+  id: string | null; // null: not made yet (it's made before their next task)
+  /** Their box's CLI is signed in to the Overlord's subscription; null: not checked yet. */
+  signedIn: boolean | null;
+}
+
+/** Recruits in Upstash Boxes (cloud). The Box API key and the boxes' GitHub token live in the environment, never here. */
+export interface CloudBoxesSettings {
+  enabled: boolean;
+  maxBoxes: number; // the most boxes the office keeps (the free plan allows 10)
+  snapshotId: string; // the base snapshot new boxes are made from ('' until one is built)
+}
+
+/** What the ledger shows about the office's boxes. */
+export interface BoxesView {
+  keyPresent: boolean; // UPSTASH_BOX_API_KEY is set
+  githubTokenPresent: boolean; // CODEDUNGEON_BOX_GITHUB_TOKEN is set
+  boxes: { id: string; name: string; status: string; cpuSeconds: number; agentId: string | null }[];
+  cpuSeconds: number; // all of the office's boxes together, so far
+}
 
 /** A coding-agent CLI the office knows how to run, and whether it's installed on this machine. */
 export interface CliView {
@@ -212,6 +236,8 @@ export interface AgentView {
   model: string; // '' = use the swarm default model, or a model id / alias
   effort: EffortLevel | ''; // '' = use the swarm default effort
   cli: AgentCli | ''; // the CLI they run in the terminal runtime ('' = the office default)
+  machine: AgentMachine; // where they work
+  box: AgentBoxView | null; // their Upstash Box, when they work in one
   terminal: boolean; // they have a terminal to watch (the terminal runtime); otherwise their log lines are the screen
   status: AgentStatus;
   issueNumber: number | null; // devs: the issue being worked on
@@ -287,6 +313,7 @@ export interface SwarmSettings {
   tutorialStep: number; // index of the current tutorial step; -1 when finished or skipped
   autoUpdate?: boolean; // update the office itself once it's quiet (absent on servers without self-update)
   pacingSessions: number; // after Claude warns about usage, new issues start only while fewer sessions than this run
+  cloudBoxes?: CloudBoxesSettings; // recruits in Upstash Boxes (absent: off)
 }
 
 /** Claude's subscription usage: normal, pacing new work after a usage warning, or paused at the limit until `until`. */

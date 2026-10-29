@@ -193,6 +193,10 @@ app.post('/api/agents/:id/stop', route((req) => swarm.stopAgent(String(req.param
 app.post('/api/agents/:id/reset', route((req) => swarm.resetAgent(String(req.params.id))));
 app.post('/api/agents/:id/message', route((req) => swarm.message(String(req.params.id), str(req.body.text))));
 app.post('/api/agents/:id/carry-on', route((req) => swarm.carryOn(String(req.params.id))));
+// Recruits in Upstash Boxes
+app.post('/api/agents/:id/box/sign-in', route((req) => swarm.signInBox(String(req.params.id))));
+app.get('/api/boxes', route(() => swarm.boxesView()));
+app.post('/api/boxes/base', route(() => swarm.buildBaseBox()));
 app.get('/api/agents/:id/screen', (req, res) => {
   const shot = swarm.screenshot(String(req.params.id));
   if (!shot) return void res.status(404).end();

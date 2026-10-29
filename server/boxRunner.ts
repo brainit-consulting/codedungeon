@@ -74,6 +74,7 @@ export class BoxPty implements Pty {
   private async start() {
     this.box = await getBox(this.o.boxId);
     if ((await this.box.getStatus()).status === 'paused') await this.box.resume();
+    await boxRun(this.box, `mkdir -p ${shq(this.o.dir)}`);
     await this.box.files.write({ path: `${BOX_DIR}/tmux.conf`, content: TMUX_CONF });
     const script = `${this.o.dir}/launch.sh`;
     await this.box.files.write({ path: script, content: launchScript({ cwd: this.o.cwd, file: this.o.file, args: this.o.args, env: { ...this.o.env, CD_EVENTS_FILE: this.events }, exitFile: this.exitFile }) });

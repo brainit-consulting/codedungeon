@@ -237,6 +237,24 @@ export async function boxRun(box: Box, command: string, env: Record<string, stri
   return { ok: run.status === 'completed', out: String(run.result ?? '') };
 }
 
+/**
+ * Builds the base snapshot: a fresh box set up with BASE_SETUP, saved, then deleted (a snapshot outlives its box).
+ * Returns the snapshot's id. No login is ever in it.
+ */
+export async function buildBaseSnapshot(): Promise<string> {
+  const c = boxConnection();
+  if (!c) throw new Error('No Upstash Box API key (UPSTASH_BOX_API_KEY)');
+  const box = await Box.create({ apiKey: c.apiKey, name: 'code-dungeon-base', labels: [BOX_LABEL, 'base'], runtime: 'node', size: 'small', timeout: BOX_TIMEOUT_MS } as never);
+  try {
+    const setup = await boxRun(box, BASE_SETUP);
+    if (!setup.ok) throw new Error(setup.out.trim().split('\n').slice(-3).join(' ').slice(0, 300) || 'the setup failed');
+    const snap = await box.snapshot({ name: `code-dungeon-base-${new Date().toISOString().slice(0, 10)}` });
+    return snap.id;
+  } finally {
+    await box.delete().catch(() => undefined);
+  }
+}
+
 /** The base snapshot's setup: everything a recruit's box needs, no logins. Kept here so a new base can be built. */
 export const BASE_SETUP = [
   'set -e',

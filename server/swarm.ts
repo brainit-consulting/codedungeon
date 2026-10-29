@@ -40,10 +40,34 @@ import { enforcePhoneCheck, phoneCoderLine, phoneQaStep } from './phoneReady.ts'
 import { qaChecksStep } from './qaSetup.ts';
 import { fixChangedPr, issueHandOff, prUrlIn } from './handOff.ts';
 import { STRANGER_RULE, strangerRefusal, trustedComments, type GhComment } from './trust.ts';
+import {
+  BOX_SCRATCH,
+  BOX_SESSIONS,
+  boxApiKey,
+  boxDeskDir,
+  boxGithubToken,
+  boxRun,
+  buildBaseSnapshot,
+  createRecruitBox,
+  getBox,
+  gitEnv,
+  listOfficeBoxes,
+  prepareDeskScript,
+  releaseDeskScript,
+  signedIn,
+  signInCheck,
+  signInCommand,
+} from './boxes.ts';
+import { BoxPty } from './boxRunner.ts';
+import { cliLabel } from './clis.ts';
+import { cleanCloudBoxes, DEFAULT_CLOUD_BOXES, machineRefusal } from '../shared/cloudBoxes.ts';
+import type { Box } from '@upstash/box';
 import type {
   AgentCli,
   AgentLook,
+  AgentMachine,
   AgentRole,
+  BoxesView,
   AgentStatus,
   AgentTask,
   AgentView,
@@ -132,6 +156,11 @@ interface PersistedAgent {
   asks?: string | null;
   /** A tester's lock-file fingerprint at its last round on its desk: unchanged, it doesn't reinstall (qaSetup.ts). */
   depsAtLastRound?: string | null;
+  /** Where they work (absent: this computer), and their Upstash Box once it's made. */
+  machine?: AgentMachine;
+  boxId?: string | null;
+  /** Their box's CLI was signed in at the last check; null/absent: not checked yet. */
+  boxSignedIn?: boolean | null;
   logTail: LogLine[];
 }
 
@@ -749,6 +778,8 @@ export class Swarm {
       model: a.model,
       effort: a.effort,
       cli: a.cli,
+      machine: a.machine ?? 'local',
+      box: a.machine === 'box' ? { id: a.boxId ?? null, signedIn: a.boxSignedIn ?? null } : null,
       terminal: !!rt.terminal,
       status: a.status,
       issueNumber: a.issueNumber,
@@ -1715,11 +1746,19 @@ export class Swarm {
 
   updateAgent(
     id: string,
-    patch: { name?: string; model?: string; effort?: string; cli?: string; look?: string; title?: string; specialty?: string; brief?: string; color?: string; hair?: string },
+    patch: { name?: string; model?: string; effort?: string; cli?: string; look?: string; title?: string; specialty?: string; brief?: string; color?: string; hair?: string; machine?: string },
   ) {
     const a = this.agent(id);
     const refusal = typeof patch.brief === 'string' && a.role !== 'ceo' && tooLong(`brief for ${a.name}`, patch.brief, BRIEF_MAX);
     if (refusal) throw new HttpError(400, refusal);
+    if (patch.machine === 'local' || patch.machine === 'box') {
+      const moving = this.machineRefusal(a, patch.machine);
+      if (moving) throw new HttpError(409, moving);
+      if (patch.machine !== (a.machine ?? 'local')) {
+        a.machine = patch.machine;
+        this.appendLog(a, [{ kind: 'system', text: patch.machine === 'box' ? '☁ Works in their own Upstash Box from the next task.' : '🖥 Works on this computer again from the next task (their box is kept, paused).' }]);
+      }
+    }
     if (patch.cli !== undefined && a.role !== 'ceo') a.cli = isCli(patch.cli) ? patch.cli : '';
     if (patch.name?.trim() && patch.name.trim() !== a.name) {
       a.name = patch.name.trim().slice(0, 24);
@@ -1739,6 +1778,152 @@ export class Swarm {
     this.emitAgent(a);
   }
 
+  // ---------- recruits in Upstash Boxes ----------
+
+  private get cloud() {
+    return this.state.settings.cloudBoxes ?? DEFAULT_CLOUD_BOXES;
+  }
+
+  /** Why this recruit can't move to `to` now (shared/cloudBoxes.ts); null when they can. */
+  private machineRefusal(a: PersistedAgent, to: AgentMachine): string | null {
+    return machineRefusal(to, {
+      role: a.role,
+      status: a.status,
+      hasTask: !!this.agentRt.get(a.id)?.session,
+      current: a.machine ?? 'local',
+      cloud: this.cloud,
+      keyPresent: !!boxApiKey(),
+      githubTokenPresent: !!boxGithubToken(),
+      terminalRuntime: this.state.settings.runtime === 'terminal' && this.backend.terminals,
+      boxesInUse: this.state.agents.filter((x) => x !== a && x.machine === 'box').length,
+    });
+  }
+
+  private inBox(a: PersistedAgent) {
+    return a.machine === 'box' && a.role !== 'ceo';
+  }
+
+  private cliOf(a: PersistedAgent): AgentCli {
+    return a.cli || this.state.settings.defaultCli;
+  }
+
+  /** Their box: made from the base snapshot the first time, woken when it's paused. */
+  private async agentBox(a: PersistedAgent): Promise<Box> {
+    if (a.boxId) {
+      try {
+        const box = await getBox(a.boxId);
+        if ((await box.getStatus()).status === 'paused') await box.resume();
+        return box;
+      } catch (err) {
+        if (!/not found|404|does not exist/i.test(String((err as Error).message))) throw err;
+        this.appendLog(a, [{ kind: 'error', text: '⚠ Their box is gone from Upstash; a new one is made (it needs signing in again).' }]);
+        a.boxId = null;
+      }
+    }
+    if (!this.cloud.snapshotId) throw new Error("The base box isn't built yet (Settings → Cloud boxes).");
+    this.appendLog(a, [{ kind: 'system', text: '☁ Making their Upstash Box from the base…' }]);
+    const box = await createRecruitBox(this.cloud.snapshotId, `cd-${this.agentSlug(a)}`.replace(/[^\w.-]/g, '-').slice(0, 40), [`a:${a.id.slice(0, 16)}`]);
+    a.boxId = box.id;
+    a.boxSignedIn = null;
+    this.save();
+    this.emitAgent(a);
+    return box;
+  }
+
+  /** A box recruit's desk: their box awake, its CLI signed in, the repo on their branch. Returns the desk's path there. */
+  private async prepareInBox(a: PersistedAgent, repo: PersistedRepo, base: { pr?: number }, branch: string): Promise<string> {
+    const box = await this.agentBox(a);
+    const cli = this.cliOf(a);
+    a.boxSignedIn = signedIn(cli, (await boxRun(box, signInCheck(cli))).out);
+    this.emitAgent(a);
+    if (!a.boxSignedIn) throw new Error(`🔑 ${a.name}'s box isn't signed in to ${cliLabel(cli)}. Sign it in from their card (Team tab, "Sign in the box"), then let them carry on.`);
+    const token = boxGithubToken();
+    if (!token) throw new Error('No GitHub token for the boxes: set CODEDUNGEON_BOX_GITHUB_TOKEN on this computer.');
+    await boxRun(box, releaseDeskScript(this.port(a)));
+    const ready = await boxRun(box, prepareDeskScript(repo.fullName, { defaultBranch: repo.defaultBranch, pr: base.pr }, branch), gitEnv(token));
+    if (!ready.ok) throw new Error(`Could not prepare their desk in the box: ${ready.out.trim().split('\n').slice(-3).join(' ').slice(0, 300)}`);
+    return boxDeskDir(repo.fullName);
+  }
+
+  /** Stops what a recruit left running on their port: in their box, or on this computer. */
+  private releaseAgentDesk(a: PersistedAgent, repo: PersistedRepo): Promise<void> {
+    if (this.inBox(a) && a.boxId) return getBox(a.boxId).then((box) => boxRun(box, releaseDeskScript(this.port(a)))).then(() => undefined);
+    return this.backend.releaseDesk(repo.fullName, this.agentSlug(a), this.port(a));
+  }
+
+  /**
+   * Sign a recruit's box in to the Overlord's subscription: the CLI's own sign-in runs in their terminal, where the
+   * Overlord opens the link it shows and types the code back. Nothing is copied from this computer.
+   */
+  async signInBox(id: string): Promise<{ ok: true }> {
+    const a = this.agent(id);
+    if (!this.inBox(a)) throw new HttpError(409, `${a.name} works on this computer.`);
+    if (this.agentRt.get(id)?.session) throw new HttpError(409, `${a.name} is working; sign their box in between tasks.`);
+    const box = await this.agentBox(a);
+    const cli = this.cliOf(a);
+    const term = this.terminalFor(a);
+    term.releaseIdle?.(); // a CLI still waiting at its prompt from the last task
+    term.note(`── Sign ${a.name}'s box in to ${cliLabel(cli)}: open the link below, sign in, and paste the code here ──`);
+    const p = new BoxPty({
+      boxId: box.id,
+      dir: `${BOX_SESSIONS}/sign-in-${Date.now()}`,
+      cwd: '/home/boxuser',
+      file: 'bash',
+      args: ['-lc', signInCommand(cli)],
+      env: { TERM: 'xterm-256color' },
+      cols: term.cols,
+      rows: term.rows,
+      onEvent: () => undefined,
+      onNotice: (text) => term.note(text),
+    });
+    term.bind({ write: (d) => p.write(d), resize: (c, r) => p.resize(c, r) });
+    p.onData((d) => term.write(d));
+    p.onExit(() => {
+      term.bind(null);
+      void boxRun(box, signInCheck(cli))
+        .then((r) => {
+          a.boxSignedIn = signedIn(cli, r.out);
+          this.appendLog(a, [{ kind: a.boxSignedIn ? 'system' : 'error', text: a.boxSignedIn ? `🔑 Their box is signed in to ${cliLabel(cli)}.` : `⚠ Their box still isn't signed in to ${cliLabel(cli)}.` }]);
+          this.emitAgent(a);
+          this.save();
+        })
+        .catch(() => undefined);
+    });
+    this.emitAgent(a);
+    return { ok: true };
+  }
+
+  /** The office's boxes and what they've used, for the ledger. */
+  async boxesView(): Promise<BoxesView> {
+    const keyPresent = !!boxApiKey();
+    const boxes = keyPresent ? await listOfficeBoxes().catch(() => []) : [];
+    const owner = new Map(this.state.agents.filter((a) => a.boxId).map((a) => [a.boxId!, a.id]));
+    return {
+      keyPresent,
+      githubTokenPresent: !!boxGithubToken(),
+      boxes: boxes.map((b) => ({ id: b.id, name: b.name, status: b.status, cpuSeconds: b.cpuSeconds, agentId: owner.get(b.id) ?? null })),
+      cpuSeconds: boxes.reduce((s, b) => s + b.cpuSeconds, 0),
+    };
+  }
+
+  private buildingBase = false;
+
+  /** Builds the base snapshot recruits' boxes are made from (tmux, a test browser; no logins). A few minutes. */
+  async buildBaseBox(): Promise<{ started: true }> {
+    if (!boxApiKey()) throw new HttpError(409, 'No Upstash Box API key: set UPSTASH_BOX_API_KEY on this computer, then restart the dungeon.');
+    if (this.buildingBase) throw new HttpError(409, 'The base box is already being built.');
+    this.buildingBase = true;
+    this.toast('info', 'Building the base box in Upstash (a few minutes)…');
+    void buildBaseSnapshot()
+      .then((snapshotId) => {
+        this.updateSettings({ cloudBoxes: { ...this.cloud, snapshotId } });
+        this.toast('success', 'The base box is ready: recruits can now work in Upstash Boxes.');
+      })
+      .catch((err) => this.toast('error', `Couldn't build the base box: ${(err as Error).message}`))
+      .finally(() => (this.buildingBase = false));
+    return { started: true };
+  }
+
   fireAgent(id: string, force = false) {
     const a = this.agent(id);
     if (a.role === 'ceo') throw new HttpError(409, `${a.name} runs the dungeon and can't be let go.`);
@@ -1752,6 +1937,8 @@ export class Swarm {
     this.agentRt.get(id)?.session?.stop();
     this.agentRt.get(id)?.terminal?.releaseIdle?.();
     this.agentRt.get(id)?.terminal?.dispose();
+    // their box goes with them (what they pushed is on GitHub); its sign-ins go with it
+    if (a.boxId) void getBox(a.boxId).then((box) => box.delete()).catch((err) => console.warn('could not delete a box', (err as Error).message));
     void removeScreens(id);
     void fs.rm(terminalFile(id), { force: true }).catch(() => undefined);
     for (const q of this.state.qa) {
@@ -1918,7 +2105,8 @@ export class Swarm {
   }
 
   private buildSystemAppend(a: PersistedAgent, repo: PersistedRepo, cwd: string, branch: string, fixing?: { pr: number; headRef: string }) {
-    const linked = this.linkedRepos(repo).map((r) => `- ${r.fullName}: read-only reference clone at ${this.backend.mainDir(r.fullName)}`);
+    const inBox = this.inBox(a);
+    const linked = inBox ? [] : this.linkedRepos(repo).map((r) => `- ${r.fullName}: read-only reference clone at ${this.backend.mainDir(r.fullName)}`);
     const push = fixing ? `git push origin HEAD:${fixing.headRef}` : `git push -u origin ${branch}`;
     return [
       `You are ${a.name}, ${a.title ? `the team's ${a.title},` : 'a software engineer'} on an autonomous agent team ("Code Dungeon"). Several teammates work in parallel on other issues of the same repository, each in their own git worktree. Nobody is watching live to answer questions, so make sensible decisions yourself and record assumptions in the PR description. The Overlord (the human in charge) may occasionally send you messages; follow their instructions.`,
@@ -1950,7 +2138,8 @@ export class Swarm {
       'Rules: never push to the default branch, never force-push, never merge pull requests yourself (the dungeon merges them once QA and the checks pass), and never edit files outside your worktree. Never deploy, promote or roll back on Vercel or anywhere else: the Overlord ships from the dungeon. If you cannot finish, open a draft PR (gh pr create --draft) explaining what is left and why.',
       STRANGER_RULE,
       ASK_RULE,
-      scratchRule(path.join(HOME_DIR, 'tmp')),
+      scratchRule(inBox ? BOX_SCRATCH : path.join(HOME_DIR, 'tmp')),
+      inBox ? 'You work in your own Linux machine in the cloud (an Upstash Box), not on the Overlord\'s computer.' : '',
     ]
       .filter((l) => l !== '')
       .join('\n');
@@ -1986,8 +2175,12 @@ export class Swarm {
   private async prepare(a: PersistedAgent, repo: PersistedRepo, base: { pr?: number }, branch: string): Promise<string | null> {
     try {
       if (this.repoRt.get(repo.id)?.cloneStatus !== 'ready') await this.cloneRepo(repo.id);
-      await this.backend.releaseDesk(repo.fullName, this.agentSlug(a), this.port(a));
-      const cwd = await this.backend.prepareDesk(repo.fullName, { defaultBranch: repo.defaultBranch, pr: base.pr }, this.agentSlug(a), branch);
+      let cwd: string;
+      if (this.inBox(a)) cwd = await this.prepareInBox(a, repo, base, branch);
+      else {
+        await this.backend.releaseDesk(repo.fullName, this.agentSlug(a), this.port(a));
+        cwd = await this.backend.prepareDesk(repo.fullName, { defaultBranch: repo.defaultBranch, pr: base.pr }, this.agentSlug(a), branch);
+      }
       return a.status === 'preparing' ? cwd : null; // null: stopped or fired while preparing
     } catch (err) {
       if (a.status !== 'preparing') return null;
@@ -2055,7 +2248,9 @@ export class Swarm {
         browserTesting: repo.browserTesting,
         phoneBrowser: a.task === 'qa' && repo.browserTesting && repo.phoneReady,
         resultReady: this.resultReady(a, repo),
-        additionalDirectories: this.linkedRepos(repo).map((r) => this.backend.mainDir(r.fullName)),
+        // linked repos are reference clones on this computer: not in a box (yet)
+        additionalDirectories: this.inBox(a) ? [] : this.linkedRepos(repo).map((r) => this.backend.mainDir(r.fullName)),
+        box: this.inBox(a) && a.boxId && how.terminal ? { boxId: a.boxId, env: gitEnv(boxGithubToken()) } : undefined,
         role: a.task === 'qa' ? 'qa' : a.role, // a developer covering QA works under QA's rules
         outputSchema,
         // A developer's CLI stays at its prompt afterwards, for the manager and for follow-ups; QA's closes.
@@ -2156,7 +2351,7 @@ export class Swarm {
     this.finalUsage(a, rt, result.costUsd);
     a.turns += result.turns;
     // Dev servers the agent forgot to stop would otherwise keep its port and lock its desk folder.
-    void this.backend.releaseDesk(repo.fullName, this.agentSlug(a), this.port(a)).catch(() => undefined);
+    void this.releaseAgentDesk(a, repo).catch(() => undefined);
     if (result.interrupted) this.interrupted(a);
 
     // blocked on something only the Overlord can give (a tester's real report wins over a stray line)
@@ -2798,6 +2993,7 @@ export class Swarm {
     if (patch.tutorialStep !== undefined) s.tutorialStep = Math.max(-1, Math.round(Number(patch.tutorialStep)) || 0);
     if (typeof patch.autoUpdate === 'boolean') s.autoUpdate = patch.autoUpdate;
     if (patch.pacingSessions !== undefined) s.pacingSessions = clampPacingSessions(patch.pacingSessions);
+    if (patch.cloudBoxes !== undefined) s.cloudBoxes = cleanCloudBoxes(patch.cloudBoxes, s.cloudBoxes);
     this.save();
     this.broadcast({ type: 'settings', settings: s });
     this.emitCeo();
