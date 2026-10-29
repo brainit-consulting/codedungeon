@@ -12,6 +12,9 @@ export const BOX_BIN = `${BOX_DIR}/bin`;
 export const BOX_SESSIONS = `${BOX_DIR}/sessions`;
 export const BOX_SCRATCH = `${BOX_DIR}/tmp`;
 export const BOX_DESKS = `${BOX_HOME}/desks`;
+/** The Playwright MCP server the base installed, and the Chromium it's pointed at (there's no Chrome for these machines). */
+export const BOX_MCP = `${BOX_DIR}/pw/node_modules/@playwright/mcp/cli.js`;
+export const BOX_CHROMIUM = `${BOX_DIR}/chromium`;
 /** The free plan's limit; the office never runs more boxes than the Overlord allows. */
 export const FREE_PLAN_BOXES = 10;
 /** Labels: every box the office makes carries them, so it can tell its own boxes from others on the account. */
@@ -261,9 +264,12 @@ export const BASE_SETUP = [
   'sudo apt-get update -qq >/dev/null',
   'sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq tmux lsof >/dev/null',
   `mkdir -p ${BOX_DIR}/pw ${BOX_BIN} ${BOX_SESSIONS} ${BOX_SCRATCH} ${BOX_DESKS}`,
-  `cd ${BOX_DIR}/pw && npm init -y >/dev/null && npm install -s --no-audit --no-fund playwright@latest >/dev/null`,
+  `cd ${BOX_DIR}/pw && npm init -y >/dev/null && npm install -s --no-audit --no-fund playwright@latest @playwright/mcp@latest >/dev/null`,
   'sudo ./node_modules/.bin/playwright install-deps chromium >/dev/null',
   './node_modules/.bin/playwright install chromium >/dev/null',
+  // The browser tool's own Playwright wants an exact Chromium build: it's pointed at this one instead (BOX_CHROMIUM).
+  `ln -sf "$(ls -d ${BOX_HOME}/.cache/ms-playwright/chromium-*/chrome-linux*/chrome | tail -1)" ${BOX_DIR}/chromium`,
+  `test -x ${BOX_DIR}/chromium`,
   // Claude Code's first-run screens answered, so a recruit's CLI starts at its prompt
   `node -e 'const f=require("os").homedir()+"/.claude.json";const fs=require("fs");const c=fs.existsSync(f)?JSON.parse(fs.readFileSync(f)):{};Object.assign(c,{hasCompletedOnboarding:true,theme:"dark"});fs.writeFileSync(f,JSON.stringify(c,null,2))'`,
   `date -u +%FT%TZ > ${BOX_DIR}/base-ready`,

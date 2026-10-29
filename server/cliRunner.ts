@@ -28,7 +28,7 @@ import { keepWaitingForBackground, workingAloneAfter } from './handOff.ts';
 import { PHONE_BROWSER_CONFIG } from './phoneReady.ts';
 import { permissionAnswer, PromptWait, scratchTemp } from './permissionGate.ts';
 import { FileMeter, promptBaseline, statusUsage, UsageTally } from './usageMeter.ts';
-import { BOX_BIN, BOX_EVENT_SOURCE, BOX_SCRATCH, BOX_SESSIONS, getBox, shq } from './boxes.ts';
+import { BOX_BIN, BOX_CHROMIUM, BOX_EVENT_SOURCE, BOX_MCP, BOX_SCRATCH, BOX_SESSIONS, getBox, shq } from './boxes.ts';
 import { BoxPty } from './boxRunner.ts';
 import type { AgentCli } from '../shared/types.ts';
 
@@ -133,9 +133,13 @@ async function writeBoxHelpers(boxId: string) {
   return box;
 }
 
-/** The browser for a session in a box: the same server, with the box's paths. */
+/**
+ * The browser for a session in a box: the server the base installed, on the box's Chromium (Chrome isn't made for these
+ * machines, and the server's own Playwright would want a different Chromium build than the one installed).
+ */
 function boxPlaywrightServer(outputDir: string, phone = false) {
-  return { command: 'npx', args: ['-y', '@playwright/mcp@latest', '--headless', '--isolated', ...(phone ? ['--config', `${BOX_BIN}/phone-browser.json`] : []), '--output-dir', outputDir, '--init-script', `${BOX_BIN}/browser-init.js`] };
+  const args = [BOX_MCP, '--headless', '--isolated', '--browser', 'chromium', '--executable-path', BOX_CHROMIUM];
+  return { command: 'node', args: [...args, ...(phone ? ['--config', `${BOX_BIN}/phone-browser.json`] : []), '--output-dir', outputDir, '--init-script', `${BOX_BIN}/browser-init.js`] };
 }
 
 // ---------- plumbing ----------
