@@ -3,7 +3,7 @@ import { api } from '../api';
 import { PreviewPill, PreviewSettings } from './AppViewer';
 import { agentsOnRepo, pendingRequests, useStore, type ManagerTab } from '../store';
 import { CHAMBER_DYE_NAMES, CHAMBER_DYES } from '../../../shared/palette';
-import { CEO_ID, type AgentCli, type AgentMachine, type BoxesView, type CliView, type EffortLevel, type OfficeUpdateView, type RepoView } from '../../../shared/types';
+import { CEO_ID, type AgentCli, type AgentMachine, type BoxesView, type CliView, type CloudBoxesSettings, type EffortLevel, type OfficeUpdateView, type RepoView } from '../../../shared/types';
 import { DEFAULT_CLOUD_BOXES } from '../../../shared/cloudBoxes';
 import { effectiveModel } from '../../../shared/models';
 import { BRIEF_MAX, MISSION_MAX, briefCount, tooLong } from '../../../shared/briefs';
@@ -451,7 +451,7 @@ function CeoTab() {
 
 // ---------- team ----------
 
-function TeamTab() {
+function TeamTab({ onCloudSettings }: { onCloudSettings?: () => void }) {
   const repos = useStore((s) => s.repos);
   const agents = useStore((s) => s.agents);
   const settings = useStore((s) => s.settings);
@@ -465,6 +465,14 @@ function TeamTab() {
   if (repos.length === 0) return <p className="muted">Connect a repo first; coders need a chamber to work in.</p>;
   return (
     <div>
+      {terminal && !settings.cloudBoxes?.enabled && onCloudSettings && (
+        <p className="muted small">
+          ☁ Coders can also work in their own Upstash Box in the cloud, off this computer.{' '}
+          <button className="btn btn-small btn-ghost" onClick={onCloudSettings}>
+            Set up cloud boxes
+          </button>
+        </p>
+      )}
       <datalist id="models">
         {MODELS.map((m) => (
           <option key={m} value={m} />
@@ -743,6 +751,7 @@ function CloudBoxesCard() {
   const [view, setView] = useState<BoxesView | null>(null);
   const refresh = () => void attempt(() => api.boxes()).then((v) => v && setView(v));
   useEffect(() => {
+    if (!cloud.enabled) return;
     refresh();
     const t = setInterval(refresh, 60_000);
     return () => clearInterval(t);
@@ -756,9 +765,33 @@ function CloudBoxesCard() {
       <p className="muted small">
         Coders can work in their own Upstash Box: a Linux machine in the cloud, signed in to your own Claude or Codex subscription. It takes their work off this computer. Testers stay here for now.
       </p>
-      <label className="field row">
-        <input type="checkbox" checked={cloud.enabled} onChange={(e) => set({ enabled: e.target.checked })} /> Let coders work in Upstash Boxes
+      <label className="toggle block">
+        <input type="checkbox" checked={cloud.enabled} onChange={(e) => set({ enabled: e.target.checked })} />
+        <span>
+          <b>Let coders work in Upstash Boxes</b>, chosen per coder in the Guild tab (Works on).
+        </span>
       </label>
+      {cloud.enabled && <CloudBoxesDetails cloud={cloud} view={view} set={set} nameOf={nameOf} used={used} />}
+    </div>
+  );
+}
+
+/** The Cloud boxes card once it's switched on: the limit, what's set up, the base box and the boxes themselves. */
+function CloudBoxesDetails({
+  cloud,
+  view,
+  set,
+  nameOf,
+  used,
+}: {
+  cloud: CloudBoxesSettings;
+  view: BoxesView | null;
+  set: (p: Partial<CloudBoxesSettings>) => void;
+  nameOf: (id: string | null) => string;
+  used: number;
+}) {
+  return (
+    <>
       <label className="field">
         <span>Most boxes at once (the free plan allows 10)</span>
         <input type="number" min={1} max={100} defaultValue={cloud.maxBoxes} key={cloud.maxBoxes} onBlur={(e) => Number(e.target.value) !== cloud.maxBoxes && set({ maxBoxes: Number(e.target.value) })} />
@@ -792,7 +825,7 @@ function CloudBoxesCard() {
           CPU used so far: {(used / 3600).toFixed(2)} h of the free plan's {FREE_CPU_SECONDS / 3600} h a month ({Math.round((100 * used) / FREE_CPU_SECONDS)}%).
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -892,27 +925,29 @@ function SettingsTab() {
         </label>
         <p className="muted small">A review is skipped when nothing changed since the last one. The DungeonMaster's own model and effort are on the DungeonMaster tab.</p>
       </div>
-      <div className="card">
-        <h3><Icon name="hammer" /> How coders run</h3>
-        <label className="toggle block">
-          <input type="radio" checked={settings.runtime === 'terminal'} onChange={() => set({ runtime: 'terminal' })} />
-          <span>
-            <b>Real terminals</b> (recommended): every coder is its actual coding agent running in its own terminal. Open a bench to watch it live or type into it.
-          </span>
-        </label>
-        <label className="toggle block">
-          <input type="radio" checked={settings.runtime === 'sdk'} onChange={() => set({ runtime: 'sdk' })} />
-          <span>
-            <b>Agent SDK</b>: Claude Code through the Claude Agent SDK, shown as a log of its steps. Claude Code only.
-          </span>
-        </label>
-        <p className="muted small">
-          Coders work like your own coding agents in a terminal, with your skills, MCP servers and settings, and don't stop to ask. The dungeon's workflow (branches, pull requests, QA reporting
-          back) is in their instructions.
-        </p>
+      <div className="tab-stack">
+        <div className="card">
+          <h3><Icon name="hammer" /> How coders run</h3>
+          <label className="toggle block">
+            <input type="radio" checked={settings.runtime === 'terminal'} onChange={() => set({ runtime: 'terminal' })} />
+            <span>
+              <b>Real terminals</b> (recommended): every coder is its actual coding agent running in its own terminal. Open a bench to watch it live or type into it.
+            </span>
+          </label>
+          <label className="toggle block">
+            <input type="radio" checked={settings.runtime === 'sdk'} onChange={() => set({ runtime: 'sdk' })} />
+            <span>
+              <b>Agent SDK</b>: Claude Code through the Claude Agent SDK, shown as a log of its steps. Claude Code only.
+            </span>
+          </label>
+          <p className="muted small">
+            Coders work like your own coding agents in a terminal, with your skills, MCP servers and settings, and don't stop to ask. The dungeon's workflow (branches, pull requests, QA reporting
+            back) is in their instructions.
+          </p>
+        </div>
+        {terminal && <CloudBoxesCard />}
       </div>
       <div style={{ display: 'contents' }}>
-        {terminal && <CloudBoxesCard />}
         <h3><Icon name="castle" /> Your hold</h3>
         <label className="field">
           <span>Your name</span>
@@ -969,7 +1004,7 @@ export function ManagerConsole({ initialTab, initialRepo }: { initialTab?: Manag
       <div className="tab-body">
         {tab === 'floors' && <FloorsTab />}
         {tab === 'ceo' && <CeoTab />}
-        {tab === 'team' && <TeamTab />}
+        {tab === 'team' && <TeamTab onCloudSettings={() => setTab('settings')} />}
         {tab === 'issues' && <IssuesTab initialRepo={initialRepo} />}
         {tab === 'settings' && <SettingsTab />}
       </div>
