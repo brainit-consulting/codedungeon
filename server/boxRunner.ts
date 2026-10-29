@@ -47,6 +47,8 @@ export class BoxPty implements Pty {
   private rows: number;
   private ended = false;
   private killed = false;
+  /** Done once a kill() has stopped the CLI in the box: the office waits for it when it quits. */
+  stopped: Promise<void> = Promise.resolve();
   private offset = 0; // bytes of the events file already read
   private pending = '';
   private decoder = new TextDecoder();
@@ -175,7 +177,10 @@ export class BoxPty implements Pty {
 
   private stopBox() {
     if (!this.box) return;
-    void boxRun(this.box, `${this.tmux('kill-server').map(shq).join(' ')} 2>/dev/null; true`).catch(() => undefined);
+    this.stopped = boxRun(this.box, `${this.tmux('kill-server').map(shq).join(' ')} 2>/dev/null; true`).then(
+      () => undefined,
+      () => undefined,
+    );
   }
 
   write(data: string) {

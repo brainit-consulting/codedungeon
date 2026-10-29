@@ -66,6 +66,11 @@ Server (`server/`, Node + Express 5 + ws, run by tsx in development; esbuild bun
   `ptyClient.ts` is the office's side (start/connect, spawn, adopt after a restart, local fallback); `ptyProtocol.ts`
   their JSON-lines messages. The launcher's `office:shutdown` says `restart: false` when quitting: CLIs stop then.
   A developer's CLI stays at its prompt after the task (`keepAlive`): follow-ups and prompts typed there reuse it.
+- `boxes.ts`, `boxRunner.ts`: coders in Upstash Boxes (`@upstash/box`). `boxes.ts` is the box layer: the API key and
+  GitHub token (env or the Windows user environment), the base snapshot (`BASE_SETUP`), desk and sign-in scripts, and
+  the events program every hook and status line runs in a box. `boxRunner.ts`'s `BoxPty` implements `Pty` for a CLI
+  in tmux in the box: `tmux attach` over a PTY session (reconnects with backoff), events followed with `tail -F`.
+  `shared/cloudBoxes.ts` holds the settings and who may move into a box. Testers stay local.
 - `clis.ts`: the CLIs (Claude Code from the SDK's bundled binary, Codex, OpenCode): detection, Windows `.cmd` shim
   unwrapping, each one's command line, and the helper scripts they call back with.
 - `terminal.ts`: `AgentTerminal`, a headless xterm mirror per agent (replay for late viewers, saved to disk), its

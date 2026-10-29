@@ -105,6 +105,22 @@ export const CHAPTERS: GuideChapter[] = [
       p(
         'By default every recruit waits for your yes. In the ledger\'s Settings you can switch to auto-approve while a chamber is under the guild cap; anyone beyond the cap still waits for you.',
       ),
+      h('Coders in the cloud'),
+      p(
+        'A coder can work in their own Upstash Box instead of on this computer: a small Linux machine in the cloud with its own copy of the repo. It takes the builds, tests and test browser off this computer. The coder still uses your own Claude or Codex subscription, and still pushes a branch and opens a pull request, so the notice board, QA and merging work the same. Testers stay on this computer.',
+      ),
+      p('Setting it up once:'),
+      list(
+        'Make an Upstash Box API key in the Upstash console, and a fine-grained GitHub token for your repositories (Contents and Pull requests, read and write).',
+        'Save them on this computer as the user environment variables `UPSTASH_BOX_API_KEY` and `CODEDUNGEON_BOX_GITHUB_TOKEN`, then restart the dungeon. The dungeon never writes them to a file; the token reaches a box only for its git and GitHub commands.',
+        "In the ledger's Settings, under **Cloud boxes**, tick **Let coders work in Upstash Boxes** and press **Build the base box**. It takes a few minutes and makes the starting point every coder's box is copied from.",
+      ),
+      p(
+        "Then, in the Guild tab, set a coder's **Works on** to **☁ Upstash Box** while they have no task. Press **Sign in the box**: their terminal opens and runs the coding agent's own sign-in. Open the link it shows, sign in, and paste the code back into the terminal. Each box signs in once and stays signed in; nothing is copied from this computer.",
+      ),
+      p(
+        "The free Upstash plan allows 10 boxes and 5 hours of processor time a month; the Cloud boxes card shows what each box has used. Upstash pauses a box after an hour without work and wakes it for the next task. If the dungeon restarts while a coder works in a box, the coder carries on there. Setting **Works on** back to **🖥 This PC** keeps the box; letting the coder go deletes it, so anything they hadn't pushed goes with it.",
+      ),
       h('Letting someone go'),
       p(
         'Open their terminal (press [[E]] on their bench) or find them in the Guild tab, and press **Let go**. Their worktree is removed; any branches they pushed stay on GitHub. The last tester in a chamber can\'t be let go.',

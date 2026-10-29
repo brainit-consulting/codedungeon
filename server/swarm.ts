@@ -1756,7 +1756,7 @@ export class Swarm {
       if (moving) throw new HttpError(409, moving);
       if (patch.machine !== (a.machine ?? 'local')) {
         a.machine = patch.machine;
-        this.appendLog(a, [{ kind: 'system', text: patch.machine === 'box' ? '☁ Works in their own Upstash Box from the next task.' : '🖥 Works on this computer again from the next task (their box is kept, paused).' }]);
+        this.appendLog(a, [{ kind: 'system', text: patch.machine === 'box' ? '☁ Works in their own Upstash Box from the next task.' : '🖥 Works on this computer again from the next task (their box is kept; Upstash pauses it after an hour without work).' }]);
       }
     }
     if (patch.cli !== undefined && a.role !== 'ceo') a.cli = isCli(patch.cli) ? patch.cli : '';

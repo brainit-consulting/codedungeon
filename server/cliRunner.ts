@@ -244,11 +244,14 @@ function endLive(live: LiveCli): Promise<void> {
   routes.delete(live.token);
   live.term.releaseIdle = null;
   live.term.bind(null);
-  const gone = live.proc ? exitOf(live.proc) : undefined;
-  live.proc?.kill();
+  const proc = live.proc;
+  const gone = proc ? exitOf(proc) : undefined;
+  proc?.kill();
   live.proc = null;
   live.term.note(`── ${cliLabel(live.cli)} session ended ──`);
-  if (live.box) return Promise.resolve(); // its files and its Codex thread are in the box
+  // Its files and its Codex thread are in the box. Quitting waits for its CLI there to stop (measured: unawaited, it
+  // was still running after Ctrl+C).
+  if (live.box) return proc instanceof BoxPty ? proc.stopped : Promise.resolve();
   fs.rm(live.dir, { recursive: true, force: true, maxRetries: 5 }, () => undefined);
   return live.cli === 'codex' && live.resumeId ? codexThread('archive', live.resumeId, gone) : Promise.resolve();
 }
