@@ -185,6 +185,11 @@ export interface LaunchContext {
   browser: { command: string; args: string[] } | null;
   /** QA's touch-only browser for the phone check (Phone-ready checks), as the MCP server named phone. */
   phoneBrowser?: { command: string; args: string[] } | null;
+  /**
+   * The CLI runs in an Upstash Box (boxRunner.ts): Codex's notify and hooks run the box's event program with the box's
+   * node (notify.script and codexHook are its path there), and report through the events file, not an address.
+   */
+  inBox?: boolean;
 }
 
 export interface Launch {
@@ -236,17 +241,19 @@ export function launchArgs(id: AgentCli, ctx: LaunchContext): Launch {
     }
     case 'codex': {
       const toml = (s: string) => JSON.stringify(s); // a JSON string is a valid TOML basic string
+      const notify = ctx.inBox ? ['node', ctx.notify.script, 'notify'] : [process.execPath, ctx.notify.script, ctx.notify.url];
+      const hookCommand = ctx.inBox ? `node '${ctx.codexHook}' codex` : codexHookCommand(process.execPath, ctx.codexHook);
       const args = [
         '--no-alt-screen',
         '-c',
-        `notify=[${[process.execPath, ctx.notify.script, ctx.notify.url].map(toml).join(',')}]`,
+        `notify=[${notify.map(toml).join(',')}]`,
         '-c',
         `developer_instructions=${toml(ctx.systemAppend)}`,
         ...(ctx.model ? ['-m', ctx.model] : []),
         ...(ctx.effort ? ['-c', `model_reasoning_effort=${toml(EFFORT_CODEX[ctx.effort])}`] : []),
         ...(ctx.browser ? ['-c', `mcp_servers.playwright={command=${toml(ctx.browser.command)},args=[${ctx.browser.args.map(toml).join(',')}]}`] : []),
         ...(ctx.phoneBrowser ? ['-c', `mcp_servers.phone={command=${toml(ctx.phoneBrowser.command)},args=[${ctx.phoneBrowser.args.map(toml).join(',')}]}`] : []),
-        ...CODEX_HOOK_EVENTS.flatMap((e) => ['-c', `hooks.${e}=[{hooks=[{type="command",command=${toml(codexHookCommand(process.execPath, ctx.codexHook))},timeout=10}]}]`]),
+        ...CODEX_HOOK_EVENTS.flatMap((e) => ['-c', `hooks.${e}=[{hooks=[{type="command",command=${toml(hookCommand)},timeout=10}]}]`]),
         // Like the manager's own Codex, but it can't stop to ask: no approvals and no sandbox (its sandbox can't reach
         // the credential store, so git and gh fail in it).
         '--dangerously-bypass-approvals-and-sandbox',

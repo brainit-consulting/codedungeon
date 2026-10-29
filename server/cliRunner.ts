@@ -28,6 +28,8 @@ import { keepWaitingForBackground, workingAloneAfter } from './handOff.ts';
 import { PHONE_BROWSER_CONFIG } from './phoneReady.ts';
 import { permissionAnswer, PromptWait, scratchTemp } from './permissionGate.ts';
 import { FileMeter, promptBaseline, statusUsage, UsageTally } from './usageMeter.ts';
+import { BOX_BIN, BOX_EVENT_SOURCE, BOX_SCRATCH, BOX_SESSIONS, getBox, shq } from './boxes.ts';
+import { BoxPty } from './boxRunner.ts';
 import type { AgentCli } from '../shared/types.ts';
 
 // One agent session as the real CLI in a pseudo-terminal: the same contract as the Agent SDK runner (log lines, the
@@ -122,6 +124,20 @@ function writeHelpers() {
 /** A command line for Claude Code's shell (Git Bash on Windows): forward slashes, quoted. */
 const shellArg = (p: string) => `"${p.replaceAll('\\', '/')}"`;
 
+/** The box's event program and the browser's files, put in the box before a session there (they're small). */
+async function writeBoxHelpers(boxId: string) {
+  const box = await getBox(boxId);
+  await box.files.write({ path: `${BOX_BIN}/event.cjs`, content: BOX_EVENT_SOURCE });
+  await box.files.write({ path: `${BOX_BIN}/browser-init.js`, content: fs.readFileSync(path.join(import.meta.dirname, 'browser-init.js'), 'utf8') });
+  await box.files.write({ path: `${BOX_BIN}/phone-browser.json`, content: fs.readFileSync(PHONE_BROWSER_CONFIG, 'utf8') });
+  return box;
+}
+
+/** The browser for a session in a box: the same server, with the box's paths. */
+function boxPlaywrightServer(outputDir: string, phone = false) {
+  return { command: 'npx', args: ['-y', '@playwright/mcp@latest', '--headless', '--isolated', ...(phone ? ['--config', `${BOX_BIN}/phone-browser.json`] : []), '--output-dir', outputDir, '--init-script', `${BOX_BIN}/browser-init.js`] };
+}
+
 // ---------- plumbing ----------
 
 const HOOK_EVENTS = ['UserPromptSubmit', 'PreToolUse', 'PermissionRequest', 'PostToolUse', 'PostToolUseFailure', 'Stop', 'StopFailure', 'Notification'];
@@ -195,6 +211,8 @@ interface LiveCli {
   typedBase?: ReturnType<typeof promptBaseline>;
   /** Working on its own while it waits (a turn the office didn't start): its developer isn't free until it stops. */
   alone?: boolean;
+  /** It runs in the recruit's Upstash Box: its files and threads are there, not on this computer. */
+  box?: boolean;
 }
 const lives = new Map<AgentTerminal, LiveCli>();
 /** How to trust Codex's hooks was said once this run (Codex asks at the start of every session until they are). */
@@ -226,6 +244,7 @@ function endLive(live: LiveCli): Promise<void> {
   live.proc?.kill();
   live.proc = null;
   live.term.note(`── ${cliLabel(live.cli)} session ended ──`);
+  if (live.box) return Promise.resolve(); // its files and its Codex thread are in the box
   fs.rm(live.dir, { recursive: true, force: true, maxRetries: 5 }, () => undefined);
   return live.cli === 'codex' && live.resumeId ? codexThread('archive', live.resumeId, gone) : Promise.resolve();
 }
@@ -393,7 +412,8 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
 
   const token = crypto.randomUUID();
   const sessionId = opts.resumeSessionId ?? crypto.randomUUID();
-  const dir = path.join(SESSIONS_DIR, token);
+  const inBox = !!opts.box;
+  const dir = inBox ? `${BOX_SESSIONS}/${token}` : path.join(SESSIONS_DIR, token);
   const started = Date.now();
   const statusLine = `🏰 Code Dungeon${opts.label ? ` · ${opts.label}` : ''}`;
   const toolNames = new Map<string, string>();
@@ -426,9 +446,11 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   let transcript = '';
   let contextPct: number | null = null;
   let measuredAt = 0;
+  // In a box the session file is there, not here: the status line still reports the cost.
+  const metered = cli === 'claude' && !inBox;
   const measure = (force = false) => {
     const l = live;
-    if (cli !== 'claude' || !l || !transcript) return;
+    if (!metered || !l || !transcript) return;
     if (!force && Date.now() - measuredAt < USAGE_EVERY_MS) return;
     measuredAt = Date.now();
     const totals = l.meter.read(transcript);
@@ -437,7 +459,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
     costUsd = job.costUsd;
     cb.usage?.({ tokens: job.tokens, costUsd, contextPct });
   };
-  if (cli !== 'claude') cb.usage?.({ tokens: null, costUsd: 0, contextPct: null });
+  if (!metered) cb.usage?.({ tokens: null, costUsd: 0, contextPct: null });
 
   // A permission prompt nobody answers (permissionGate.ts): the Overlord is told once it has waited ten minutes.
   const promptWait = new PromptWait((text) => cb.permissionWait?.(text));
@@ -447,7 +469,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   /** Codex and OpenCode don't report tool results: pass on the screenshots their browser saved instead. all: the last look. */
   const collectShots = (all = false) => {
     const l = live;
-    if (!l || cli === 'claude' || !opts.browserTesting) return;
+    if (!l || cli === 'claude' || !opts.browserTesting || inBox) return;
     for (const shot of newScreenshots(path.join(l.dir, 'browser'), l.shots, all ? Infinity : Date.now())) {
       l.shots.add(shot.name);
       try {
@@ -576,7 +598,8 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
     if (cli === 'claude' && !sub && typeof b.transcript_path === 'string' && b.transcript_path) transcript = b.transcript_path;
     if (!sub && ['PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'UserPromptSubmit', 'Stop', 'StopFailure'].includes(event)) clearWait();
     if (cli === 'claude' && !sub && b.session_id !== kept) {
-      const id = resumableSession(b, fs.existsSync);
+      // in a box the session file is there: once its hooks report it, it's resumable
+      const id = resumableSession(b, inBox ? () => true : fs.existsSync);
       if (id) {
         kept = id;
         cb.sessionId(id);
@@ -604,7 +627,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
         cb.output?.(event === 'PostToolUseFailure' ? `${String(b.error ?? '')}\n${out.text}` : out.text);
         // Codex's unnamed screenshots are collected from the browser's folder (its hooks may not be trusted yet).
         if (cli === 'claude') for (const img of out.images) cb.screenshot(Buffer.from(img.data, 'base64'), img.mime);
-        const saved = name === 'mcp__playwright__browser_take_screenshot' && !out.images.length ? screenshotFile(opts.cwd, out.text) : null;
+        const saved = name === 'mcp__playwright__browser_take_screenshot' && !out.images.length && !inBox ? screenshotFile(opts.cwd, out.text) : null;
         if (saved) cb.screenshot(saved.data, saved.mime);
         if (name.startsWith('mcp__playwright__')) {
           const url = out.text.match(/Page URL:\s*(\S+)/);
@@ -757,8 +780,8 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
 
   // ---------- a new CLI: files for this session, and the command line ----------
 
-  const cmd = commandFor(cli);
-  if (!terminalsAvailable || !cmd) {
+  const cmd = inBox ? { file: cli, args: [] as string[] } : commandFor(cli); // a box has the CLIs on its PATH
+  if (!inBox && (!terminalsAvailable || !cmd)) {
     const why = !terminalsAvailable ? 'the terminal module could not be loaded on this machine' : `${label} isn't installed (no "${cli}" on PATH)`;
     setTimeout(() => finish({ ok: false, text: '', errors: [`Could not start ${label}: ${why}.`] }), 0);
     return handle;
@@ -767,36 +790,49 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   // Through the keeper, a hook waits while the office restarts instead of failing: the CLIs allow it longer.
   const keeper = keeperHookUrl();
   const hookUrl = `${keeper ?? officeUrl}/api/hooks/${token}`;
-  const browser = opts.browserTesting ? playwrightServer(path.join(dir, 'browser')) : null;
-  const phoneBrowser = opts.browserTesting && opts.phoneBrowser ? playwrightServer(path.join(dir, 'phone-browser'), true) : null;
+  // In a box, paths are the box's (Linux), and the CLI's hooks write to its events file (boxRunner.ts).
+  const join = (...p: string[]) => (inBox ? p.join('/') : path.join(...p));
+  const server = inBox ? boxPlaywrightServer : playwrightServer;
+  const browser = opts.browserTesting ? server(join(dir, 'browser')) : null;
+  const phoneBrowser = opts.browserTesting && opts.phoneBrowser ? server(join(dir, 'phone-browser'), true) : null;
   let prompt = opts.prompt;
   if (opts.outputSchema) {
     prompt += `\n\nWhen you are done, end your final message with your report as one JSON object in a \`\`\`json block, matching this JSON schema:\n${JSON.stringify(opts.outputSchema)}`;
   }
-  let files: { settings: string; mcp: string | null; system: string };
-  try {
-    writeHelpers();
-    fs.mkdirSync(dir, { recursive: true });
-    const settings = {
-      hooks: Object.fromEntries(HOOK_EVENTS.map((e) => [e, [{ hooks: [{ type: 'http', url: hookUrl, timeout: keeper ? 120 : 30 }] }]])),
-      statusLine: { type: 'command', command: `${shellArg(process.execPath)} ${shellArg(path.join(BIN_DIR, 'statusline.cjs'))} ${shellArg(hookUrl)}`, padding: 0 },
-    };
-    const servers: Record<string, unknown> = {};
-    if (browser) servers.playwright = browser;
-    if (phoneBrowser) servers.phone = phoneBrowser;
-    if (opts.office) servers.office = { type: 'http', url: `${officeUrl}/api/mcp/${token}` };
-    files = { settings: path.join(dir, 'settings.json'), mcp: Object.keys(servers).length ? path.join(dir, 'mcp.json') : null, system: path.join(dir, 'instructions.md') };
-    fs.writeFileSync(files.settings, JSON.stringify(settings, null, 2));
-    if (files.mcp) fs.writeFileSync(files.mcp, JSON.stringify({ mcpServers: servers }, null, 2));
-    fs.writeFileSync(files.system, opts.systemAppend);
-    if (prompt.length > INLINE_PROMPT_MAX) {
-      const file = path.join(dir, 'task.md');
-      fs.writeFileSync(file, prompt);
-      prompt = `Your task is in ${file}. Read all of it first, then do what it says.`;
+  const boxEvent = (mode: string, ...args: string[]) => ['node', `${BOX_BIN}/event.cjs`, mode, ...args].map(shq).join(' ');
+  const settings = inBox
+    ? {
+        hooks: Object.fromEntries(HOOK_EVENTS.map((e) => [e, [{ hooks: [{ type: 'command', command: boxEvent('hook'), timeout: 30 }] }]])),
+        statusLine: { type: 'command', command: boxEvent('status', statusLine), padding: 0 },
+      }
+    : {
+        hooks: Object.fromEntries(HOOK_EVENTS.map((e) => [e, [{ hooks: [{ type: 'http', url: hookUrl, timeout: keeper ? 120 : 30 }] }]])),
+        statusLine: { type: 'command', command: `${shellArg(process.execPath)} ${shellArg(path.join(BIN_DIR, 'statusline.cjs'))} ${shellArg(hookUrl)}`, padding: 0 },
+      };
+  const servers: Record<string, unknown> = {};
+  if (browser) servers.playwright = browser;
+  if (phoneBrowser) servers.phone = phoneBrowser;
+  if (opts.office && !inBox) servers.office = { type: 'http', url: `${officeUrl}/api/mcp/${token}` }; // the CEO works here
+  const files = { settings: join(dir, 'settings.json'), mcp: Object.keys(servers).length ? join(dir, 'mcp.json') : null, system: join(dir, 'instructions.md') };
+  const writes: { path: string; content: string }[] = [
+    { path: files.settings, content: JSON.stringify(settings, null, 2) },
+    ...(files.mcp ? [{ path: files.mcp, content: JSON.stringify({ mcpServers: servers }, null, 2) }] : []),
+    { path: files.system, content: opts.systemAppend },
+  ];
+  if (prompt.length > INLINE_PROMPT_MAX) {
+    const file = join(dir, 'task.md');
+    writes.push({ path: file, content: prompt });
+    prompt = `Your task is in ${file}. Read all of it first, then do what it says.`;
+  }
+  if (!inBox) {
+    try {
+      writeHelpers();
+      fs.mkdirSync(dir, { recursive: true });
+      for (const w of writes) fs.writeFileSync(w.path, w.content);
+    } catch (err) {
+      setTimeout(() => finish({ ok: false, text: '', errors: [`Could not prepare ${label}: ${(err as Error).message}`] }), 0);
+      return handle;
     }
-  } catch (err) {
-    setTimeout(() => finish({ ok: false, text: '', errors: [`Could not prepare ${label}: ${(err as Error).message}`] }), 0);
-    return handle;
   }
   officePrompts.push(prompt.trim()); // as given: a long one is a pointer to its file
   launched.push(prompt.trim());
@@ -812,38 +848,63 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
     role: opts.role,
     additionalDirectories: opts.additionalDirectories,
     files,
-    notify: { script: path.join(BIN_DIR, 'notify.cjs'), url: hookUrl },
-    codexHook: path.join(BIN_DIR, 'codex-hook.cjs'),
+    notify: inBox ? { script: `${BOX_BIN}/event.cjs`, url: '' } : { script: path.join(BIN_DIR, 'notify.cjs'), url: hookUrl },
+    codexHook: inBox ? `${BOX_BIN}/event.cjs` : path.join(BIN_DIR, 'codex-hook.cjs'),
     plugin: pathToFileURL(path.join(BIN_DIR, 'opencode-plugin.mjs')).href,
     browser,
     phoneBrowser,
+    inBox,
   });
 
   // Each agent must be a clean instance on the account its CLI is logged into: no API keys (they would switch Claude
   // Code's billing to the API) and nothing inherited from a Claude Code session the office itself was started from.
+  // In a box the CLI starts from the box's own environment, plus what the office gives it (its GitHub token).
   const env: Record<string, string> = {};
-  for (const [k, v] of Object.entries(process.env)) {
-    if (v === undefined) continue;
-    if (/^(ANTHROPIC_|CLAUDE)/i.test(k) && k !== 'CLAUDE_CONFIG_DIR') continue;
-    if (/^(NO_COLOR|FORCE_COLOR|TERM_PROGRAM|TERM_PROGRAM_VERSION|CODEX_THREAD_ID|OPENCODE_CONFIG_CONTENT)$/i.test(k)) continue;
-    env[k] = v;
+  if (inBox) {
+    Object.assign(env, { TERM: 'xterm-256color', COLORTERM: 'truecolor', TMPDIR: BOX_SCRATCH, TMP: BOX_SCRATCH, TEMP: BOX_SCRATCH }, launch.env, opts.box!.env);
+  } else {
+    for (const [k, v] of Object.entries(process.env)) {
+      if (v === undefined) continue;
+      if (/^(ANTHROPIC_|CLAUDE)/i.test(k) && k !== 'CLAUDE_CONFIG_DIR') continue;
+      if (/^(NO_COLOR|FORCE_COLOR|TERM_PROGRAM|TERM_PROGRAM_VERSION|CODEX_THREAD_ID|OPENCODE_CONFIG_CONTENT)$/i.test(k)) continue;
+      env[k] = v;
+    }
+    fs.mkdirSync(SCRATCH_DIR, { recursive: true });
+    Object.assign(env, { TERM: 'xterm-256color', COLORTERM: 'truecolor' }, scratchTemp(SCRATCH_DIR), launch.env);
   }
-  fs.mkdirSync(SCRATCH_DIR, { recursive: true });
-  Object.assign(env, { TERM: 'xterm-256color', COLORTERM: 'truecolor' }, scratchTemp(SCRATCH_DIR), launch.env);
 
   if (cli === 'claude' && opts.resumeSessionId) cb.sessionId(sessionId);
-  term.note(`── ${label}${opts.label ? ` · ${opts.label}` : ''} ──`);
+  term.note(`── ${label}${opts.label ? ` · ${opts.label}` : ''}${inBox ? ' · in its Upstash Box' : ''} ──`);
   const resumeId = cli === 'claude' ? sessionId : (opts.resumeSessionId ?? null);
-  const l: LiveCli = { agentId: opts.agentId ?? '', cli, term, proc: null, token, dir, resumeId, statusLine, shots: new Set(), session: { hook, exited }, meter: new FileMeter(), costSeen: opts.resumeSessionId ? null : 0 };
-  const begin = () => {
+  const l: LiveCli = { agentId: opts.agentId ?? '', cli, term, proc: null, token, dir, resumeId, statusLine, shots: new Set(), session: { hook, exited }, meter: new FileMeter(), costSeen: opts.resumeSessionId ? null : 0, box: inBox };
+  /** A box's CLI: its files go into the box first, then it starts there (boxRunner.ts). */
+  const startInBox = async (): Promise<Pty> => {
+    const box = await writeBoxHelpers(opts.box!.boxId);
+    await box.exec.command(`mkdir -p ${shq(dir)} ${shq(BOX_SCRATCH)}`);
+    for (const w of writes) await box.files.write(w);
+    return new BoxPty({
+      boxId: opts.box!.boxId,
+      dir,
+      cwd: opts.cwd,
+      file: cmd!.file,
+      args: launch.args,
+      env,
+      cols: term.cols,
+      rows: term.rows,
+      onEvent: (b) => void handleHook(token, b),
+      onNotice: (text) => log([{ kind: 'system', text }]),
+    });
+  };
+  const begin = async () => {
     if (done) return; // stopped while its thread was being unarchived
     let p: Pty;
     try {
-      p = spawnPty(cmd.file, [...cmd.args, ...launch.args], { cols: term.cols, rows: term.rows, cwd: opts.cwd, env }, metaOf(l));
+      p = inBox ? await startInBox() : spawnPty(cmd!.file, [...cmd!.args, ...launch.args], { cols: term.cols, rows: term.rows, cwd: opts.cwd, env }, metaOf(l));
     } catch (err) {
-      setTimeout(() => finish({ ok: false, text: '', errors: [`Could not start ${label}: ${(err as Error).message}`] }), 0);
+      setTimeout(() => finish({ ok: false, text: '', errors: [`Could not start ${label}${inBox ? ' in its box' : ''}: ${(err as Error).message}`] }), 0);
       return;
     }
+    if (done) return void p.kill(); // stopped while its box was being made ready
     l.proc = p;
     live = l;
     wire(l, opts.office);
@@ -882,9 +943,9 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
       if (!done && !begun && cli === 'claude') log([{ kind: 'error', text: `⚠ ${label} hasn't started on the task yet. Open the terminal to see what it's waiting for.` }]);
     }, BOOT_MS);
   };
-  // Codex won't resume a thread the office archived (see codexThread): it's unarchived first.
-  if (cli === 'codex' && opts.resumeSessionId) void codexThread('unarchive', opts.resumeSessionId).then(begin);
-  else begin();
+  // Codex won't resume a thread the office archived (see codexThread): it's unarchived first (not in a box: never archived).
+  if (cli === 'codex' && opts.resumeSessionId && !inBox) void codexThread('unarchive', opts.resumeSessionId).then(begin);
+  else void begin();
 
   return handle;
 }

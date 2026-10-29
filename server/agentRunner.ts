@@ -44,6 +44,11 @@ export interface SessionOptions {
   agentId?: string;
   /** Follow the session of the CLI still running in the terminal after the office restarted; start nothing. */
   reattach?: boolean;
+  /**
+   * The recruit works in their Upstash Box (boxRunner.ts): cwd is a path in the box, and env is added to the CLI's
+   * environment there (the GitHub token for git and gh). Terminal runtime only.
+   */
+  box?: { boxId: string; env: Record<string, string> };
 }
 
 export interface LogEntry {
